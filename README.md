@@ -2,6 +2,10 @@
 
 Components for A-Frame physics integration, built on [CANNON.js](http://schteppe.github.io/cannon.js/).
 
+![d6590832-8bdb-11e6-9336-658b00bc0460 3](https://cloud.githubusercontent.com/assets/1848368/19297499/806d059a-9013-11e6-9b20-c03294acbc4c.png)
+
+> Image credit [@andgokevin](https://twitter.com/andgokevin).
+
 ## Components
 
 The `dynamic-body` and `static-body` components may be added to any `<a-entity/>` that contains a mesh. Generally, each scene will have at least one `static-body` for the ground, and one or more `dynamic-body` instances that the player can interact with.
