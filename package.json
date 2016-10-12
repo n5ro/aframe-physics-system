@@ -1,6 +1,6 @@
 {
   "name": "aframe-physics-system",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Physics system for A-Frame VR, built on Cannon.js",
   "main": "index.js",
   "scripts": {
