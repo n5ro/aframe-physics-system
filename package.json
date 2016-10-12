@@ -1,0 +1,44 @@
+{
+  "name": "aframe-physics-system",
+  "version": "1.0.0",
+  "description": "Physics system for A-Frame VR, built on Cannon.js",
+  "main": "index.js",
+  "scripts": {
+    "dev": "budo browser.js:bundle.js -d examples --port 8000",
+    "dist": "browserify browser.js -o dist/aframe-physics-system.js && uglifyjs -c -o dist/aframe-physics-system.min.js -- dist/aframe-physics-system.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/donmccurdy/aframe-physics-system.git"
+  },
+  "keywords": [
+    "aframe",
+    "aframevr",
+    "vr",
+    "three",
+    "physics",
+    "cannon",
+    "webgl",
+    "webvr"
+  ],
+  "author": "Don McCurdy <dm@donmccurdy.com> (https://www.donmccurdy.com)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/donmccurdy/aframe-physics-system/issues"
+  },
+  "homepage": "https://github.com/donmccurdy/aframe-physics-system#readme",
+  "dependencies": {
+    "cannon": "^0.6.2",
+    "three-to-cannon": "^1.0.0"
+  },
+  "peerDependencies": {
+    "aframe": "^0.3.1"
+  },
+  "devDependencies": {
+    "aframe": "^0.3.1",
+    "browserify": "^13.1.0",
+    "budo": "^9.2.1",
+    "uglify-js": "^2.7.3"
+  }
+}
