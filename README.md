@@ -1,5 +1,8 @@
 # Physics for A-Frame VR
 
+[![Build Status](https://travis-ci.org/donmccurdy/aframe-physics-system.svg?branch=master)](https://travis-ci.org/donmccurdy/aframe-physics-system)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/donmccurdy/aframe-physics-system/master/LICENSE)
+
 Components for A-Frame physics integration, built on [CANNON.js](http://schteppe.github.io/cannon.js/).
 
 ![d6590832-8bdb-11e6-9336-658b00bc0460 3](https://cloud.githubusercontent.com/assets/1848368/19297499/806d059a-9013-11e6-9b20-c03294acbc4c.png)
