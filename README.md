@@ -9,6 +9,40 @@ Components for A-Frame physics integration, built on [CANNON.js](http://schteppe
 
 > Image credit [@andgokevin](https://twitter.com/andgokevin).
 
+## Usage (Scripts)
+
+In the [dist/](https://github.com/donmccurdy/aframe-physics-system/tree/master/dist) folder, download the full or minified build. Include the script on your page, and all components are automatically registered for you:
+
+```html
+<script src="//cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.0.2/dist/aframe-physics-system.min.js"></script>
+```
+
+CDN builds for aframe-extras/v1.0.2:
+
+- [aframe-physics-system.js](https://cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.0.2/dist/aframe-physics-system.js) *(development)*
+- [aframe-physics-system.min.js](https://cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.0.2/dist/aframe-physics-system.min.js) *(production)*
+
+## Usage (NPM)
+
+```
+npm install --save aframe-physics-system
+```
+
+```javascript
+// my-app.js
+var physics = require('aframe-physics-system');
+physics.registerAll();
+```
+
+Once installed, you'll need to compile your JavaScript using something like [Browserify](http://browserify.org/) or [Webpack](http://webpack.github.io/). Example:
+
+```bash
+npm install -g browserify
+browserify my-app.js -o bundle.js
+```
+
+`bundle.js` may then be included in your page. See [here](http://browserify.org/#middle-section) for a better introduction to Browserify.
+
 ## Components
 
 The `dynamic-body` and `static-body` components may be added to any `<a-entity/>` that contains a mesh. Generally, each scene will have at least one `static-body` for the ground, and one or more `dynamic-body` instances that the player can interact with.
