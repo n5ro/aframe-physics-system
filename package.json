@@ -12,7 +12,8 @@
     "test:chrome": "karma start ./tests/karma.conf.js --browsers Chrome",
     "test:ci": "TEST_ENV=ci karma start ./tests/karma.conf.js --single-run --browsers Firefox",
     "preversion": "npm run test:once",
-    "version": "npm run dist && git add -A dist",
+    "preversion:readme": "replace 'aframe-physics-system/v\\d+\\.\\d+\\.\\d+' \"aframe-physics-system/v$npm_package_version\" ./README.md",
+    "version": "npm run preversion:readme && npm run dist && git add -A dist README.md",
     "postversion": "git push && git push --tags && npm publish"
   },
   "repository": {
@@ -58,6 +59,7 @@
     "karma-mocha-reporter": "^2.2.0",
     "karma-sinon-chai": "^1.2.4",
     "mocha": "^3.1.2",
+    "replace": "^0.3.0",
     "sinon": "^1.17.6",
     "sinon-chai": "^2.8.0",
     "uglify-js": "^2.7.3"
