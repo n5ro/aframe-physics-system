@@ -6,7 +6,12 @@
   "scripts": {
     "dev": "budo browser.js:bundle.js -d examples --port 8000",
     "dist": "browserify browser.js -o dist/aframe-physics-system.js && uglifyjs -c -o dist/aframe-physics-system.min.js -- dist/aframe-physics-system.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "karma start ./tests/karma.conf.js",
+    "test:once": "karma start ./tests/karma.conf.js --single-run",
+    "test:firefox": "karma start ./tests/karma.conf.js --browsers Firefox",
+    "test:chrome": "karma start ./tests/karma.conf.js --browsers Chrome",
+    "test:ci": "TEST_ENV=ci karma start ./tests/karma.conf.js --single-run --browsers Firefox",
+    "preversion": "npm run test:once",
     "version": "npm run dist && git add -A dist",
     "postversion": "git push && git push --tags && npm publish"
   },
@@ -41,6 +46,20 @@
     "aframe": "^0.3.1",
     "browserify": "^13.1.0",
     "budo": "^9.2.1",
+    "chai": "^3.5.0",
+    "chai-shallow-deep-equal": "^1.4.4",
+    "karma": "^1.3.0",
+    "karma-browserify": "^5.1.0",
+    "karma-chai-shallow-deep-equal": "0.0.4",
+    "karma-chrome-launcher": "^2.0.0",
+    "karma-env-preprocessor": "^0.1.1",
+    "karma-firefox-launcher": "^1.0.0",
+    "karma-mocha": "^1.2.0",
+    "karma-mocha-reporter": "^2.2.0",
+    "karma-sinon-chai": "^1.2.4",
+    "mocha": "^3.1.2",
+    "sinon": "^1.17.6",
+    "sinon-chai": "^2.8.0",
     "uglify-js": "^2.7.3"
   }
 }
