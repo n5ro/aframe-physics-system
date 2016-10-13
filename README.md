@@ -17,7 +17,7 @@ In the [dist/](https://github.com/donmccurdy/aframe-physics-system/tree/master/d
 <script src="//cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.0.2/dist/aframe-physics-system.min.js"></script>
 ```
 
-CDN builds for aframe-extras/v1.0.2:
+CDN builds for aframe-physics-system/v1.0.2:
 
 - [aframe-physics-system.js](https://cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.0.2/dist/aframe-physics-system.js) *(development)*
 - [aframe-physics-system.min.js](https://cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.0.2/dist/aframe-physics-system.min.js) *(production)*
