@@ -43,14 +43,23 @@ browserify my-app.js -o bundle.js
 
 `bundle.js` may then be included in your page. See [here](http://browserify.org/#middle-section) for a better introduction to Browserify.
 
-## Components
+## Components – `dynamic-body` and `static-body`
 
 The `dynamic-body` and `static-body` components may be added to any `<a-entity/>` that contains a mesh. Generally, each scene will have at least one `static-body` for the ground, and one or more `dynamic-body` instances that the player can interact with.
 
 - **dynamic-body**: A freely-moving object. Dynamic bodies have mass, collide with other objects, bounce or slow during collisions, and fall if gravity is enabled.
 - **static-body**: A fixed-position or animated object. Other objects may collide with static bodies, but static bodies themselves are unaffected by gravity and collisions.
 
-## Basic Usage
+| Property       | Dependencies     | Default | Description                                 |
+|----------------|------------------|---------|---------------------------------------------|
+| shape          | —                | `auto`  | `auto`, `box`, `cylinder`, `sphere`, `hull` |
+| mass           | `dynamic-body`   | 5       | Simulated mass of the object, > 0.          |
+| linearDamping  | `dynamic-body`   | 0.01    | Resistance to movement.                     |
+| angularDamping | `dynamic-body`   | 0.01    | Resistance to rotation.                     |
+| sphereRadius   |  `shape:sphere`  | —       | Override default radius of bounding sphere. |
+| cylinderAxis   | `shape:cylinder` | —       | Override default axis of bounding cylinder. |
+
+### Basics
 
 ```html
 <!-- The debug:true option creates a wireframe around each physics body. If you don't see a wireframe,
@@ -58,10 +67,10 @@ The `dynamic-body` and `static-body` components may be added to any `<a-entity/>
 <a-scene physics="debug: true">
 
   <!-- Camera -->
-  <a-entity camera universal-controls kinematic-body></a-entity>
+  <a-entity camera look-controls></a-entity>
 
   <!-- Floor -->
-  <a-grid static-body></a-grid>
+  <a-plane static-body></a-plane>
 
   <!-- Immovable box -->
   <a-box static-body position="0 0.5 -5" width="3" height="1" depth="1"></a-box>
@@ -72,6 +81,26 @@ The `dynamic-body` and `static-body` components may be added to any `<a-entity/>
 </a-scene>
 ```
 
+## Components – `constraint`
+
+The `constraint` component is used to bind physics bodies together using hinges, fixed distances, or fixed attachment points.
+
+Example:
+
+```html
+<a-box id="other-box" dynamic-body />
+<a-box constraint="target: #other-box;" dynamic-body /> 
+```
+
+| Property         | Dependencies    | Default | Description |
+| --- | --- | --- | --- |
+| type             | —               | `lock`  | Type of constraint. Options: `lock`, `distance`, and more to come. |
+| target           | —               | —       | Selector for a single entity to which current entity should be bound. |
+| maxForce         | —               | 1e6     | Maximum force that may be exerted to enforce this constraint. |
+| collideConnected | —               | true    | If true, connected bodies may collide with one another. |
+| wakeUpBodies     | —               | true    | If true, sleeping bodies are woken up by this constraint. |
+| distance         | `type:distance` | auto    | Distance at which bodies should be fixed. Default, or 0, for current distance. |
+
 ## Using the CANNON.js API
 
 For more advanced physics, use the CANNON.js API with custom JavaScript and A-Frame components. The [CANNON.js documentation](http://schteppe.github.io/cannon.js/docs/) and source code offer good resources for learning to work with physics in JavaScript.
@@ -81,7 +110,7 @@ In A-Frame, each entity's `CANNON.Body` instance is exposed on the `el.body` pro
 ```html
 <a-scene>
   <a-entity id="nyan" dynamic-body="shape: hull" obj-model="obj: url(nyan-cat.obj)"></a-entity>
-  <a-grid static-body><a/grid>
+  <a-plane static-body></a-plane>
 </a-scene>
 ```
 
