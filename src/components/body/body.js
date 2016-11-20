@@ -32,7 +32,7 @@ module.exports = {
     var shape,
         el = this.el,
         data = this.data,
-        pos = el.getComputedAttribute('position'),
+        pos = el.getAttribute('position'),
         options = data.shape === 'auto' ? undefined : AFRAME.utils.extend({}, this.data, {
           type: mesh2shape.Type[data.shape.toUpperCase()]
         });
@@ -60,7 +60,7 @@ module.exports = {
     this.body.addShape(shape, shape.offset, shape.orientation);
 
     // Apply rotation
-    var rot = el.getComputedAttribute('rotation');
+    var rot = el.getAttribute('rotation');
     this.body.quaternion.setFromEuler(
       THREE.Math.degToRad(rot.x),
       THREE.Math.degToRad(rot.y),
@@ -194,7 +194,7 @@ module.exports = {
 
       if (!body) return;
 
-      if (el.components.velocity) body.velocity.copy(el.getComputedAttribute('velocity'));
+      if (el.components.velocity) body.velocity.copy(el.getAttribute('velocity'));
 
       if (parentEl.isScene) {
         body.quaternion.copy(el.object3D.quaternion);
