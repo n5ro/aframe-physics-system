@@ -135,7 +135,11 @@ module.exports = {
     var offset = shape.offset,
         orientation = shape.orientation,
         mesh = CANNON.shape2mesh(body).children[0];
-    this.wireframe = new THREE.EdgesHelper(mesh, 0xff0000);
+
+    this.wireframe = new THREE.LineSegments(
+      new THREE.EdgesGeometry(mesh.geometry),
+      new THREE.LineBasicMaterial({color: 0xff0000})
+    );
 
     if (offset) {
       this.wireframe.offset = offset.clone();
