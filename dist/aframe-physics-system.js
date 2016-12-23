@@ -193,11 +193,27 @@ module.exports = CANNON.shape2mesh;
 module.exports={
   "_args": [
     [
-      "cannon@github:schteppe/cannon.js",
+      {
+        "hosted": {
+          "directUrl": "https://raw.githubusercontent.com/donmccurdy/cannon.js/v0.6.2-dev1/package.json",
+          "gitUrl": "git://github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
+          "httpsUrl": "git+https://github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
+          "shortcut": "github:donmccurdy/cannon.js#v0.6.2-dev1",
+          "ssh": "git@github.com:donmccurdy/cannon.js.git#v0.6.2-dev1",
+          "sshUrl": "git+ssh://git@github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
+          "type": "github"
+        },
+        "name": "cannon",
+        "raw": "cannon@github:donmccurdy/cannon.js#v0.6.2-dev1",
+        "rawSpec": "github:donmccurdy/cannon.js#v0.6.2-dev1",
+        "scope": null,
+        "spec": "github:donmccurdy/cannon.js#v0.6.2-dev1",
+        "type": "hosted"
+      },
       "/Users/donmccurdy/Documents/Projects/aframe-physics-system"
     ]
   ],
-  "_from": "schteppe/cannon.js",
+  "_from": "donmccurdy/cannon.js#v0.6.2-dev1",
   "_id": "cannon@0.6.2",
   "_inCache": true,
   "_installable": true,
@@ -205,29 +221,28 @@ module.exports={
   "_phantomChildren": {},
   "_requested": {
     "hosted": {
-      "directUrl": "https://raw.githubusercontent.com/schteppe/cannon.js/master/package.json",
-      "gitUrl": "git://github.com/schteppe/cannon.js.git",
-      "httpsUrl": "git+https://github.com/schteppe/cannon.js.git",
-      "shortcut": "github:schteppe/cannon.js",
-      "ssh": "git@github.com:schteppe/cannon.js.git",
-      "sshUrl": "git+ssh://git@github.com/schteppe/cannon.js.git",
+      "directUrl": "https://raw.githubusercontent.com/donmccurdy/cannon.js/v0.6.2-dev1/package.json",
+      "gitUrl": "git://github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
+      "httpsUrl": "git+https://github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
+      "shortcut": "github:donmccurdy/cannon.js#v0.6.2-dev1",
+      "ssh": "git@github.com:donmccurdy/cannon.js.git#v0.6.2-dev1",
+      "sshUrl": "git+ssh://git@github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
       "type": "github"
     },
     "name": "cannon",
-    "raw": "cannon@github:schteppe/cannon.js",
-    "rawSpec": "github:schteppe/cannon.js",
+    "raw": "cannon@github:donmccurdy/cannon.js#v0.6.2-dev1",
+    "rawSpec": "github:donmccurdy/cannon.js#v0.6.2-dev1",
     "scope": null,
-    "spec": "github:schteppe/cannon.js",
+    "spec": "github:donmccurdy/cannon.js#v0.6.2-dev1",
     "type": "hosted"
   },
   "_requiredBy": [
-    "/",
-    "/three-to-cannon"
+    "/"
   ],
-  "_resolved": "git://github.com/schteppe/cannon.js.git#569730f94a1d9da47967a24fad0323ef7d5b4119",
-  "_shasum": "8cc63948fe81cbcfe5615630c7364cc069487ceb",
+  "_resolved": "git://github.com/donmccurdy/cannon.js.git#022e8ba53fa83abf0ad8a0e4fd08623123838a17",
+  "_shasum": "f320e685f2d835c5a42bf995cb6488109b5ffeec",
   "_shrinkwrap": null,
-  "_spec": "cannon@github:schteppe/cannon.js",
+  "_spec": "cannon@github:donmccurdy/cannon.js#v0.6.2-dev1",
   "_where": "/Users/donmccurdy/Documents/Projects/aframe-physics-system",
   "author": {
     "email": "schteppe@gmail.com",
@@ -255,7 +270,7 @@ module.exports={
   "engines": {
     "node": "*"
   },
-  "gitHead": "569730f94a1d9da47967a24fad0323ef7d5b4119",
+  "gitHead": "022e8ba53fa83abf0ad8a0e4fd08623123838a17",
   "homepage": "https://github.com/schteppe/cannon.js",
   "keywords": [
     "cannon.js",
@@ -5644,7 +5659,7 @@ var Box = require('../shapes/Box');
  * @param {number} [options.sleepSpeedLimit=0.1]
  * @param {number} [options.sleepTimeLimit=1]
  * @param {number} [options.collisionFilterGroup=1]
- * @param {number} [options.collisionFilterMask=-1]
+ * @param {number} [options.collisionFilterMask=1]
  * @param {boolean} [options.fixedRotation=false]
  * @param {Vec3} [options.linearFactor]
  * @param {Vec3} [options.angularFactor]
@@ -5697,7 +5712,7 @@ function Body(options){
     /**
      * @property {Number} collisionFilterMask
      */
-    this.collisionFilterMask = typeof(options.collisionFilterMask) === 'number' ? options.collisionFilterMask : -1;
+    this.collisionFilterMask = typeof(options.collisionFilterMask) === 'number' ? options.collisionFilterMask : 1;
 
     /**
      * Whether to produce contact forces when in contact with other bodies. Note that contacts will be generated, but they will be disabled.
@@ -5706,7 +5721,6 @@ function Body(options){
 	this.collisionResponse = true;
 
     /**
-     * World space position of the body.
      * @property position
      * @type {Vec3}
      */
@@ -5738,7 +5752,6 @@ function Body(options){
     }
 
     /**
-     * World space velocity of the body.
      * @property velocity
      * @type {Vec3}
      */
@@ -5755,7 +5768,7 @@ function Body(options){
     this.initVelocity = new Vec3();
 
     /**
-     * Linear force on the body in world space.
+     * Linear force on the body
      * @property force
      * @type {Vec3}
      */
@@ -5833,14 +5846,15 @@ function Body(options){
 
     this._wakeUpAfterNarrowphase = false;
 
+
     /**
-     * World space rotational force on the body, around center of mass.
+     * Rotational force on the body, around center of mass
      * @property {Vec3} torque
      */
     this.torque = new Vec3();
 
     /**
-     * World space orientation of the body.
+     * Orientation of the body
      * @property quaternion
      * @type {Quaternion}
      */
@@ -5871,7 +5885,6 @@ function Body(options){
     }
 
     /**
-     * Angular velocity of the body, in world space. Think of the angular velocity as a vector, which the body rotates around. The length of this vector determines how fast (in radians per second) the body rotates.
      * @property angularVelocity
      * @type {Vec3}
      */
@@ -5894,14 +5907,12 @@ function Body(options){
     this.shapes = [];
 
     /**
-     * Position of each Shape in the body, given in local Body space.
      * @property shapeOffsets
      * @type {array}
      */
     this.shapeOffsets = [];
 
     /**
-     * Orientation of each Shape, given in local Body space.
      * @property shapeOrientations
      * @type {array}
      */
@@ -5948,7 +5959,6 @@ function Body(options){
     this.angularDamping = typeof(options.angularDamping) !== 'undefined' ? options.angularDamping : 0.01;
 
     /**
-     * Use this property to limit the motion along any world axis. (1,1,1) will allow motion along all axes while (0,0,0) allows none.
      * @property {Vec3} linearFactor
      */
     this.linearFactor = new Vec3(1,1,1);
@@ -5957,7 +5967,6 @@ function Body(options){
     }
 
     /**
-     * Use this property to limit the rotational motion along any world axis. (1,1,1) will allow rotation along all axes while (0,0,0) allows none.
      * @property {Vec3} angularFactor
      */
     this.angularFactor = new Vec3(1,1,1);
@@ -5966,7 +5975,6 @@ function Body(options){
     }
 
     /**
-     * World space bounding box of the body and its shapes.
      * @property aabb
      * @type {AABB}
      */
@@ -5978,13 +5986,6 @@ function Body(options){
      * @type {Boolean}
      */
     this.aabbNeedsUpdate = true;
-
-    /**
-     * Total bounding radius of the Body including its shapes, relative to body.position.
-     * @property boundingRadius
-     * @type {Number}
-     */
-    this.boundingRadius = 0;
 
     this.wlambda = new Vec3();
 
@@ -8178,9 +8179,9 @@ var ConvexPolyhedron = require('./ConvexPolyhedron');
  * @extends Shape
  */
 function Box(halfExtents){
-    Shape.call(this, {
-        type: Shape.types.BOX
-    });
+    Shape.call(this);
+
+    this.type = Shape.types.BOX;
 
     /**
      * @property halfExtents
@@ -8427,9 +8428,9 @@ var Transform = require('../math/Transform');
  * @todo Automatically merge coplanar polygons in constructor.
  */
 function ConvexPolyhedron(points, faces, uniqueAxes) {
-    Shape.call(this, {
-        type: Shape.types.CONVEXPOLYHEDRON
-    });
+    var that = this;
+    Shape.call(this);
+    this.type = Shape.types.CONVEXPOLYHEDRON;
 
     /**
      * Array of Vec3
@@ -9403,6 +9404,7 @@ function Cylinder( radiusTop, radiusBottom, height , numSegments ) {
     }
     faces.push(temp);
 
+    this.type = Shape.types.CONVEXPOLYHEDRON;
     ConvexPolyhedron.call( this, verts, faces, axes );
 }
 
@@ -9486,13 +9488,12 @@ function Heightfield(data, options){
 
     this.cacheEnabled = true;
 
-    Shape.call(this, {
-        type: Shape.types.HEIGHTFIELD
-    });
+    Shape.call(this);
 
     this.pillarConvex = new ConvexPolyhedron();
     this.pillarOffset = new Vec3();
 
+    this.type = Shape.types.HEIGHTFIELD;
     this.updateBoundingSphereRadius();
 
     // "i_j_isUpper" => { convex: ..., offset: ... }
@@ -10108,9 +10109,9 @@ var Vec3 = require('../math/Vec3');
  * @extends Shape
  */
 function Particle(){
-    Shape.call(this, {
-        type: Shape.types.PARTICLE
-    });
+    Shape.call(this);
+
+    this.type = Shape.types.PARTICLE;
 }
 Particle.prototype = new Shape();
 Particle.prototype.constructor = Particle;
@@ -10148,16 +10149,15 @@ var Shape = require('./Shape');
 var Vec3 = require('../math/Vec3');
 
 /**
- * A plane, facing in the Z direction. The plane has its surface at z=0 and everything below z=0 is assumed to be solid plane. To make the plane face in some other direction than z, you must put it inside a Body and rotate that body. See the demos.
+ * A plane, facing in the Z direction. The plane has its surface at z=0 and everything below z=0 is assumed to be solid plane. To make the plane face in some other direction than z, you must put it inside a RigidBody and rotate that body. See the demos.
  * @class Plane
  * @constructor
  * @extends Shape
  * @author schteppe
  */
 function Plane(){
-    Shape.call(this, {
-        type: Shape.types.PLANE
-    });
+    Shape.call(this);
+    this.type = Shape.types.PLANE;
 
     // World oriented normal
     this.worldNormal = new Vec3();
@@ -10217,15 +10217,10 @@ var Material = require('../material/Material');
  * Base class for shapes
  * @class Shape
  * @constructor
- * @param {object} [options]
- * @param {number} [options.collisionFilterGroup=1]
- * @param {number} [options.collisionFilterMask=-1]
- * @param {number} [options.collisionResponse=true]
- * @param {number} [options.material=null]
  * @author schteppe
+ * @todo Should have a mechanism for caching bounding sphere radius instead of calculating it each time
  */
-function Shape(options){
-    options = options || {};
+function Shape(){
 
     /**
      * Identifyer of the Shape.
@@ -10239,7 +10234,7 @@ function Shape(options){
      * @type {Number}
      * @see Shape.types
      */
-    this.type = options.type || 0;
+    this.type = 0;
 
     /**
      * The local bounding sphere radius of this shape.
@@ -10251,22 +10246,12 @@ function Shape(options){
      * Whether to produce contact forces when in contact with other bodies. Note that contacts will be generated, but they will be disabled.
      * @property {boolean} collisionResponse
      */
-    this.collisionResponse = options.collisionResponse ? options.collisionResponse : true;
-
-    /**
-     * @property {Number} collisionFilterGroup
-     */
-    this.collisionFilterGroup = options.collisionFilterGroup !== undefined ? options.collisionFilterGroup : 1;
-
-    /**
-     * @property {Number} collisionFilterMask
-     */
-    this.collisionFilterMask = options.collisionFilterMask !== undefined ? options.collisionFilterMask : -1;
+    this.collisionResponse = true;
 
     /**
      * @property {Material} material
      */
-    this.material = options.material ? options.material : null;
+    this.material = null;
 
     /**
      * @property {Body} body
@@ -10339,14 +10324,13 @@ var Vec3 = require('../math/Vec3');
  * @author schteppe / http://github.com/schteppe
  */
 function Sphere(radius){
-    Shape.call(this, {
-        type: Shape.types.SPHERE
-    });
+    Shape.call(this);
 
     /**
      * @property {Number} radius
      */
-    this.radius = radius !== undefined ? radius : 1.0;
+    this.radius = radius!==undefined ? Number(radius) : 1.0;
+    this.type = Shape.types.SPHERE;
 
     if(this.radius < 0){
         throw new Error('The sphere radius cannot be negative.');
@@ -10413,9 +10397,8 @@ var Octree = require('../utils/Octree');
  *     var trimeshShape = new Trimesh(vertices, indices);
  */
 function Trimesh(vertices, indices) {
-    Shape.call(this, {
-        type: Shape.types.TRIMESH
-    });
+    Shape.call(this);
+    this.type = Shape.types.TRIMESH;
 
     /**
      * @property vertices
@@ -12098,10 +12081,6 @@ Narrowphase.prototype.getContacts = function(p1, p2, world, result, oldcontacts,
                 bj.quaternion.vmult(bj.shapeOffsets[j], xj);
                 xj.vadd(bj.position, xj);
                 var sj = bj.shapes[j];
-
-                if(!((si.collisionFilterMask & sj.collisionFilterGroup) && (sj.collisionFilterMask & si.collisionFilterGroup))){
-                    continue;
-                }
 
                 if(xi.distanceTo(xj) > si.boundingSphereRadius + sj.boundingSphereRadius){
                     continue;
@@ -14749,6 +14728,8 @@ var Type = {
   HULL: 'ConvexPolyhedron'
 };
 
+// TEST TEST TEST TEST
+
 /**
  * Given a THREE.Object3D instance, creates a corresponding CANNON shape.
  * @param  {THREE.Object3D} object
@@ -15059,7 +15040,7 @@ function getVertices (geometry) {
   if (!geometry.attributes) {
     geometry = new THREE.BufferGeometry().fromGeometry(geometry);
   }
-  return geometry.attributes.position.array;
+  return (geometry.attributes.position || {}).array || [];
 }
 
 /**
@@ -15670,7 +15651,11 @@ module.exports = {
     var offset = shape.offset,
         orientation = shape.orientation,
         mesh = CANNON.shape2mesh(body).children[0];
-    this.wireframe = new THREE.EdgesHelper(mesh, 0xff0000);
+
+    this.wireframe = new THREE.LineSegments(
+      new THREE.EdgesGeometry(mesh.geometry),
+      new THREE.LineBasicMaterial({color: 0xff0000})
+    );
 
     if (offset) {
       this.wireframe.offset = offset.clone();
