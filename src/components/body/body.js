@@ -101,11 +101,10 @@ module.exports = {
    * Internal helper to register component with physics system.
    */
   _play: function () {
+    this.syncToPhysics();
     this.system.addBehavior(this, this.system.Phase.SIMULATE);
     this.system.addBody(this.body);
     if (this.wireframe) this.el.sceneEl.object3D.add(this.wireframe);
-
-    this.syncToPhysics();
   },
 
   /**

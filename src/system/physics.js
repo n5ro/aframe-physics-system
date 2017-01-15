@@ -3,11 +3,19 @@ var CANNON = require('cannon'),
     C_GRAV = CONSTANTS.GRAVITY,
     C_MAT = CONSTANTS.CONTACT_MATERIAL;
 
+var LocalDriver = require('../drivers/local-driver'),
+    WorkerDriver = require('../drivers/worker-driver'),
+    ServerDriver = require('../drivers/server-driver');
+
 /**
  * Physics system.
  */
 module.exports = {
   schema: {
+    // CANNON.js driver type
+    driver:                         { default: 'local', oneOf: ['local', 'worker', 'server'] },
+    driverUri:                      { default: 'physics-worker.js' },
+
     gravity:                        { default: C_GRAV },
     iterations:                     { default: CONSTANTS.ITERATIONS },
     friction:                       { default: C_MAT.friction },
@@ -49,24 +57,31 @@ module.exports = {
 
     this.listeners = {};
 
-    this.world = new CANNON.World();
-    this.world.quatNormalizeSkip = 0;
-    this.world.quatNormalizeFast = false;
-    // this.world.solver.setSpookParams(300,10);
-    this.world.solver.iterations = data.iterations;
-    this.world.gravity.set(0, data.gravity, 0);
-    this.world.broadphase = new CANNON.NaiveBroadphase();
+    this.driver = null;
+    switch (data.driver) {
+      case 'local':  this.driver = new LocalDriver();  break;
+      case 'worker': this.driver = new WorkerDriver(); break;
+      case 'server': this.driver = new ServerDriver(); break;
+      default:
+        throw new Error('[physics] Driver not recognized: "%s".', data.driver);
+    }
 
-    this.material = new CANNON.Material({name: 'defaultMaterial'});
-    this.contactMaterial = new CANNON.ContactMaterial(this.material, this.material, {
-        friction: data.friction,
-        restitution: data.restitution,
-        contactEquationStiffness: data.contactEquationStiffness,
-        contactEquationRelaxation: data.contactEquationRelaxation,
-        frictionEquationStiffness: data.frictionEquationStiffness,
-        frictionEquationRegularization: data.frictionEquationRegularization
+    this.driver.init({
+      quatNormalizeSkip: 0,
+      quatNormalizeFast: false,
+      solverIterations: data.iterations,
+      gravity: data.gravity
     });
-    this.world.addContactMaterial(this.contactMaterial);
+
+    this.driver.addMaterial({name: 'defaultMaterial'});
+    this.driver.addContactMaterial('defaultMaterial', 'defaultMaterial', {
+      friction: data.friction,
+      restitution: data.restitution,
+      contactEquationStiffness: data.contactEquationStiffness,
+      contactEquationRelaxation: data.contactEquationRelaxation,
+      frictionEquationStiffness: data.frictionEquationStiffness,
+      frictionEquationRegularization: data.frictionEquationRegularization
+    });
   },
 
   /**
@@ -80,7 +95,7 @@ module.exports = {
   tick: function (t, dt) {
     if (!dt) return;
 
-    this.world.step(Math.min(dt / 1000, this.data.maxInterval));
+    this.driver.step(Math.min(dt / 1000, this.data.maxInterval));
 
     var i;
     for (i = 0; i < this.children[this.Phase.SIMULATE].length; i++) {
@@ -97,9 +112,7 @@ module.exports = {
    * @param {CANNON.Body} body
    */
   addBody: function (body) {
-    this.listeners[body.id] = function (e) { body.el.emit('collide', e); };
-    body.addEventListener('collide', this.listeners[body.id]);
-    this.world.addBody(body);
+    this.driver.addBody(body);
   },
 
   /**
@@ -107,9 +120,17 @@ module.exports = {
    * @param {CANNON.Body} body
    */
   removeBody: function (body) {
-    body.removeEventListener('collide', this.listeners[body.id]);
-    delete this.listeners[body.id];
-    this.world.removeBody(body);
+    this.driver.removeBody(body);
+  },
+
+  /** @param {CANNON.Constraint} constraint */
+  addConstraint: function (constraint) {
+    this.driver.addConstraint(constraint);
+  },
+
+  /** @param {CANNON.Constraint} constraint */
+  removeConstraint: function (constraint) {
+    this.driver.removeConstraint(constraint);
   },
 
   /**
@@ -129,29 +150,5 @@ module.exports = {
    */
   removeBehavior: function (component, phase) {
     this.children[phase].splice(this.children[phase].indexOf(component), 1);
-  },
-
-  /**
-   * Sets an option on the physics system, affecting future simulation steps.
-   * @param {string} opt
-   * @param {mixed} value
-   */
-  update: function (previousData) {
-    var data = this.data;
-
-    if (data.debug !== previousData.debug) {
-      console.warn('[physics] `debug` cannot be changed dynamically.');
-    }
-
-    if (data.maxInterval !== previousData.maxInterval); // noop;
-
-    if (data.gravity !== previousData.gravity) this.world.gravity.set(0, data.gravity, 0);
-
-    this.contactMaterial.friction = data.friction;
-    this.contactMaterial.restitution = data.restitution;
-    this.contactMaterial.contactEquationStiffness = data.contactEquationStiffness;
-    this.contactMaterial.contactEquationRelaxation = data.contactEquationRelaxation;
-    this.contactMaterial.frictionEquationStiffness = data.frictionEquationStiffness;
-    this.contactMaterial.frictionEquationRegularization = data.frictionEquationRegularization;
   }
 };
