@@ -55,7 +55,7 @@ LocalDriver.prototype.removeBody = function (body) {
  * @param {Array} args
  */
 LocalDriver.prototype.applyBodyMethod = function (body, methodName, args) {
-  body[methodName].apply(args);
+  body['__' + methodName].apply(body, args);
 };
 
 /** @param {CANNON.Body} body */
@@ -94,4 +94,14 @@ LocalDriver.prototype.addConstraint = function (constraint) {
 /* @param {CANNON.Constraint} constraint */
 LocalDriver.prototype.removeConstraint = function (constraint) {
   this.world.removeConstraint(constraint);
+};
+
+/******************************************************************************
+ * Collisions
+ */
+
+/** @return {Array<object>} */
+Driver.prototype.getCollisions = function () {
+  // TODO(donmccurdy)
+  throw new Error('Not implemented');
 };

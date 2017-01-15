@@ -62,6 +62,13 @@ Driver.prototype.addConstraint = abstractMethod;
 /* @param {CANNON.Constraint} constraint */
 Driver.prototype.removeConstraint = abstractMethod;
 
+/******************************************************************************
+ * Collisions
+ */
+
+/** @return {Array<object>} */
+Driver.prototype.getCollisions = abstractMethod;
+
 /*****************************************************************************/
 
 function abstractMethod () {

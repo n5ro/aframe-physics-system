@@ -88,67 +88,15 @@ AFRAME.registerComponent('force-pushable', {
     el.body.applyImpulse(force, el.body.position);
   }
 });
-
-/**
- * Force Float component.
- *
- * Applies behavior to the scene in which a keypress (default: Spacebar) will
- * temporarily disable gravity and apply a small upward impulse to target
- * entities.
- *
- * Requires: physics
- */
-AFRAME.registerComponent('force-float', {
-  schema: {
-    force:    { default: 1.0 },
-    keyCode:  { default: 32 },
-    selector: { default: '[force-float-target]' }
-  },
-
-  init: function () {
-    this.isFloating = false;
-    document.addEventListener('keyup', this.onKeyup.bind(this));
-  },
-
-  onKeyup: function (e) {
-    if (e.keyCode !== this.data.keyCode) return;
-
-    var data = this.data,
-        isFloating = this.isFloating,
-        physics = this.el.sceneEl.systems.physics,
-        targets = this.el.sceneEl.querySelectorAll(data.selector);
-
-    if (isFloating) {
-      physics.world.gravity = this.gravity;
-    } else {
-      // Disable gravity.
-      this.gravity = physics.world.gravity;
-      physics.world.gravity = new CANNON.Vec3(0, 0, 0);
-
-      // Lift targets slightly.
-      targets = [].slice.call(targets).forEach(function (el) {
-        var position = new CANNON.Vec3().copy(el.getAttribute('position')),
-            impulse = new CANNON.Vec3(
-              0.25 * data.force * Math.random(),
-              1.00 * data.force * Math.random() + 1.5,
-              0.25 * data.force * Math.random()
-            );
-        el.body.applyImpulse(impulse, position);
-      });
-    }
-
-    this.isFloating = !isFloating;
-  }
-});
     </script>
   </head>
   <body>
-    <a-scene rain-of-entities force-float="selector: [force-pushable]">
+    <a-scene rain-of-entities physics="driver: local">
       <!-- Player -->
       <a-entity camera
                 look-controls
                 position="0 1.764 0">
-        <a-entity cursor raycaster="far: 75"
+        <a-entity cursor="maxDistance: 75"
                   position="0 0 -1"
                   geometry="primitive: circle; radius: 0.01; segments: 4;"
                   material="color: #FF4444; shader: flat"></a-entity>

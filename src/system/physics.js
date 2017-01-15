@@ -108,19 +108,37 @@ module.exports = {
   },
 
   /**
-   * Adds a body to the scene, and binds collision events to the element.
+   * Adds a body to the scene, and binds proxied methods to the driver.
    * @param {CANNON.Body} body
    */
   addBody: function (body) {
+    var driver = this.driver;
+
+    body.__applyImpulse = body.applyImpulse;
+    body.applyImpulse = function () {
+      driver.applyBodyMethod(body, 'applyImpulse', arguments);
+    };
+
+    body.__applyForce = body.applyForce;
+    body.applyForce = function () {
+      driver.applyBodyMethod(body, 'applyForce', arguments);
+    };
+
     this.driver.addBody(body);
   },
 
   /**
-   * Removes a body, and its listeners, from the scene.
+   * Removes a body and its proxied methods.
    * @param {CANNON.Body} body
    */
   removeBody: function (body) {
     this.driver.removeBody(body);
+
+    body.applyImpulse = body.__applyImpulse;
+    delete body.__applyImpulse;
+
+    body.applyForce = body.__applyForce;
+    delete body.__applyForce;
   },
 
   /** @param {CANNON.Constraint} constraint */
