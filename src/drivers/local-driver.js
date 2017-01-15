@@ -33,7 +33,11 @@ LocalDriver.prototype.step = function (deltaMS) {
   this.world.step(deltaMS);
 };
 
-LocalDriver.prototype.destroy;
+LocalDriver.prototype.destroy = function () {
+  delete this.world;
+  delete this.contactMaterial;
+  this.materials = {};
+};
 
 /******************************************************************************
  * Bodies
@@ -101,7 +105,7 @@ LocalDriver.prototype.removeConstraint = function (constraint) {
  */
 
 /** @return {Array<object>} */
-Driver.prototype.getCollisions = function () {
+LocalDriver.prototype.getCollisions = function () {
   // TODO(donmccurdy)
   throw new Error('Not implemented');
 };
