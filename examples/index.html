@@ -35,6 +35,7 @@ AFRAME.registerComponent('rain-of-entities', {
     }
 
     var data = this.data,
+        physics = this.el.sceneEl.systems.physics,
         box = document.createElement(data.tagName);
 
     this.boxes.push(box);
@@ -50,7 +51,8 @@ AFRAME.registerComponent('rain-of-entities', {
     setInterval(function () {
       if (box.body.position.y > 0) return;
       box.body.position.copy(this.randomPosition());
-      box.body.velocity.set(0,0,0);
+      box.body.velocity.set(0, 0, 0);
+      box.body.updateProperties();
     }.bind(this), this.data.lifetime);
   },
   randomPosition: function () {

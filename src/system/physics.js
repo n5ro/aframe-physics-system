@@ -124,6 +124,10 @@ module.exports = {
       driver.applyBodyMethod(body, 'applyForce', arguments);
     };
 
+    body.updateProperties = function () {
+      driver.updateBodyProperties(body);
+    };
+
     this.driver.addBody(body);
   },
 
@@ -139,6 +143,8 @@ module.exports = {
 
     body.applyForce = body.__applyForce;
     delete body.__applyForce;
+
+    delete body.updateProperties;
   },
 
   /** @param {CANNON.Constraint} constraint */
