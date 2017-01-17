@@ -59,9 +59,9 @@ module.exports = {
 
     this.driver = null;
     switch (data.driver) {
-      case 'local':  this.driver = new LocalDriver();  break;
-      case 'worker': this.driver = new WorkerDriver(); break;
-      case 'server': this.driver = new ServerDriver(); break;
+      case 'local':  this.driver = new LocalDriver();                break;
+      case 'worker': this.driver = new WorkerDriver(data.driverUri); break;
+      case 'server': this.driver = new ServerDriver(data.driverUri); break;
       default:
         throw new Error('[physics] Driver not recognized: "%s".', data.driver);
     }

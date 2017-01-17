@@ -38,7 +38,8 @@
   "homepage": "https://github.com/donmccurdy/aframe-physics-system#readme",
   "dependencies": {
     "cannon": "github:donmccurdy/cannon.js#v0.6.2-dev1",
-    "three-to-cannon": "^1.1.1"
+    "three-to-cannon": "^1.1.1",
+    "webworkify": "^1.4.0"
   },
   "peerDependencies": {
     "aframe": ">=0.5.0"
