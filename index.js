@@ -5,7 +5,7 @@ module.exports = {
   'dynamic-body':   require('./src/components/body/dynamic-body'),
   'static-body':    require('./src/components/body/static-body'),
   'constraint':     require('./src/components/constraint'),
-  'system':         require('./src/system/physics'),
+  'system':         require('./src/system'),
 
   registerAll: function (AFRAME) {
     if (this._registered) return;

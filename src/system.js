@@ -1,11 +1,10 @@
-var CANNON = require('cannon'),
-    CONSTANTS = require('../constants'),
+var CONSTANTS = require('./constants'),
     C_GRAV = CONSTANTS.GRAVITY,
     C_MAT = CONSTANTS.CONTACT_MATERIAL;
 
-var LocalDriver = require('../drivers/local-driver'),
-    WorkerDriver = require('../drivers/worker-driver'),
-    ServerDriver = require('../drivers/server-driver');
+var LocalDriver = require('./drivers/local-driver'),
+    WorkerDriver = require('./drivers/worker-driver'),
+    ServerDriver = require('./drivers/server-driver');
 
 /**
  * Physics system.
@@ -14,7 +13,8 @@ module.exports = {
   schema: {
     // CANNON.js driver type
     driver:                         { default: 'local', oneOf: ['local', 'worker', 'server'] },
-    driverUri:                      { default: 'physics-worker.js' },
+    serverUrl:                      { default: '' },
+    workerFps:                      { default: 60 },
 
     gravity:                        { default: C_GRAV },
     iterations:                     { default: CONSTANTS.ITERATIONS },
@@ -60,8 +60,8 @@ module.exports = {
     this.driver = null;
     switch (data.driver) {
       case 'local':  this.driver = new LocalDriver();                break;
-      case 'worker': this.driver = new WorkerDriver(data.driverUri); break;
-      case 'server': this.driver = new ServerDriver(data.driverUri); break;
+      case 'worker': this.driver = new WorkerDriver(data.workerFps); break;
+      case 'server': this.driver = new ServerDriver(data.serverUrl); break;
       default:
         throw new Error('[physics] Driver not recognized: "%s".', data.driver);
     }

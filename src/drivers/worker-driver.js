@@ -8,7 +8,8 @@ var webworkify = require('webworkify'),
  * Constructor
  */
 
-function WorkerDriver () {
+function WorkerDriver (fps) {
+  this.fps = fps;
   this.bodies = {};
   this.worker = webworkify(worker);
   this.worker.addEventListener('message', this._onMessage.bind(this));
@@ -25,7 +26,7 @@ module.exports = WorkerDriver;
 
 /* @param {object} worldConfig */
 WorkerDriver.prototype.init = function (worldConfig) {
-  this.worker.postMessage({type: Event.INIT, worldConfig: worldConfig});
+  this.worker.postMessage({type: Event.INIT, worldConfig: worldConfig, fps: this.fps});
 };
 
 /* @param {number} deltaMS */

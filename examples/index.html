@@ -51,7 +51,9 @@ AFRAME.registerComponent('rain-of-entities', {
     setInterval(function () {
       if (box.body.position.y > 0) return;
       box.body.position.copy(this.randomPosition());
+      box.body.quaternion.set(0, 0, 0, 1);
       box.body.velocity.set(0, 0, 0);
+      box.body.angularVelocity.set(0, 0, 0);
       box.body.updateProperties();
     }.bind(this), this.data.lifetime);
   },

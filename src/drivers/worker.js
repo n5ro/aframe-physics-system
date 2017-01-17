@@ -5,6 +5,7 @@ var Event = require('./event'),
 module.exports = function (self) {
 
   var driver = new LocalDriver();
+  var stepSize;
 
   self.addEventListener('message', function (event) {
 
@@ -14,6 +15,8 @@ module.exports = function (self) {
       // Lifecycle.
       case Event.INIT:
         driver.init(data.worldConfig);
+        stepSize = 1 / data.fps;
+        setInterval(step, 1000 / data.fps);
         break;
 
       // Bodies.
@@ -57,11 +60,8 @@ module.exports = function (self) {
     }
   });
 
-  setInterval(function () {
-    if (!driver.world) return;
-
-    // TODO(donmccurdy): This is arbitrary, and should be passed by INIT.
-    driver.step(0.005);
+  function step () {
+    driver.step(stepSize);
 
     var bodies = {};
     driver.world.bodies.forEach(function (body) {
@@ -70,7 +70,6 @@ module.exports = function (self) {
     });
 
     self.postMessage({type: Event.STEP, bodies: bodies});
-
-  }, 5);
+  }
 
 };
