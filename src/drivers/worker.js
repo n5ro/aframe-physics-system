@@ -6,11 +6,9 @@ module.exports = function (self) {
 
   var driver = new LocalDriver();
 
-  self.addEventListener('message',function (event){
+  self.addEventListener('message', function (event) {
 
     var data = event.data;
-
-    console.log('Worker received: %o', data);
 
     switch (data.type) {
       // Lifecycle.
@@ -23,17 +21,16 @@ module.exports = function (self) {
         driver.addBody(protocol.deserializeBody(data.body));
         break;
       case Event.REMOVE_BODY:
+        driver.removeBody(driver.world.idToBodyMap[data.bodyID]);
+        break;
       case Event.APPLY_BODY_METHOD:
-        console.warn('[Worker] Not implemented');
+        driver.world.idToBodyMap[data.bodyID][data.methodName].apply(
+          driver.world.idToBodyMap[data.bodyID],
+          [protocol.deserializeVec3(data.args[0]), protocol.deserializeVec3(data.args[1])]
+        );
         break;
       case Event.UPDATE_BODY_PROPERTIES:
-        for (var body, i = 0; (body = driver.world.bodies[i]); i++) {
-          // TODO(donmccurdy): IDs are not consistent.
-          if (body.id === data.body.id) {
-            protocol.deserializeBodyUpdate(data.body, body);
-            break;
-          }
-        }
+        protocol.deserializeBodyUpdate(data.body, driver.world.idToBodyMap[data.body.id]);
         break;
 
       // Materials.
@@ -63,7 +60,7 @@ module.exports = function (self) {
   setInterval(function () {
     if (!driver.world) return;
 
-    // TODO(donmccurdy): This is arbitrary.
+    // TODO(donmccurdy): This is arbitrary, and should be passed by INIT.
     driver.step(0.005);
 
     var bodies = {};

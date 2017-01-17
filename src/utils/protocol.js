@@ -8,26 +8,21 @@ module.exports.serializeBody = function (body) {
     // Shapes.
     shapes: body.shapes.map(function (shape) {
       if (shape.type === CANNON.Shape.types.BOX) {
-        return {type: 'Box', halfExtents: shape.halfExtents.toArray()};
+        return {type: 'Box', halfExtents: serializeVec3(shape.halfExtents)};
       }
       // TODO(donmccurdy): Support for other shape types.
       throw new Error('Unimplemented shape type: %s', shape.type);
     }),
-    shapeOffsets: body.shapeOffsets.map(function (offset) {
-      return offset.toArray();
-    }),
-    shapeOrientations: body.shapeOrientations.map(function (orientation) {
-      return orientation.toArray();
-    }),
+    shapeOffsets: body.shapeOffsets.map(serializeVec3),
+    shapeOrientations: body.shapeOrientations.map(serializeQuaternion),
 
     // Vectors.
-    position: body.position.toArray(),
+    position: serializeVec3(body.position),
     quaternion: body.quaternion.toArray(),
-    velocity: body.velocity.toArray(),
-    angularVelocity: body.angularVelocity.toArray(),
+    velocity: serializeVec3(body.velocity),
+    angularVelocity: serializeVec3(body.angularVelocity),
 
     // Properties.
-    mass: body.mass,
     linearDamping: body.linearDamping,
     angularDamping: body.angularDamping,
     fixedRotation: body.fixedRotation,
@@ -66,10 +61,10 @@ module.exports.deserializeBody = function (message) {
     id: message.id,
     mass: message.mass,
 
-    position: new CANNON.Vec3(message.position[0], message.position[1], message.position[2]),
-    quaternion: new CANNON.Quaternion(message.quaternion[0], message.quaternion[1], message.quaternion[2], message.quaternion[3]),
-    velocity: new CANNON.Vec3(message.velocity[0], message.velocity[1], message.velocity[2]),
-    angularVelocity: new CANNON.Vec3(message.angularVelocity[0], message.angularVelocity[1], message.angularVelocity[2]),
+    position: deserializeVec3(message.position),
+    quaternion: deserializeQuaternion(message.quaternion),
+    velocity: deserializeVec3(message.velocity),
+    angularVelocity: deserializeVec3(message.angularVelocity),
 
     linearDamping: message.linearDamping,
     angularDamping: message.angularDamping,
@@ -82,13 +77,9 @@ module.exports.deserializeBody = function (message) {
   // TODO(donmccurdy): Support for other shape types.
   for (var shape, i = 0; (shape = message.shapes[i]); i++) {
     body.addShape(
-      new CANNON[shape.type](new CANNON.Vec3(
-        shape.halfExtents[0],
-        shape.halfExtents[1],
-        shape.halfExtents[2]
-      )),
-      message.shapeOffsets[i],
-      message.shapeOrientations[i]
+      new CANNON[shape.type](deserializeVec3(shape.halfExtents)),
+      deserializeVec3(message.shapeOffsets[i]),
+      deserializeQuaternion(message.shapeOrientations[i])
     );
   }
 
@@ -123,3 +114,23 @@ module.exports.serializeConstraint = function (constraint) {
 module.exports.deserializeConstraint = function (message) {
   throw new Error('[utils] Not implemented');
 };
+
+module.exports.serializeVec3 = serializeVec3;
+function serializeVec3 (vec3) {
+  return vec3.toArray();
+}
+
+module.exports.deserializeVec3 = deserializeVec3;
+function deserializeVec3 (message) {
+  return new CANNON.Vec3(message[0], message[1], message[2]);
+}
+
+module.exports.serializeQuaternion = serializeQuaternion;
+function serializeQuaternion (quat) {
+  return quat.toArray();
+}
+
+module.exports.deserializeQuaternion = deserializeQuaternion;
+function deserializeQuaternion (message) {
+  return new CANNON.Quaternion(message[0], message[1], message[2], message[3]);
+}
