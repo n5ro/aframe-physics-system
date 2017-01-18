@@ -74,7 +74,11 @@ module.exports = function (self) {
       bodyMessages[id] = protocol.serializeBody(bodies[id]);
     });
 
-    self.postMessage({type: Event.STEP, bodies: bodyMessages});
+    self.postMessage({
+      type: Event.STEP,
+      bodies: bodyMessages,
+      contacts: driver.getContacts().map(protocol.serializeContact)
+    });
   }
 
 };

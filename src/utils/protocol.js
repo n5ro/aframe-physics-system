@@ -1,5 +1,9 @@
 var CANNON = require('CANNON');
 
+/******************************************************************************
+ * IDs
+ */
+
 var ID = '__id';
 module.exports.ID = ID;
 
@@ -9,6 +13,10 @@ module.exports.assignID = function (prefix, object) {
   nextID[prefix] = nextID[prefix] || 1;
   object[ID] = prefix + '_' + nextID[prefix]++;
 };
+
+/******************************************************************************
+ * Bodies
+ */
 
 module.exports.serializeBody = function (body) {
   var message = {
@@ -95,6 +103,10 @@ module.exports.deserializeBody = function (message) {
   return body;
 };
 
+/******************************************************************************
+ * Constraints
+ */
+
 module.exports.serializeConstraint = function (constraint) {
 
   var message = {
@@ -124,6 +136,34 @@ module.exports.serializeConstraint = function (constraint) {
 module.exports.deserializeConstraint = function (message) {
   throw new Error('[utils] Not implemented');
 };
+
+/******************************************************************************
+ * Contacts
+ */
+
+module.exports.serializeContact = function (contact) {
+  return {
+    bi: contact.bi[ID],
+    bj: contact.bj[ID],
+    ni: serializeVec3(contact.ni),
+    ri: serializeVec3(contact.ri),
+    rj: serializeVec3(contact.rj)
+  };
+};
+
+module.exports.deserializeContact = function (message, bodies) {
+  return {
+    bi: bodies[message.bi],
+    bj: bodies[message.bj],
+    ni: deserializeVec3(message.ni),
+    ri: deserializeVec3(message.ri),
+    rj: deserializeVec3(message.rj)
+  };
+};
+
+/******************************************************************************
+ * Math
+ */
 
 module.exports.serializeVec3 = serializeVec3;
 function serializeVec3 (vec3) {

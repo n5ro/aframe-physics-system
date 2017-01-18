@@ -174,5 +174,10 @@ module.exports = {
    */
   removeBehavior: function (component, phase) {
     this.children[phase].splice(this.children[phase].indexOf(component), 1);
+  },
+
+  /** @return {Array<object>} */
+  getContacts: function () {
+    return this.driver.getContacts();
   }
 };

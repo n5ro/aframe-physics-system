@@ -63,11 +63,11 @@ Driver.prototype.addConstraint = abstractMethod;
 Driver.prototype.removeConstraint = abstractMethod;
 
 /******************************************************************************
- * Collisions
+ * Contacts
  */
 
 /** @return {Array<object>} */
-Driver.prototype.getCollisions = abstractMethod;
+Driver.prototype.getContacts = abstractMethod;
 
 /*****************************************************************************/
 

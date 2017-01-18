@@ -13,6 +13,7 @@ var ID = protocol.ID;
 function WorkerDriver (fps) {
   this.fps = fps;
   this.bodies = {};
+  this.contacts = [];
   this.worker = webworkify(worker);
   this.worker.addEventListener('message', this._onMessage.bind(this));
 }
@@ -42,12 +43,17 @@ WorkerDriver.prototype.destroy = function () {
 /** {Event} event */
 WorkerDriver.prototype._onMessage = function (event) {
   if (event.data.type === Event.STEP) {
-    var bodies = event.data.bodies;
+    var data = event.data,
+        bodies = data.bodies;
+
+    this.contacts = event.data.contacts;
+
     for (var id in bodies) {
       if (bodies.hasOwnProperty(id)) {
         protocol.deserializeBodyUpdate(bodies[id], this.bodies[id]);
       }
     }
+
   } else {
     throw new Error('[WorkerDriver] Unexpected message type.');
   }
@@ -144,11 +150,14 @@ WorkerDriver.prototype.removeConstraint = function (constraint) {
 };
 
 /******************************************************************************
- * Collisions
+ * Contacts
  */
 
 /** @return {Array<object>} */
-WorkerDriver.prototype.getCollisions = function () {
-  // TODO(donmccurdy)
-  throw new Error('[WorkerDriver] Not implemented');
+WorkerDriver.prototype.getContacts = function () {
+  // TODO(donmccurdy): There's some wasted memory allocation here.
+  var bodies = this.bodies;
+  return this.contacts.map(function (message) {
+    return protocol.deserializeContact(message, bodies);
+  });
 };

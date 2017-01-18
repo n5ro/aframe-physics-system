@@ -101,11 +101,10 @@ LocalDriver.prototype.removeConstraint = function (constraint) {
 };
 
 /******************************************************************************
- * Collisions
+ * Contacts
  */
 
 /** @return {Array<object>} */
-LocalDriver.prototype.getCollisions = function () {
-  // TODO(donmccurdy)
-  throw new Error('Not implemented');
+LocalDriver.prototype.getContacts = function () {
+  return this.world.contacts;
 };
