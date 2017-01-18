@@ -4,7 +4,8 @@ var CONSTANTS = require('./constants'),
 
 var LocalDriver = require('./drivers/local-driver'),
     WorkerDriver = require('./drivers/worker-driver'),
-    ServerDriver = require('./drivers/server-driver');
+    ServerDriver = require('./drivers/server-driver'),
+    AmmoDriver = require('./drivers/ammo-driver');
 
 /**
  * Physics system.
@@ -12,7 +13,7 @@ var LocalDriver = require('./drivers/local-driver'),
 module.exports = {
   schema: {
     // CANNON.js driver type
-    driver:                         { default: 'local', oneOf: ['local', 'worker', 'server'] },
+    driver:                         { default: 'local', oneOf: ['local', 'worker', 'server', 'ammo'] },
     serverUrl:                      { default: '' },
     workerFps:                      { default: 60 },
 
@@ -60,6 +61,7 @@ module.exports = {
     this.driver = null;
     switch (data.driver) {
       case 'local':  this.driver = new LocalDriver();                break;
+      case 'ammo':   this.driver = new AmmoDriver();                 break;
       case 'worker': this.driver = new WorkerDriver(data.workerFps); break;
       case 'server': this.driver = new ServerDriver(data.serverUrl); break;
       default:
