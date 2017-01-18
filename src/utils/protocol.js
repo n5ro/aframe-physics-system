@@ -1,10 +1,17 @@
 var CANNON = require('CANNON');
 
+var ID = '__id';
+module.exports.ID = ID;
+
+var nextID = {};
+module.exports.assignID = function (prefix, object) {
+  if (object[ID]) return;
+  nextID[prefix] = nextID[prefix] || 1;
+  object[ID] = prefix + '_' + nextID[prefix]++;
+};
+
 module.exports.serializeBody = function (body) {
   var message = {
-    id: body.id,
-    mass: body.mass,
-
     // Shapes.
     shapes: body.shapes.map(function (shape) {
       if (shape.type === CANNON.Shape.types.BOX) {
@@ -23,6 +30,8 @@ module.exports.serializeBody = function (body) {
     angularVelocity: serializeVec3(body.angularVelocity),
 
     // Properties.
+    id: body[ID],
+    mass: body.mass,
     linearDamping: body.linearDamping,
     angularDamping: body.angularDamping,
     fixedRotation: body.fixedRotation,
@@ -57,8 +66,6 @@ module.exports.deserializeBodyUpdate = function (message, body) {
 
 module.exports.deserializeBody = function (message) {
   var body = new CANNON.Body({
-    // TODO(donmccurdy): Is this ignored?
-    id: message.id,
     mass: message.mass,
 
     position: deserializeVec3(message.position),
@@ -83,12 +90,15 @@ module.exports.deserializeBody = function (message) {
     );
   }
 
+  body[ID] = message.id;
+
   return body;
 };
 
 module.exports.serializeConstraint = function (constraint) {
 
   var message = {
+    id: constraint[ID],
     maxForce: constraint.maxForce,
     bodyA: constraint.bodyA.id,
     bodyB: constraint.bodyB.id

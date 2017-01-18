@@ -2,9 +2,12 @@ var Event = require('./event'),
     LocalDriver = require('./local-driver'),
     protocol = require('../utils/protocol');
 
+var ID = protocol.ID;
+
 module.exports = function (self) {
 
   var driver = new LocalDriver();
+  var bodies = {};
   var stepSize;
 
   self.addEventListener('message', function (event) {
@@ -21,19 +24,22 @@ module.exports = function (self) {
 
       // Bodies.
       case Event.ADD_BODY:
-        driver.addBody(protocol.deserializeBody(data.body));
+        var body = protocol.deserializeBody(data.body);
+        bodies[body[ID]] = body;
+        driver.addBody(body);
         break;
       case Event.REMOVE_BODY:
-        driver.removeBody(driver.world.idToBodyMap[data.bodyID]);
+        driver.removeBody(bodies[data.bodyID]);
+        delete bodies[data.bodyID];
         break;
       case Event.APPLY_BODY_METHOD:
-        driver.world.idToBodyMap[data.bodyID][data.methodName].apply(
-          driver.world.idToBodyMap[data.bodyID],
+        bodies[data.bodyID][data.methodName].apply(
+          bodies[data.bodyID],
           [protocol.deserializeVec3(data.args[0]), protocol.deserializeVec3(data.args[1])]
         );
         break;
       case Event.UPDATE_BODY_PROPERTIES:
-        protocol.deserializeBodyUpdate(data.body, driver.world.idToBodyMap[data.body.id]);
+        protocol.deserializeBodyUpdate(data.body, bodies[data.body.id]);
         break;
 
       // Materials.
@@ -63,13 +69,12 @@ module.exports = function (self) {
   function step () {
     driver.step(stepSize);
 
-    var bodies = {};
-    driver.world.bodies.forEach(function (body) {
-      // TODO(donmccurdy): IDs are not consistent.
-      bodies[body.id] = protocol.serializeBody(body);
+    var bodyMessages = {};
+    Object.keys(bodies).forEach(function (id) {
+      bodyMessages[id] = protocol.serializeBody(bodies[id]);
     });
 
-    self.postMessage({type: Event.STEP, bodies: bodies});
+    self.postMessage({type: Event.STEP, bodies: bodyMessages});
   }
 
 };

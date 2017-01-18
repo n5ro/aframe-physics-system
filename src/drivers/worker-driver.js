@@ -4,6 +4,8 @@ var webworkify = require('webworkify'),
     worker = require('./worker'),
     protocol = require('../utils/protocol');
 
+var ID = protocol.ID;
+
 /******************************************************************************
  * Constructor
  */
@@ -57,16 +59,15 @@ WorkerDriver.prototype._onMessage = function (event) {
 
 /* @param {CANNON.Body} body */
 WorkerDriver.prototype.addBody = function (body) {
-  // TODO(donmccurdy): IDs are not consistent across protocol.
-  this.bodies[body.id] = body;
+  protocol.assignID('body', body);
+  this.bodies[body[ID]] = body;
   this.worker.postMessage({type: Event.ADD_BODY, body: protocol.serializeBody(body)});
 };
 
 /* @param {CANNON.Body} body */
 WorkerDriver.prototype.removeBody = function (body) {
-  // TODO(donmccurdy): IDs are not consistent across protocol.
-  this.worker.postMessage({type: Event.REMOVE_BODY, bodyID: body.id});
-  this.bodies[body.id];
+  this.worker.postMessage({type: Event.REMOVE_BODY, bodyID: body[ID]});
+  delete this.bodies[body[ID]];
 };
 
 /**
@@ -80,7 +81,7 @@ WorkerDriver.prototype.applyBodyMethod = function (body, methodName, args) {
     case 'applyImpulse':
       this.worker.postMessage({
         type: Event.APPLY_BODY_METHOD,
-        bodyID: body.id,
+        bodyID: body[ID],
         methodName: methodName,
         args: [args[0].toArray(), args[1].toArray()]
       });
@@ -127,7 +128,7 @@ WorkerDriver.prototype.addContactMaterial = function (matName1, matName2, contac
 
 /* @param {CANNON.Constraint} constraint */
 WorkerDriver.prototype.addConstraint = function (constraint) {
-  // TODO(donmccurdy): Constraints IDs are not consistent across protocol.
+  protocol.assignID('constraint', constraint);
   this.worker.postMessage({
     type: Event.ADD_CONSTRAINT,
     constraint: protocol.serializeConstraint(constraint)
@@ -138,7 +139,7 @@ WorkerDriver.prototype.addConstraint = function (constraint) {
 WorkerDriver.prototype.removeConstraint = function (constraint) {
   this.worker.postMessage({
     type: Event.REMOVE_CONSTRAINT,
-    constraintID: constraint.id
+    constraintID: constraint[ID]
   });
 };
 
