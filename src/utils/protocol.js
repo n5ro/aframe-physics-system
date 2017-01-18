@@ -22,11 +22,19 @@ module.exports.serializeBody = function (body) {
   var message = {
     // Shapes.
     shapes: body.shapes.map(function (shape) {
+      var shapeMsg = {type: shape.type};
       if (shape.type === CANNON.Shape.types.BOX) {
-        return {type: 'Box', halfExtents: serializeVec3(shape.halfExtents)};
+        shapeMsg.halfExtents = serializeVec3(shape.halfExtents);
+      } else if (shape.type === CANNON.Shape.types.SPHERE) {
+        shapeMsg.radius = shape.radius;
+      } else if (shape.type === CANNON.Shape.types.CYLINDER) {
+        // Pending schteppe/cannon.js#329.
+        throw new Error('Unimplemented shape type: %s', shape.type);
+      } else {
+        // TODO(donmccurdy): Support for other shape types.
+        throw new Error('Unimplemented shape type: %s', shape.type);
       }
-      // TODO(donmccurdy): Support for other shape types.
-      throw new Error('Unimplemented shape type: %s', shape.type);
+      return shapeMsg;
     }),
     shapeOffsets: body.shapeOffsets.map(serializeVec3),
     shapeOrientations: body.shapeOrientations.map(serializeQuaternion),
@@ -91,8 +99,20 @@ module.exports.deserializeBody = function (message) {
 
   // TODO(donmccurdy): Support for other shape types.
   for (var shape, i = 0; (shape = message.shapes[i]); i++) {
+    var shapeInstance;
+    if (shape.type === CANNON.Shape.types.BOX) {
+      shapeInstance = new CANNON.Box(deserializeVec3(shape.halfExtents));
+    } else if (shape.type === CANNON.Shape.types.SPHERE) {
+      shapeInstance = new CANNON.Sphere(shape.radius);
+    } else if (shape.type === CANNON.Shape.types.CYLINDER) {
+      // Pending schteppe/cannon.js#329.
+      throw new Error('Unimplemented shape type: %s', shape.type);
+    } else {
+      throw new Error('Unimplemented shape type: %s', shape.type);
+    }
+
     body.addShape(
-      new CANNON[shape.type](deserializeVec3(shape.halfExtents)),
+      shapeInstance,
       deserializeVec3(message.shapeOffsets[i]),
       deserializeQuaternion(message.shapeOrientations[i])
     );
