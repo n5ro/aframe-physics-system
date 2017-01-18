@@ -21,21 +21,7 @@ module.exports.assignID = function (prefix, object) {
 module.exports.serializeBody = function (body) {
   var message = {
     // Shapes.
-    shapes: body.shapes.map(function (shape) {
-      var shapeMsg = {type: shape.type};
-      if (shape.type === CANNON.Shape.types.BOX) {
-        shapeMsg.halfExtents = serializeVec3(shape.halfExtents);
-      } else if (shape.type === CANNON.Shape.types.SPHERE) {
-        shapeMsg.radius = shape.radius;
-      } else if (shape.type === CANNON.Shape.types.CYLINDER) {
-        // Pending schteppe/cannon.js#329.
-        throw new Error('Unimplemented shape type: %s', shape.type);
-      } else {
-        // TODO(donmccurdy): Support for other shape types.
-        throw new Error('Unimplemented shape type: %s', shape.type);
-      }
-      return shapeMsg;
-    }),
+    shapes: body.shapes.map(serializeShape),
     shapeOffsets: body.shapeOffsets.map(serializeVec3),
     shapeOrientations: body.shapeOrientations.map(serializeQuaternion),
 
@@ -97,22 +83,9 @@ module.exports.deserializeBody = function (message) {
     sleepTimeLimit: message.sleepTimeLimit
   });
 
-  // TODO(donmccurdy): Support for other shape types.
-  for (var shape, i = 0; (shape = message.shapes[i]); i++) {
-    var shapeInstance;
-    if (shape.type === CANNON.Shape.types.BOX) {
-      shapeInstance = new CANNON.Box(deserializeVec3(shape.halfExtents));
-    } else if (shape.type === CANNON.Shape.types.SPHERE) {
-      shapeInstance = new CANNON.Sphere(shape.radius);
-    } else if (shape.type === CANNON.Shape.types.CYLINDER) {
-      // Pending schteppe/cannon.js#329.
-      throw new Error('Unimplemented shape type: %s', shape.type);
-    } else {
-      throw new Error('Unimplemented shape type: %s', shape.type);
-    }
-
+  for (var shapeMsg, i = 0; (shapeMsg = message.shapes[i]); i++) {
     body.addShape(
-      shapeInstance,
+      deserializeShape(shapeMsg),
       deserializeVec3(message.shapeOffsets[i]),
       deserializeQuaternion(message.shapeOrientations[i])
     );
@@ -122,6 +95,57 @@ module.exports.deserializeBody = function (message) {
 
   return body;
 };
+
+/******************************************************************************
+ * Shapes
+ */
+
+module.exports.serializeShape = serializeShape;
+function serializeShape (shape) {
+  var shapeMsg = {type: shape.type};
+  if (shape.type === CANNON.Shape.types.BOX) {
+    shapeMsg.halfExtents = serializeVec3(shape.halfExtents);
+
+  } else if (shape.type === CANNON.Shape.types.SPHERE) {
+    shapeMsg.radius = shape.radius;
+
+  // Patch schteppe/cannon.js#329.
+  } else if (shape._type === CANNON.Shape.types.CYLINDER) {
+    shapeMsg.type = CANNON.Shape.types.CYLINDER;
+    shapeMsg.radiusTop = shape.radiusTop;
+    shapeMsg.radiusBottom = shape.radiusBottom;
+    shapeMsg.height = shape.height;
+    shapeMsg.numSegments = shape.numSegments;
+
+  } else {
+    // TODO(donmccurdy): Support for other shape types.
+    throw new Error('Unimplemented shape type: %s', shape.type);
+  }
+  return shapeMsg;
+}
+
+module.exports.deserializeShape = deserializeShape;
+function deserializeShape (message) {
+  var shape;
+
+  if (message.type === CANNON.Shape.types.BOX) {
+    shape = new CANNON.Box(deserializeVec3(message.halfExtents));
+
+  } else if (message.type === CANNON.Shape.types.SPHERE) {
+    shape = new CANNON.Sphere(message.radius);
+
+  // Patch schteppe/cannon.js#329.
+  } else if (message.type === CANNON.Shape.types.CYLINDER) {
+    shape = new CANNON.Cylinder(message.radiusTop, message.radiusBottom, message.height, message.numSegments);
+    shape._type = CANNON.Shape.types.CYLINDER;
+
+  } else {
+    // TODO(donmccurdy): Support for other shape types.
+    throw new Error('Unimplemented shape type: %s', message.type);
+  }
+
+  return shape;
+}
 
 /******************************************************************************
  * Constraints
