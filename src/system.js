@@ -14,8 +14,10 @@ module.exports = {
   schema: {
     // CANNON.js driver type
     driver:                         { default: 'local', oneOf: ['local', 'worker', 'server', 'ammo'] },
-    serverUrl:                      { default: '' },
-    workerFps:                      { default: 60 },
+    serverUrl:                      { default: '', if: {driver: 'server'} },
+    workerFps:                      { default: 60, if: {driver: 'worker'} },
+    workerEngine:                   { default: 'cannon', if: {driver: 'worker'}, oneOf: ['cannon', 'ammo'] },
+    workerDebug:                    { default: false, if: {driver: 'worker'} },
 
     gravity:                        { default: C_GRAV },
     iterations:                     { default: CONSTANTS.ITERATIONS },
@@ -60,10 +62,22 @@ module.exports = {
 
     this.driver = null;
     switch (data.driver) {
-      case 'local':  this.driver = new LocalDriver();                break;
-      case 'ammo':   this.driver = new AmmoDriver();                 break;
-      case 'worker': this.driver = new WorkerDriver(data.workerFps); break;
-      case 'server': this.driver = new ServerDriver(data.serverUrl); break;
+      case 'local':
+        this.driver = new LocalDriver();
+        break;
+
+      case 'server':
+        this.driver = new ServerDriver(data.serverUrl);
+        break;
+
+      case 'worker':
+        this.driver = new WorkerDriver({
+          fps: data.workerFps,
+          engine: data.workerEngine,
+          debug: data.workerDebug
+        });
+        break;
+
       default:
         throw new Error('[physics] Driver not recognized: "%s".', data.driver);
     }

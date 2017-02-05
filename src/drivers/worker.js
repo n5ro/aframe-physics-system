@@ -1,12 +1,13 @@
 var Event = require('./event'),
     LocalDriver = require('./local-driver'),
+    AmmoDriver = require('./ammo-driver'),
     protocol = require('../utils/protocol');
 
 var ID = protocol.ID;
 
 module.exports = function (self) {
 
-  var driver = new LocalDriver();
+  var driver = null;
   var bodies = {};
   var stepSize;
 
@@ -17,6 +18,9 @@ module.exports = function (self) {
     switch (data.type) {
       // Lifecycle.
       case Event.INIT:
+        driver = data.engine === 'cannon'
+          ? new LocalDriver()
+          : new AmmoDriver();
         driver.init(data.worldConfig);
         stepSize = 1 / data.fps;
         setInterval(step, 1000 / data.fps);

@@ -1,4 +1,5 @@
 var webworkify = require('webworkify'),
+    webworkifyDebug = require('./webworkify-debug'),
     Driver = require('./driver'),
     Event = require('./event'),
     worker = require('./worker'),
@@ -10,11 +11,17 @@ var ID = protocol.ID;
  * Constructor
  */
 
-function WorkerDriver (fps) {
-  this.fps = fps;
+function WorkerDriver (options) {
+  this.fps = options.fps;
+  this.engine = options.engine;
+  this.debug = options.debug;
+
   this.bodies = {};
   this.contacts = [];
-  this.worker = webworkify(worker);
+
+  this.worker = this.debug
+    ? webworkifyDebug(worker)
+    : webworkify(worker);
   this.worker.addEventListener('message', this._onMessage.bind(this));
 }
 
@@ -29,7 +36,12 @@ module.exports = WorkerDriver;
 
 /* @param {object} worldConfig */
 WorkerDriver.prototype.init = function (worldConfig) {
-  this.worker.postMessage({type: Event.INIT, worldConfig: worldConfig, fps: this.fps});
+  this.worker.postMessage({
+    type: Event.INIT,
+    worldConfig: worldConfig,
+    fps: this.fps,
+    engine: this.engine
+  });
 };
 
 /* @param {number} deltaMS */
