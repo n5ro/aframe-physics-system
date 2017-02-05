@@ -47,7 +47,7 @@
   "devDependencies": {
     "aframe": ">=0.5.0",
     "browserify": "^13.1.0",
-    "budo": "^9.2.1",
+    "budo": "^9.4.7",
     "chai": "^3.5.0",
     "chai-shallow-deep-equal": "^1.4.4",
     "envify": "^4.0.0",
