@@ -156,8 +156,8 @@ module.exports.serializeConstraint = function (constraint) {
   var message = {
     id: constraint[ID],
     maxForce: constraint.maxForce,
-    bodyA: constraint.bodyA.id,
-    bodyB: constraint.bodyB.id
+    bodyA: constraint.bodyA[ID],
+    bodyB: constraint.bodyB[ID]
   };
 
   if (constraint instanceof CANNON.LockConstraint) {
@@ -177,8 +177,9 @@ module.exports.serializeConstraint = function (constraint) {
   return message;
 };
 
-module.exports.deserializeConstraint = function (message) {
-  throw new Error('[utils] Not implemented');
+module.exports.deserializeConstraint = function (message, bodies) {
+  var TypedConstraint = CANNON[message.type];
+  return new TypedConstraint(bodies[message.bodyA], bodies[message.bodyB], message);
 };
 
 /******************************************************************************

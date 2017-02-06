@@ -6,13 +6,11 @@ var Event = require('./event'),
 var ID = protocol.ID;
 
 module.exports = function (self) {
-
   var driver = null;
   var bodies = {};
   var stepSize;
 
   self.addEventListener('message', function (event) {
-
     var data = event.data;
 
     switch (data.type) {
@@ -37,9 +35,9 @@ module.exports = function (self) {
         delete bodies[data.bodyID];
         break;
       case Event.APPLY_BODY_METHOD:
-        bodies[data.bodyID][data.methodName].apply(
-          bodies[data.bodyID],
-          [protocol.deserializeVec3(data.args[0]), protocol.deserializeVec3(data.args[1])]
+        bodies[data.bodyID][data.methodName](
+          protocol.deserializeVec3(data.args[0]),
+          protocol.deserializeVec3(data.args[1])
         );
         break;
       case Event.UPDATE_BODY_PROPERTIES:
@@ -60,6 +58,8 @@ module.exports = function (self) {
 
       // Constraints.
       case Event.ADD_CONSTRAINT:
+        driver.addConstraint(protocol.deserializeConstraint(data.constraint, bodies));
+        break;
       case Event.REMOVE_CONSTRAINT:
         console.warn('[Worker] Not implemented');
         break;
@@ -84,5 +84,4 @@ module.exports = function (self) {
       contacts: driver.getContacts().map(protocol.serializeContact)
     });
   }
-
 };
