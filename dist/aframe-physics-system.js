@@ -29,7 +29,7 @@ module.exports = {
 // Export CANNON.js.
 window.CANNON = window.CANNON || CANNON;
 
-},{"./src/components/body/dynamic-body":64,"./src/components/body/static-body":65,"./src/components/constraint":66,"./src/components/math":67,"./src/system/physics":71,"cannon":5}],3:[function(require,module,exports){
+},{"./src/components/body/dynamic-body":62,"./src/components/body/static-body":63,"./src/components/constraint":64,"./src/components/math":65,"./src/system/physics":69,"cannon":5}],3:[function(require,module,exports){
 /**
  * CANNON.shape2mesh
  *
@@ -240,7 +240,7 @@ module.exports={
     "/"
   ],
   "_resolved": "git://github.com/donmccurdy/cannon.js.git#022e8ba53fa83abf0ad8a0e4fd08623123838a17",
-  "_shasum": "f320e685f2d835c5a42bf995cb6488109b5ffeec",
+  "_shasum": "0c8f6a5264ab63c83bdd6228e4a09dfe6d6f29d4",
   "_shrinkwrap": null,
   "_spec": "cannon@github:donmccurdy/cannon.js#v0.6.2-dev1",
   "_where": "/Users/donmccurdy/Documents/Projects/aframe-physics-system",
@@ -14717,6 +14717,642 @@ World.prototype.clearForces = function(){
 
 },{"../collision/AABB":6,"../collision/ArrayCollisionMatrix":7,"../collision/NaiveBroadphase":10,"../collision/OverlapKeeper":12,"../collision/Ray":13,"../collision/RaycastResult":14,"../equations/ContactEquation":23,"../equations/FrictionEquation":25,"../material/ContactMaterial":28,"../material/Material":29,"../math/Quaternion":32,"../math/Vec3":34,"../objects/Body":35,"../shapes/Shape":47,"../solver/GSSolver":50,"../utils/EventTarget":53,"../utils/TupleDictionary":56,"./Narrowphase":59}],61:[function(require,module,exports){
 var CANNON = require('cannon'),
+    mesh2shape = require('three-to-cannon');
+
+require('../../../lib/CANNON-shape2mesh');
+
+module.exports = {
+  schema: {
+    shape: {default: 'auto', oneOf: ['auto', 'box', 'cylinder', 'sphere', 'hull']},
+    cylinderAxis: {default: 'y', oneOf: ['x', 'y', 'z']},
+    sphereRadius: {default: NaN}
+  },
+
+  /**
+   * Initializes a body component, assigning it to the physics system and binding listeners for
+   * parsing the elements geometry.
+   */
+  init: function () {
+    this.system = this.el.sceneEl.systems.physics;
+
+    if (this.el.sceneEl.hasLoaded) {
+      this.initBody();
+    } else {
+      this.el.sceneEl.addEventListener('loaded', this.initBody.bind(this));
+    }
+  },
+
+  /**
+   * Parses an element's geometry and component metadata to create a CANNON.Body instance for the
+   * component.
+   */
+  initBody: function () {
+    var shape,
+        el = this.el,
+        data = this.data,
+        pos = el.getAttribute('position'),
+        options = data.shape === 'auto' ? undefined : AFRAME.utils.extend({}, this.data, {
+          type: mesh2shape.Type[data.shape.toUpperCase()]
+        });
+
+    // Matrix World must be updated at root level, if scale is to be applied – updateMatrixWorld()
+    // only checks an object's parent, not the rest of the ancestors. Hence, a wrapping entity with
+    // scale="0.5 0.5 0.5" will be ignored.
+    // Reference: https://github.com/mrdoob/three.js/blob/master/src/core/Object3D.js#L511-L541
+    // Potential fix: https://github.com/mrdoob/three.js/pull/7019
+    this.el.object3D.updateMatrixWorld(true);
+    shape = mesh2shape(this.el.object3D, options);
+
+    if (!shape) {
+      this.el.addEventListener('model-loaded', this.initBody.bind(this));
+      return;
+    }
+
+    this.body = new CANNON.Body({
+      mass: data.mass || 0,
+      material: this.system.material,
+      position: new CANNON.Vec3(pos.x, pos.y, pos.z),
+      linearDamping: data.linearDamping,
+      angularDamping: data.angularDamping
+    });
+    this.body.addShape(shape, shape.offset, shape.orientation);
+
+    // Apply rotation
+    var rot = el.getAttribute('rotation');
+    this.body.quaternion.setFromEuler(
+      THREE.Math.degToRad(rot.x),
+      THREE.Math.degToRad(rot.y),
+      THREE.Math.degToRad(rot.z),
+      'XYZ'
+    ).normalize();
+
+    // Show wireframe
+    if (this.system.debug) {
+      this.createWireframe(this.body, shape);
+    }
+
+    this.el.body = this.body;
+    this.body.el = this.el;
+    this.isLoaded = true;
+
+    // If component wasn't initialized when play() was called, finish up.
+    if (this.isPlaying) {
+      this._play();
+    }
+
+    this.el.emit('body-loaded', {body: this.el.body});
+  },
+
+  /**
+   * Registers the component with the physics system, if ready.
+   */
+  play: function () {
+    if (this.isLoaded) this._play();
+  },
+
+  /**
+   * Internal helper to register component with physics system.
+   */
+  _play: function () {
+    this.system.addBehavior(this, this.system.Phase.SIMULATE);
+    this.system.addBody(this.body);
+    if (this.wireframe) this.el.sceneEl.object3D.add(this.wireframe);
+
+    this.syncToPhysics();
+  },
+
+  /**
+   * Unregisters the component with the physics system.
+   */
+  pause: function () {
+    if (!this.isLoaded) return;
+
+    this.system.removeBehavior(this, this.system.Phase.SIMULATE);
+    this.system.removeBody(this.body);
+    if (this.wireframe) this.el.sceneEl.object3D.remove(this.wireframe);
+  },
+
+  /**
+   * Removes the component and all physics and scene side effects.
+   */
+  remove: function () {
+    this.pause();
+    delete this.body.el;
+    delete this.body;
+    delete this.el.body;
+    delete this.wireframe;
+  },
+
+  /**
+   * Creates a wireframe for the body, for debugging.
+   * TODO(donmccurdy) – Refactor this into a standalone utility or component.
+   * @param  {CANNON.Body} body
+   * @param  {CANNON.Shape} shape
+   */
+  createWireframe: function (body, shape) {
+    var offset = shape.offset,
+        orientation = shape.orientation,
+        mesh = CANNON.shape2mesh(body).children[0];
+
+    this.wireframe = new THREE.LineSegments(
+      new THREE.EdgesGeometry(mesh.geometry),
+      new THREE.LineBasicMaterial({color: 0xff0000})
+    );
+
+    if (offset) {
+      this.wireframe.offset = offset.clone();
+    }
+
+    if (orientation) {
+      orientation.inverse(orientation);
+      this.wireframe.orientation = new THREE.Quaternion(
+        orientation.x,
+        orientation.y,
+        orientation.z,
+        orientation.w
+      );
+    }
+
+    this.syncWireframe();
+  },
+
+  /**
+   * Updates the debugging wireframe's position and rotation.
+   */
+  syncWireframe: function () {
+    var offset,
+        wireframe = this.wireframe;
+
+    if (!this.wireframe) return;
+
+    // Apply rotation. If the shape required custom orientation, also apply
+    // that on the wireframe.
+    wireframe.quaternion.copy(this.body.quaternion);
+    if (wireframe.orientation) {
+      wireframe.quaternion.multiply(wireframe.orientation);
+    }
+
+    // Apply position. If the shape required custom offset, also apply that on
+    // the wireframe.
+    wireframe.position.copy(this.body.position);
+    if (wireframe.offset) {
+      offset = wireframe.offset.clone().applyQuaternion(wireframe.quaternion);
+      wireframe.position.add(offset);
+    }
+
+    wireframe.updateMatrix();
+  },
+
+  /**
+   * Updates the CANNON.Body instance's position, velocity, and rotation, based on the scene.
+   */
+  syncToPhysics: (function () {
+    var q =  new THREE.Quaternion(),
+        v = new THREE.Vector3();
+    return function () {
+      var el = this.el,
+          parentEl = el.parentEl,
+          body = this.body;
+
+      if (!body) return;
+
+      if (el.components.velocity) body.velocity.copy(el.getAttribute('velocity'));
+
+      if (parentEl.isScene) {
+        body.quaternion.copy(el.object3D.quaternion);
+        body.position.copy(el.object3D.position);
+      } else {
+        el.object3D.getWorldQuaternion(q);
+        body.quaternion.copy(q);
+        el.object3D.getWorldPosition(v);
+        body.position.copy(v);
+      }
+
+      if (this.wireframe) this.syncWireframe();
+    };
+  }()),
+
+  /**
+   * Updates the scene object's position and rotation, based on the physics simulation.
+   */
+  syncFromPhysics: (function () {
+    var v = new THREE.Vector3(),
+        q1 = new THREE.Quaternion(),
+        q2 = new THREE.Quaternion();
+    return function () {
+      var el = this.el,
+          parentEl = el.parentEl,
+          body = this.body;
+
+      if (!body) return;
+
+      if (parentEl.isScene) {
+        el.setAttribute('quaternion', body.quaternion);
+        el.setAttribute('position', body.position);
+      } else {
+        // TODO - Nested rotation doesn't seem to be working as expected.
+        q1.copy(body.quaternion);
+        parentEl.object3D.getWorldQuaternion(q2);
+        q1.multiply(q2.inverse());
+        el.setAttribute('quaternion', {x: q1.x, y: q1.y, z: q1.z, w: q1.w});
+
+        v.copy(body.position);
+        parentEl.object3D.worldToLocal(v);
+        el.setAttribute('position', {x: v.x, y: v.y, z: v.z});
+      }
+
+      if (this.wireframe) this.syncWireframe();
+    };
+  }())
+};
+
+},{"../../../lib/CANNON-shape2mesh":3,"cannon":5,"three-to-cannon":70}],62:[function(require,module,exports){
+var Body = require('./body');
+
+/**
+ * Dynamic body.
+ *
+ * Moves according to physics simulation, and may collide with other objects.
+ */
+module.exports = AFRAME.utils.extend({}, Body, {
+  dependencies: ['quaternion', 'velocity'],
+
+  schema: AFRAME.utils.extend({}, Body.schema, {
+    mass:           { default: 5 },
+    linearDamping:  { default: 0.01 },
+    angularDamping: { default: 0.01 }
+  }),
+
+  step: function () {
+    this.syncFromPhysics();
+  }
+});
+
+},{"./body":61}],63:[function(require,module,exports){
+var Body = require('./body');
+
+/**
+ * Static body.
+ *
+ * Solid body with a fixed position. Unaffected by gravity and collisions, but
+ * other objects may collide with it.
+ */
+module.exports = AFRAME.utils.extend({}, Body, {
+  step: function () {
+    this.syncToPhysics();
+  }
+});
+
+},{"./body":61}],64:[function(require,module,exports){
+var CANNON = require('cannon');
+
+module.exports = {
+  dependencies: ['dynamic-body'],
+
+  multiple: true,
+
+  schema: {
+    // Type of constraint.
+    type: {default: 'lock', oneOf: ['coneTwist', 'distance', 'hinge', 'lock', 'pointToPoint']},
+
+    // Target (other) body for the constraint.
+    target: {type: 'selector'},
+
+    // Maximum force that should be applied to constraint the bodies.
+    maxForce: {default: 1e6, min: 0},
+
+    // If true, bodies can collide when they are connected.
+    collideConnected: {default: true},
+
+    // Wake up bodies when connected.
+    wakeUpBodies: {default: true},
+
+    // The distance to be kept between the bodies. If 0, will be set to current distance.
+    distance: {default: 0, min: 0},
+
+    // Offset of the hinge or point-to-point constraint, defined locally in the body.
+    pivot: {type: 'vec3'},
+    pivotTarget: {type: 'vec3'},
+
+    // An axis that each body can rotate around, defined locally to that body.
+    axis: {type: 'vec3'},
+    axisTarget: {type: 'vec3'},
+  },
+
+  init: function () {
+    this.system = this.el.sceneEl.systems.physics;
+    this.constraint = /* {CANNON.Constraint} */ null;
+  },
+
+  remove: function () {
+    if (!this.constraint) return;
+
+    this.system.world.removeConstraint(this.constraint);
+    this.constraint = null;
+  },
+
+  update: function () {
+    var el = this.el,
+        data = this.data,
+        options = AFRAME.utils.extend({}, data.options);
+
+    this.remove();
+
+    if (!el.body || !data.target.body) {
+      (el.body ? data.target : el).addEventListener('body-loaded', this.update.bind(this, {}));
+      return;
+    }
+
+    switch (data.type) {
+      case 'distance':
+        this.constraint = new CANNON.DistanceConstraint(
+          el.body,
+          data.target.body,
+          options.distance || undefined,
+          options.maxForce
+        );
+        break;
+      case 'lock':
+        this.constraint = new CANNON.LockConstraint(el.body, data.target.body, options);
+        break;
+      case 'coneTwist':
+      case 'hinge':
+      case 'pointToPoint':
+        throw new Error('[constraint] Unimplemented type.');
+    }
+
+    this.system.world.addConstraint(this.constraint);
+  }
+};
+
+},{"cannon":5}],65:[function(require,module,exports){
+module.exports = {
+  'velocity':   require('./velocity'),
+  'quaternion': require('./quaternion'),
+
+  registerAll: function (AFRAME) {
+    if (this._registered) return;
+
+    AFRAME = AFRAME || window.AFRAME;
+
+    if (!AFRAME.components['velocity'])    AFRAME.registerComponent('velocity',   this.velocity);
+    if (!AFRAME.components['quaternion'])  AFRAME.registerComponent('quaternion', this.quaternion);
+
+    this._registered = true;
+  }
+};
+
+},{"./quaternion":66,"./velocity":67}],66:[function(require,module,exports){
+/**
+ * Quaternion.
+ *
+ * Represents orientation of object in three dimensions. Similar to `rotation`
+ * component, but avoids problems of gimbal lock.
+ *
+ * See: https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
+ */
+module.exports = {
+  schema: {type: 'vec4'},
+
+  play: function () {
+    var el = this.el,
+        q = el.object3D.quaternion;
+    if (el.hasAttribute('rotation')) {
+      el.components.rotation.update();
+      el.setAttribute('quaternion', {x: q.x, y: q.y, z: q.z, w: q.w});
+      el.removeAttribute('rotation');
+      this.update();
+    }
+  },
+
+  update: function () {
+    var data = this.data;
+    this.el.object3D.quaternion.set(data.x, data.y, data.z, data.w);
+  }
+};
+
+},{}],67:[function(require,module,exports){
+/**
+ * Velocity, in m/s.
+ */
+module.exports = {
+  schema: {type: 'vec3'},
+
+  init: function () {
+    this.system = this.el.sceneEl.systems.physics;
+
+    if (this.system) {
+      this.system.addBehavior(this, this.system.Phase.RENDER);
+    }
+  },
+
+  remove: function () {
+    if (this.system) {
+      this.system.removeBehavior(this, this.system.Phase.RENDER);
+    }
+  },
+
+  tick: function (t, dt) {
+    if (!dt) return;
+    if (this.system) return;
+    this.step(t, dt);
+  },
+
+  step: function (t, dt) {
+    if (!dt) return;
+
+    var physics = this.el.sceneEl.systems.physics || {data: {maxInterval: 1 / 60}},
+
+        // TODO - There's definitely a bug with getComputedAttribute and el.data.
+        velocity = this.el.getAttribute('velocity') || {x: 0, y: 0, z: 0},
+        position = this.el.getAttribute('position') || {x: 0, y: 0, z: 0};
+
+    dt = Math.min(dt, physics.data.maxInterval * 1000);
+
+    this.el.setAttribute('position', {
+      x: position.x + velocity.x * dt / 1000,
+      y: position.y + velocity.y * dt / 1000,
+      z: position.z + velocity.z * dt / 1000
+    });
+  }
+};
+
+},{}],68:[function(require,module,exports){
+module.exports = {
+  GRAVITY: -9.8,
+  MAX_INTERVAL: 4 / 60,
+  ITERATIONS: 10,
+  CONTACT_MATERIAL: {
+    friction:     0.01,
+    restitution:  0.3,
+    contactEquationStiffness: 1e8,
+    contactEquationRelaxation: 3,
+    frictionEquationStiffness: 1e8,
+    frictionEquationRegularization: 3
+  }
+};
+
+},{}],69:[function(require,module,exports){
+var CANNON = require('cannon'),
+    CONSTANTS = require('../constants'),
+    C_GRAV = CONSTANTS.GRAVITY,
+    C_MAT = CONSTANTS.CONTACT_MATERIAL;
+
+/**
+ * Physics system.
+ */
+module.exports = {
+  schema: {
+    gravity:                        { default: C_GRAV },
+    iterations:                     { default: CONSTANTS.ITERATIONS },
+    friction:                       { default: C_MAT.friction },
+    restitution:                    { default: C_MAT.restitution },
+    contactEquationStiffness:       { default: C_MAT.contactEquationStiffness },
+    contactEquationRelaxation:      { default: C_MAT.contactEquationRelaxation },
+    frictionEquationStiffness:      { default: C_MAT.frictionEquationStiffness },
+    frictionEquationRegularization: { default: C_MAT.frictionEquationRegularization },
+
+    // Never step more than four frames at once. Effectively pauses the scene
+    // when out of focus, and prevents weird "jumps" when focus returns.
+    maxInterval:                    { default: 4 / 60 },
+
+    // If true, show wireframes around physics bodies.
+    debug:                          { default: false },
+  },
+
+  /**
+   * Update phases, used to separate physics simulation from updates to A-Frame scene.
+   * @enum {string}
+   */
+  Phase: {
+    SIMULATE: 'sim',
+    RENDER:   'render'
+  },
+
+  /**
+   * Initializes the physics system.
+   */
+  init: function () {
+    var data = this.data;
+
+    // If true, show wireframes around physics bodies.
+    this.debug = data.debug;
+
+    this.children = {};
+    this.children[this.Phase.SIMULATE] = [];
+    this.children[this.Phase.RENDER] = [];
+
+    this.listeners = {};
+
+    this.world = new CANNON.World();
+    this.world.quatNormalizeSkip = 0;
+    this.world.quatNormalizeFast = false;
+    // this.world.solver.setSpookParams(300,10);
+    this.world.solver.iterations = data.iterations;
+    this.world.gravity.set(0, data.gravity, 0);
+    this.world.broadphase = new CANNON.NaiveBroadphase();
+
+    this.material = new CANNON.Material({name: 'defaultMaterial'});
+    this.contactMaterial = new CANNON.ContactMaterial(this.material, this.material, {
+        friction: data.friction,
+        restitution: data.restitution,
+        contactEquationStiffness: data.contactEquationStiffness,
+        contactEquationRelaxation: data.contactEquationRelaxation,
+        frictionEquationStiffness: data.frictionEquationStiffness,
+        frictionEquationRegularization: data.frictionEquationRegularization
+    });
+    this.world.addContactMaterial(this.contactMaterial);
+  },
+
+  /**
+   * Updates the physics world on each tick of the A-Frame scene. It would be
+   * entirely possible to separate the two – updating physics more or less
+   * frequently than the scene – if greater precision or performance were
+   * necessary.
+   * @param  {number} t
+   * @param  {number} dt
+   */
+  tick: function (t, dt) {
+    if (!dt) return;
+
+    this.world.step(Math.min(dt / 1000, this.data.maxInterval));
+
+    var i;
+    for (i = 0; i < this.children[this.Phase.SIMULATE].length; i++) {
+      this.children[this.Phase.SIMULATE][i].step(t, dt);
+    }
+
+    for (i = 0; i < this.children[this.Phase.RENDER].length; i++) {
+      this.children[this.Phase.RENDER][i].step(t, dt);
+    }
+  },
+
+  /**
+   * Adds a body to the scene, and binds collision events to the element.
+   * @param {CANNON.Body} body
+   */
+  addBody: function (body) {
+    this.listeners[body.id] = function (e) { body.el.emit('collide', e); };
+    body.addEventListener('collide', this.listeners[body.id]);
+    this.world.addBody(body);
+  },
+
+  /**
+   * Removes a body, and its listeners, from the scene.
+   * @param {CANNON.Body} body
+   */
+  removeBody: function (body) {
+    body.removeEventListener('collide', this.listeners[body.id]);
+    delete this.listeners[body.id];
+    this.world.removeBody(body);
+  },
+
+  /**
+   * Adds a component instance to the system, to be invoked on each tick during
+   * the given phase.
+   * @param {Component} component
+   * @param {string} phase
+   */
+  addBehavior: function (component, phase) {
+    this.children[phase].push(component);
+  },
+
+  /**
+   * Removes a component instance from the system.
+   * @param {Component} component
+   * @param {string} phase
+   */
+  removeBehavior: function (component, phase) {
+    this.children[phase].splice(this.children[phase].indexOf(component), 1);
+  },
+
+  /**
+   * Sets an option on the physics system, affecting future simulation steps.
+   * @param {string} opt
+   * @param {mixed} value
+   */
+  update: function (previousData) {
+    var data = this.data;
+
+    if (data.debug !== previousData.debug) {
+      console.warn('[physics] `debug` cannot be changed dynamically.');
+    }
+
+    if (data.maxInterval !== previousData.maxInterval); // noop;
+
+    if (data.gravity !== previousData.gravity) this.world.gravity.set(0, data.gravity, 0);
+
+    this.contactMaterial.friction = data.friction;
+    this.contactMaterial.restitution = data.restitution;
+    this.contactMaterial.contactEquationStiffness = data.contactEquationStiffness;
+    this.contactMaterial.contactEquationRelaxation = data.contactEquationRelaxation;
+    this.contactMaterial.frictionEquationStiffness = data.frictionEquationStiffness;
+    this.contactMaterial.frictionEquationRegularization = data.frictionEquationRegularization;
+  }
+};
+
+},{"../constants":68,"cannon":5}],70:[function(require,module,exports){
+var CANNON = require('cannon'),
     quickhull = require('./lib/THREE.quickhull');
 
 var PI_2 = Math.PI / 2;
@@ -14889,6 +15525,14 @@ function createCylinderShape (geometry) {
     params.height,
     params.radialSegments
   );
+
+  // Include metadata for serialization.
+  shape._type = CANNON.Shape.types.CYLINDER; // Patch schteppe/cannon.js#329.
+  shape.radiusTop = params.radiusTop;
+  shape.radiusBottom = params.radiusBottom;
+  shape.height = params.height;
+  shape.numSegments = params.radialSegments;
+
   shape.orientation = new CANNON.Quaternion();
   shape.orientation.setFromEuler(THREE.Math.degToRad(-90), 0, 0, 'XYZ').normalize();
   return shape;
@@ -14916,6 +15560,14 @@ function createBoundingCylinderShape (object, options) {
 
   // Create shape.
   shape = new CANNON.Cylinder(radius, radius, height, 12);
+
+  // Include metadata for serialization.
+  shape._type = CANNON.Shape.types.CYLINDER; // Patch schteppe/cannon.js#329.
+  shape.radiusTop = radius;
+  shape.radiusBottom = radius;
+  shape.height = height;
+  shape.numSegments = 12;
+
   shape.orientation = new CANNON.Quaternion();
   shape.orientation.setFromEuler(
     majorAxis === 'y' ? PI_2 : 0,
@@ -14956,9 +15608,13 @@ function createSphereShape (geometry) {
  * @return {CANNON.Shape}
  */
 function createBoundingSphereShape (object, options) {
+  if (options.sphereRadius) {
+    return new CANNON.Sphere(options.sphereRadius);
+  }
   var geometry = getGeometry(object);
+  if (!geometry) return null;
   geometry.computeBoundingSphere();
-  return new CANNON.Sphere(options.sphereRadius || geometry.boundingSphere.radius);
+  return new CANNON.Sphere(geometry.boundingSphere.radius);
 }
 
 /**
@@ -15061,7 +15717,7 @@ function getMeshes (object) {
   return meshes;
 }
 
-},{"./lib/THREE.quickhull":62,"cannon":5}],62:[function(require,module,exports){
+},{"./lib/THREE.quickhull":71,"cannon":73}],71:[function(require,module,exports){
 /**
 
   QuickHull
@@ -15513,640 +16169,223 @@ module.exports = (function(){
 
 }())
 
-},{}],63:[function(require,module,exports){
-var CANNON = require('cannon'),
-    mesh2shape = require('three-to-cannon');
-
-require('../../../lib/CANNON-shape2mesh');
-
-module.exports = {
-  schema: {
-    shape: {default: 'auto', oneOf: ['auto', 'box', 'cylinder', 'sphere', 'hull']},
-    cylinderAxis: {default: 'y', oneOf: ['x', 'y', 'z']},
-    sphereRadius: {default: NaN}
+},{}],72:[function(require,module,exports){
+module.exports={
+  "_args": [
+    [
+      {
+        "hosted": {
+          "directUrl": "https://raw.githubusercontent.com/donmccurdy/cannon.js/v0.6.2-dev1/package.json",
+          "gitUrl": "git://github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
+          "httpsUrl": "git+https://github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
+          "shortcut": "github:donmccurdy/cannon.js#v0.6.2-dev1",
+          "ssh": "git@github.com:donmccurdy/cannon.js.git#v0.6.2-dev1",
+          "sshUrl": "git+ssh://git@github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
+          "type": "github"
+        },
+        "name": "cannon",
+        "raw": "cannon@github:donmccurdy/cannon.js#v0.6.2-dev1",
+        "rawSpec": "github:donmccurdy/cannon.js#v0.6.2-dev1",
+        "scope": null,
+        "spec": "github:donmccurdy/cannon.js#v0.6.2-dev1",
+        "type": "hosted"
+      },
+      "/Users/donmccurdy/Documents/Projects/three-to-cannon"
+    ]
+  ],
+  "_from": "donmccurdy/cannon.js#v0.6.2-dev1",
+  "_id": "cannon@0.6.2",
+  "_inCache": true,
+  "_installable": true,
+  "_location": "/cannon",
+  "_phantomChildren": {},
+  "_requested": {
+    "hosted": {
+      "directUrl": "https://raw.githubusercontent.com/donmccurdy/cannon.js/v0.6.2-dev1/package.json",
+      "gitUrl": "git://github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
+      "httpsUrl": "git+https://github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
+      "shortcut": "github:donmccurdy/cannon.js#v0.6.2-dev1",
+      "ssh": "git@github.com:donmccurdy/cannon.js.git#v0.6.2-dev1",
+      "sshUrl": "git+ssh://git@github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
+      "type": "github"
+    },
+    "name": "cannon",
+    "raw": "cannon@github:donmccurdy/cannon.js#v0.6.2-dev1",
+    "rawSpec": "github:donmccurdy/cannon.js#v0.6.2-dev1",
+    "scope": null,
+    "spec": "github:donmccurdy/cannon.js#v0.6.2-dev1",
+    "type": "hosted"
   },
-
-  /**
-   * Initializes a body component, assigning it to the physics system and binding listeners for
-   * parsing the elements geometry.
-   */
-  init: function () {
-    this.system = this.el.sceneEl.systems.physics;
-
-    if (this.el.sceneEl.hasLoaded) {
-      this.initBody();
-    } else {
-      this.el.sceneEl.addEventListener('loaded', this.initBody.bind(this));
+  "_requiredBy": [
+    "#USER"
+  ],
+  "_resolved": "git://github.com/donmccurdy/cannon.js.git#022e8ba53fa83abf0ad8a0e4fd08623123838a17",
+  "_shasum": "b2d7815b32a84f8dc90ae863c66bcb44486855cb",
+  "_shrinkwrap": null,
+  "_spec": "cannon@github:donmccurdy/cannon.js#v0.6.2-dev1",
+  "_where": "/Users/donmccurdy/Documents/Projects/three-to-cannon",
+  "author": {
+    "email": "schteppe@gmail.com",
+    "name": "Stefan Hedman",
+    "url": "http://steffe.se"
+  },
+  "bugs": {
+    "url": "https://github.com/schteppe/cannon.js/issues"
+  },
+  "dependencies": {},
+  "description": "A lightweight 3D physics engine written in JavaScript.",
+  "devDependencies": {
+    "browserify": "*",
+    "grunt": "~0.4.0",
+    "grunt-browserify": "^2.1.4",
+    "grunt-contrib-concat": "~0.1.3",
+    "grunt-contrib-jshint": "~0.1.1",
+    "grunt-contrib-nodeunit": "^0.4.1",
+    "grunt-contrib-uglify": "^0.5.1",
+    "grunt-contrib-yuidoc": "^0.5.2",
+    "jshint": "latest",
+    "nodeunit": "^0.9.0",
+    "uglify-js": "latest"
+  },
+  "engines": {
+    "node": "*"
+  },
+  "gitHead": "022e8ba53fa83abf0ad8a0e4fd08623123838a17",
+  "homepage": "https://github.com/schteppe/cannon.js",
+  "keywords": [
+    "cannon.js",
+    "cannon",
+    "physics",
+    "engine",
+    "3d"
+  ],
+  "licenses": [
+    {
+      "type": "MIT"
     }
+  ],
+  "main": "./src/Cannon.js",
+  "name": "cannon",
+  "optionalDependencies": {},
+  "readme": "# cannon.js\n\n### Lightweight 3D physics for the web\nInspired by [three.js](https://github.com/mrdoob/three.js) and [ammo.js](https://github.com/kripken/ammo.js), and driven by the fact that the web lacks a physics engine, here comes cannon.js.\nThe rigid body physics engine includes simple collision detection, various body shapes, contacts, friction and constraints.\n\n[Demos](http://schteppe.github.com/cannon.js) - [Documentation](http://schteppe.github.com/cannon.js/docs) - [Rendering hints](https://github.com/schteppe/cannon.js/tree/master/examples) - [NPM package](https://npmjs.org/package/cannon) - [CDN](https://cdnjs.com/libraries/cannon.js)\n\n### Browser install\n\nJust include [cannon.js](https://github.com/schteppe/cannon.js/releases/download/v0.6.2/cannon.js) or [cannon.min.js](https://github.com/schteppe/cannon.js/releases/download/v0.6.2/cannon.min.js) in your html and you're done:\n\n```html\n<script src=\"cannon.min.js\"></script>\n```\n\n### Node.js install\n\nInstall the cannon package via NPM:\n\n```bash\nnpm install --save cannon\n```\n\nAlternatively, point to the Github repo directly to get the very latest version:\n\n```bash\nnpm install --save schteppe/cannon.js\n```\n\n### Example\n\nThe sample code below creates a sphere on a plane, steps the simulation, and prints the sphere simulation to the console. Note that Cannon.js uses [SI units](http://en.wikipedia.org/wiki/International_System_of_Units) (metre, kilogram, second, etc.).\n\n```javascript\n// Setup our world\nvar world = new CANNON.World();\nworld.gravity.set(0, 0, -9.82); // m/s²\n\n// Create a sphere\nvar radius = 1; // m\nvar sphereBody = new CANNON.Body({\n   mass: 5, // kg\n   position: new CANNON.Vec3(0, 0, 10), // m\n   shape: new CANNON.Sphere(radius)\n});\nworld.addBody(sphereBody);\n\n// Create a plane\nvar groundBody = new CANNON.Body({\n    mass: 0 // mass == 0 makes the body static\n});\nvar groundShape = new CANNON.Plane();\ngroundBody.addShape(groundShape);\nworld.addBody(groundBody);\n\nvar fixedTimeStep = 1.0 / 60.0; // seconds\nvar maxSubSteps = 3;\n\n// Start the simulation loop\nvar lastTime;\n(function simloop(time){\n  requestAnimationFrame(simloop);\n  if(lastTime !== undefined){\n     var dt = (time - lastTime) / 1000;\n     world.step(fixedTimeStep, dt, maxSubSteps);\n  }\n  console.log(\"Sphere z position: \" + sphereBody.position.z);\n  lastTime = time;\n})();\n```\n\nIf you want to know how to use cannon.js with a rendering engine, for example Three.js, see the [Examples](examples).\n\n### Features\n* Rigid body dynamics\n* Discrete collision detection\n* Contacts, friction and restitution\n* Constraints\n   * PointToPoint (a.k.a. ball/socket joint)\n   * Distance\n   * Hinge (with optional motor)\n   * Lock\n   * ConeTwist\n* Gauss-Seidel constraint solver and an island split algorithm\n* Collision filters\n* Body sleeping\n* Experimental SPH / fluid support\n* Various shapes and collision algorithms (see table below)\n\n|             | [Sphere](http://schteppe.github.io/cannon.js/docs/classes/Sphere.html) | [Plane](http://schteppe.github.io/cannon.js/docs/classes/Plane.html) | [Box](http://schteppe.github.io/cannon.js/docs/classes/Box.html) | [Convex](http://schteppe.github.io/cannon.js/docs/classes/ConvexPolyhedron.html) | [Particle](http://schteppe.github.io/cannon.js/docs/classes/Particle.html) | [Heightfield](http://schteppe.github.io/cannon.js/docs/classes/Heightfield.html) | [Trimesh](http://schteppe.github.io/cannon.js/docs/classes/Trimesh.html) |\n| :-----------|:------:|:-----:|:---:|:------:|:--------:|:-----------:|:-------:|\n| Sphere      | Yes    | Yes   | Yes | Yes    | Yes      | Yes         | Yes     |\n| Plane       | -      | -     | Yes | Yes    | Yes      | -           | Yes     |\n| Box         | -      | -     | Yes | Yes    | Yes      | Yes         | (todo)  |\n| Cylinder    | -      | -     | Yes | Yes    | Yes      | Yes         | (todo)  |\n| Convex      | -      | -     | -   | Yes    | Yes      | Yes         | (todo)  |\n| Particle    | -      | -     | -   | -      | -        | (todo)      | (todo)  |\n| Heightfield | -      | -     | -   | -      | -        | -           | (todo)  |\n| Trimesh     | -      | -     | -   | -      | -        | -           | -       |\n\n### Todo\nThe simpler todos are marked with ```@todo``` in the code. Github Issues can and should also be used for todos.\n\n### Help\nCreate an [issue](https://github.com/schteppe/cannon.js/issues) if you need help.\n",
+  "readmeFilename": "README.markdown",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/schteppe/cannon.js.git"
   },
-
-  /**
-   * Parses an element's geometry and component metadata to create a CANNON.Body instance for the
-   * component.
-   */
-  initBody: function () {
-    var shape,
-        el = this.el,
-        data = this.data,
-        pos = el.getAttribute('position'),
-        options = data.shape === 'auto' ? undefined : AFRAME.utils.extend({}, this.data, {
-          type: mesh2shape.Type[data.shape.toUpperCase()]
-        });
-
-    // Matrix World must be updated at root level, if scale is to be applied – updateMatrixWorld()
-    // only checks an object's parent, not the rest of the ancestors. Hence, a wrapping entity with
-    // scale="0.5 0.5 0.5" will be ignored.
-    // Reference: https://github.com/mrdoob/three.js/blob/master/src/core/Object3D.js#L511-L541
-    // Potential fix: https://github.com/mrdoob/three.js/pull/7019
-    this.el.object3D.updateMatrixWorld(true);
-    shape = mesh2shape(this.el.object3D, options);
-
-    if (!shape) {
-      this.el.addEventListener('model-loaded', this.initBody.bind(this));
-      return;
-    }
-
-    this.body = new CANNON.Body({
-      mass: data.mass || 0,
-      material: this.system.material,
-      position: new CANNON.Vec3(pos.x, pos.y, pos.z),
-      linearDamping: data.linearDamping,
-      angularDamping: data.angularDamping
-    });
-    this.body.addShape(shape, shape.offset, shape.orientation);
-
-    // Apply rotation
-    var rot = el.getAttribute('rotation');
-    this.body.quaternion.setFromEuler(
-      THREE.Math.degToRad(rot.x),
-      THREE.Math.degToRad(rot.y),
-      THREE.Math.degToRad(rot.z),
-      'XYZ'
-    ).normalize();
-
-    // Show wireframe
-    if (this.system.debug) {
-      this.createWireframe(this.body, shape);
-    }
-
-    this.el.body = this.body;
-    this.body.el = this.el;
-    this.isLoaded = true;
-
-    // If component wasn't initialized when play() was called, finish up.
-    if (this.isPlaying) {
-      this._play();
-    }
-
-    this.el.emit('body-loaded', {body: this.el.body});
-  },
-
-  /**
-   * Registers the component with the physics system, if ready.
-   */
-  play: function () {
-    if (this.isLoaded) this._play();
-  },
-
-  /**
-   * Internal helper to register component with physics system.
-   */
-  _play: function () {
-    this.system.addBehavior(this, this.system.Phase.SIMULATE);
-    this.system.addBody(this.body);
-    if (this.wireframe) this.el.sceneEl.object3D.add(this.wireframe);
-
-    this.syncToPhysics();
-  },
-
-  /**
-   * Unregisters the component with the physics system.
-   */
-  pause: function () {
-    if (!this.isLoaded) return;
-
-    this.system.removeBehavior(this, this.system.Phase.SIMULATE);
-    this.system.removeBody(this.body);
-    if (this.wireframe) this.el.sceneEl.object3D.remove(this.wireframe);
-  },
-
-  /**
-   * Removes the component and all physics and scene side effects.
-   */
-  remove: function () {
-    this.pause();
-    delete this.body.el;
-    delete this.body;
-    delete this.el.body;
-    delete this.wireframe;
-  },
-
-  /**
-   * Creates a wireframe for the body, for debugging.
-   * TODO(donmccurdy) – Refactor this into a standalone utility or component.
-   * @param  {CANNON.Body} body
-   * @param  {CANNON.Shape} shape
-   */
-  createWireframe: function (body, shape) {
-    var offset = shape.offset,
-        orientation = shape.orientation,
-        mesh = CANNON.shape2mesh(body).children[0];
-
-    this.wireframe = new THREE.LineSegments(
-      new THREE.EdgesGeometry(mesh.geometry),
-      new THREE.LineBasicMaterial({color: 0xff0000})
-    );
-
-    if (offset) {
-      this.wireframe.offset = offset.clone();
-    }
-
-    if (orientation) {
-      orientation.inverse(orientation);
-      this.wireframe.orientation = new THREE.Quaternion(
-        orientation.x,
-        orientation.y,
-        orientation.z,
-        orientation.w
-      );
-    }
-
-    this.syncWireframe();
-  },
-
-  /**
-   * Updates the debugging wireframe's position and rotation.
-   */
-  syncWireframe: function () {
-    var offset,
-        wireframe = this.wireframe;
-
-    if (!this.wireframe) return;
-
-    // Apply rotation. If the shape required custom orientation, also apply
-    // that on the wireframe.
-    wireframe.quaternion.copy(this.body.quaternion);
-    if (wireframe.orientation) {
-      wireframe.quaternion.multiply(wireframe.orientation);
-    }
-
-    // Apply position. If the shape required custom offset, also apply that on
-    // the wireframe.
-    wireframe.position.copy(this.body.position);
-    if (wireframe.offset) {
-      offset = wireframe.offset.clone().applyQuaternion(wireframe.quaternion);
-      wireframe.position.add(offset);
-    }
-
-    wireframe.updateMatrix();
-  },
-
-  /**
-   * Updates the CANNON.Body instance's position, velocity, and rotation, based on the scene.
-   */
-  syncToPhysics: (function () {
-    var q =  new THREE.Quaternion(),
-        v = new THREE.Vector3();
-    return function () {
-      var el = this.el,
-          parentEl = el.parentEl,
-          body = this.body;
-
-      if (!body) return;
-
-      if (el.components.velocity) body.velocity.copy(el.getAttribute('velocity'));
-
-      if (parentEl.isScene) {
-        body.quaternion.copy(el.object3D.quaternion);
-        body.position.copy(el.object3D.position);
-      } else {
-        el.object3D.getWorldQuaternion(q);
-        body.quaternion.copy(q);
-        el.object3D.getWorldPosition(v);
-        body.position.copy(v);
-      }
-
-      if (this.wireframe) this.syncWireframe();
-    };
-  }()),
-
-  /**
-   * Updates the scene object's position and rotation, based on the physics simulation.
-   */
-  syncFromPhysics: (function () {
-    var v = new THREE.Vector3(),
-        q1 = new THREE.Quaternion(),
-        q2 = new THREE.Quaternion();
-    return function () {
-      var el = this.el,
-          parentEl = el.parentEl,
-          body = this.body;
-
-      if (!body) return;
-
-      if (parentEl.isScene) {
-        el.setAttribute('quaternion', body.quaternion);
-        el.setAttribute('position', body.position);
-      } else {
-        // TODO - Nested rotation doesn't seem to be working as expected.
-        q1.copy(body.quaternion);
-        parentEl.object3D.getWorldQuaternion(q2);
-        q1.multiply(q2.inverse());
-        el.setAttribute('quaternion', {x: q1.x, y: q1.y, z: q1.z, w: q1.w});
-
-        v.copy(body.position);
-        parentEl.object3D.worldToLocal(v);
-        el.setAttribute('position', {x: v.x, y: v.y, z: v.z});
-      }
-
-      if (this.wireframe) this.syncWireframe();
-    };
-  }())
-};
-
-},{"../../../lib/CANNON-shape2mesh":3,"cannon":5,"three-to-cannon":61}],64:[function(require,module,exports){
-var Body = require('./body');
-
-/**
- * Dynamic body.
- *
- * Moves according to physics simulation, and may collide with other objects.
- */
-module.exports = AFRAME.utils.extend({}, Body, {
-  dependencies: ['quaternion', 'velocity'],
-
-  schema: AFRAME.utils.extend({}, Body.schema, {
-    mass:           { default: 5 },
-    linearDamping:  { default: 0.01 },
-    angularDamping: { default: 0.01 }
-  }),
-
-  step: function () {
-    this.syncFromPhysics();
-  }
-});
-
-},{"./body":63}],65:[function(require,module,exports){
-var Body = require('./body');
-
-/**
- * Static body.
- *
- * Solid body with a fixed position. Unaffected by gravity and collisions, but
- * other objects may collide with it.
- */
-module.exports = AFRAME.utils.extend({}, Body, {
-  step: function () {
-    this.syncToPhysics();
-  }
-});
-
-},{"./body":63}],66:[function(require,module,exports){
-var CANNON = require('cannon');
-
-module.exports = {
-  dependencies: ['dynamic-body'],
-
-  multiple: true,
-
-  schema: {
-    // Type of constraint.
-    type: {default: 'lock', oneOf: ['coneTwist', 'distance', 'hinge', 'lock', 'pointToPoint']},
-
-    // Target (other) body for the constraint.
-    target: {type: 'selector'},
-
-    // Maximum force that should be applied to constraint the bodies.
-    maxForce: {default: 1e6, min: 0},
-
-    // If true, bodies can collide when they are connected.
-    collideConnected: {default: true},
-
-    // Wake up bodies when connected.
-    wakeUpBodies: {default: true},
-
-    // The distance to be kept between the bodies. If 0, will be set to current distance.
-    distance: {default: 0, min: 0},
-
-    // Offset of the hinge or point-to-point constraint, defined locally in the body.
-    pivot: {type: 'vec3'},
-    pivotTarget: {type: 'vec3'},
-
-    // An axis that each body can rotate around, defined locally to that body.
-    axis: {type: 'vec3'},
-    axisTarget: {type: 'vec3'},
-  },
-
-  init: function () {
-    this.system = this.el.sceneEl.systems.physics;
-    this.constraint = /* {CANNON.Constraint} */ null;
-  },
-
-  remove: function () {
-    if (!this.constraint) return;
-
-    this.system.world.removeConstraint(this.constraint);
-    this.constraint = null;
-  },
-
-  update: function () {
-    var el = this.el,
-        data = this.data,
-        options = AFRAME.utils.extend({}, data.options);
-
-    this.remove();
-
-    if (!el.body || !data.target.body) {
-      (el.body ? data.target : el).addEventListener('body-loaded', this.update.bind(this, {}));
-      return;
-    }
-
-    switch (data.type) {
-      case 'distance':
-        this.constraint = new CANNON.DistanceConstraint(
-          el.body,
-          data.target.body,
-          options.distance || undefined,
-          options.maxForce
-        );
-        break;
-      case 'lock':
-        this.constraint = new CANNON.LockConstraint(el.body, data.target.body, options);
-        break;
-      case 'coneTwist':
-      case 'hinge':
-      case 'pointToPoint':
-        throw new Error('[constraint] Unimplemented type.');
-    }
-
-    this.system.world.addConstraint(this.constraint);
-  }
-};
-
-},{"cannon":5}],67:[function(require,module,exports){
-module.exports = {
-  'velocity':   require('./velocity'),
-  'quaternion': require('./quaternion'),
-
-  registerAll: function (AFRAME) {
-    if (this._registered) return;
-
-    AFRAME = AFRAME || window.AFRAME;
-
-    if (!AFRAME.components['velocity'])    AFRAME.registerComponent('velocity',   this.velocity);
-    if (!AFRAME.components['quaternion'])  AFRAME.registerComponent('quaternion', this.quaternion);
-
-    this._registered = true;
-  }
-};
-
-},{"./quaternion":68,"./velocity":69}],68:[function(require,module,exports){
-/**
- * Quaternion.
- *
- * Represents orientation of object in three dimensions. Similar to `rotation`
- * component, but avoids problems of gimbal lock.
- *
- * See: https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
- */
-module.exports = {
-  schema: {type: 'vec4'},
-
-  play: function () {
-    var el = this.el,
-        q = el.object3D.quaternion;
-    if (el.hasAttribute('rotation')) {
-      el.components.rotation.update();
-      el.setAttribute('quaternion', {x: q.x, y: q.y, z: q.z, w: q.w});
-      el.removeAttribute('rotation');
-      this.update();
-    }
-  },
-
-  update: function () {
-    var data = this.data;
-    this.el.object3D.quaternion.set(data.x, data.y, data.z, data.w);
-  }
-};
-
-},{}],69:[function(require,module,exports){
-/**
- * Velocity, in m/s.
- */
-module.exports = {
-  schema: {type: 'vec3'},
-
-  init: function () {
-    this.system = this.el.sceneEl.systems.physics;
-
-    if (this.system) {
-      this.system.addBehavior(this, this.system.Phase.RENDER);
-    }
-  },
-
-  remove: function () {
-    if (this.system) {
-      this.system.removeBehavior(this, this.system.Phase.RENDER);
-    }
-  },
-
-  tick: function (t, dt) {
-    if (!dt) return;
-    if (this.system) return;
-    this.step(t, dt);
-  },
-
-  step: function (t, dt) {
-    if (!dt) return;
-
-    var physics = this.el.sceneEl.systems.physics || {data: {maxInterval: 1 / 60}},
-
-        // TODO - There's definitely a bug with getComputedAttribute and el.data.
-        velocity = this.el.getAttribute('velocity') || {x: 0, y: 0, z: 0},
-        position = this.el.getAttribute('position') || {x: 0, y: 0, z: 0};
-
-    dt = Math.min(dt, physics.data.maxInterval * 1000);
-
-    this.el.setAttribute('position', {
-      x: position.x + velocity.x * dt / 1000,
-      y: position.y + velocity.y * dt / 1000,
-      z: position.z + velocity.z * dt / 1000
-    });
-  }
-};
-
-},{}],70:[function(require,module,exports){
-module.exports = {
-  GRAVITY: -9.8,
-  MAX_INTERVAL: 4 / 60,
-  ITERATIONS: 10,
-  CONTACT_MATERIAL: {
-    friction:     0.01,
-    restitution:  0.3,
-    contactEquationStiffness: 1e8,
-    contactEquationRelaxation: 3,
-    frictionEquationStiffness: 1e8,
-    frictionEquationRegularization: 3
-  }
-};
-
-},{}],71:[function(require,module,exports){
-var CANNON = require('cannon'),
-    CONSTANTS = require('../constants'),
-    C_GRAV = CONSTANTS.GRAVITY,
-    C_MAT = CONSTANTS.CONTACT_MATERIAL;
-
-/**
- * Physics system.
- */
-module.exports = {
-  schema: {
-    gravity:                        { default: C_GRAV },
-    iterations:                     { default: CONSTANTS.ITERATIONS },
-    friction:                       { default: C_MAT.friction },
-    restitution:                    { default: C_MAT.restitution },
-    contactEquationStiffness:       { default: C_MAT.contactEquationStiffness },
-    contactEquationRelaxation:      { default: C_MAT.contactEquationRelaxation },
-    frictionEquationStiffness:      { default: C_MAT.frictionEquationStiffness },
-    frictionEquationRegularization: { default: C_MAT.frictionEquationRegularization },
-
-    // Never step more than four frames at once. Effectively pauses the scene
-    // when out of focus, and prevents weird "jumps" when focus returns.
-    maxInterval:                    { default: 4 / 60 },
-
-    // If true, show wireframes around physics bodies.
-    debug:                          { default: false },
-  },
-
-  /**
-   * Update phases, used to separate physics simulation from updates to A-Frame scene.
-   * @enum {string}
-   */
-  Phase: {
-    SIMULATE: 'sim',
-    RENDER:   'render'
-  },
-
-  /**
-   * Initializes the physics system.
-   */
-  init: function () {
-    var data = this.data;
-
-    // If true, show wireframes around physics bodies.
-    this.debug = data.debug;
-
-    this.children = {};
-    this.children[this.Phase.SIMULATE] = [];
-    this.children[this.Phase.RENDER] = [];
-
-    this.listeners = {};
-
-    this.world = new CANNON.World();
-    this.world.quatNormalizeSkip = 0;
-    this.world.quatNormalizeFast = false;
-    // this.world.solver.setSpookParams(300,10);
-    this.world.solver.iterations = data.iterations;
-    this.world.gravity.set(0, data.gravity, 0);
-    this.world.broadphase = new CANNON.NaiveBroadphase();
-
-    this.material = new CANNON.Material({name: 'defaultMaterial'});
-    this.contactMaterial = new CANNON.ContactMaterial(this.material, this.material, {
-        friction: data.friction,
-        restitution: data.restitution,
-        contactEquationStiffness: data.contactEquationStiffness,
-        contactEquationRelaxation: data.contactEquationRelaxation,
-        frictionEquationStiffness: data.frictionEquationStiffness,
-        frictionEquationRegularization: data.frictionEquationRegularization
-    });
-    this.world.addContactMaterial(this.contactMaterial);
-  },
-
-  /**
-   * Updates the physics world on each tick of the A-Frame scene. It would be
-   * entirely possible to separate the two – updating physics more or less
-   * frequently than the scene – if greater precision or performance were
-   * necessary.
-   * @param  {number} t
-   * @param  {number} dt
-   */
-  tick: function (t, dt) {
-    if (!dt) return;
-
-    this.world.step(Math.min(dt / 1000, this.data.maxInterval));
-
-    var i;
-    for (i = 0; i < this.children[this.Phase.SIMULATE].length; i++) {
-      this.children[this.Phase.SIMULATE][i].step(t, dt);
-    }
-
-    for (i = 0; i < this.children[this.Phase.RENDER].length; i++) {
-      this.children[this.Phase.RENDER][i].step(t, dt);
-    }
-  },
-
-  /**
-   * Adds a body to the scene, and binds collision events to the element.
-   * @param {CANNON.Body} body
-   */
-  addBody: function (body) {
-    this.listeners[body.id] = function (e) { body.el.emit('collide', e); };
-    body.addEventListener('collide', this.listeners[body.id]);
-    this.world.addBody(body);
-  },
-
-  /**
-   * Removes a body, and its listeners, from the scene.
-   * @param {CANNON.Body} body
-   */
-  removeBody: function (body) {
-    body.removeEventListener('collide', this.listeners[body.id]);
-    delete this.listeners[body.id];
-    this.world.removeBody(body);
-  },
-
-  /**
-   * Adds a component instance to the system, to be invoked on each tick during
-   * the given phase.
-   * @param {Component} component
-   * @param {string} phase
-   */
-  addBehavior: function (component, phase) {
-    this.children[phase].push(component);
-  },
-
-  /**
-   * Removes a component instance from the system.
-   * @param {Component} component
-   * @param {string} phase
-   */
-  removeBehavior: function (component, phase) {
-    this.children[phase].splice(this.children[phase].indexOf(component), 1);
-  },
-
-  /**
-   * Sets an option on the physics system, affecting future simulation steps.
-   * @param {string} opt
-   * @param {mixed} value
-   */
-  update: function (previousData) {
-    var data = this.data;
-
-    if (data.debug !== previousData.debug) {
-      console.warn('[physics] `debug` cannot be changed dynamically.');
-    }
-
-    if (data.maxInterval !== previousData.maxInterval); // noop;
-
-    if (data.gravity !== previousData.gravity) this.world.gravity.set(0, data.gravity, 0);
-
-    this.contactMaterial.friction = data.friction;
-    this.contactMaterial.restitution = data.restitution;
-    this.contactMaterial.contactEquationStiffness = data.contactEquationStiffness;
-    this.contactMaterial.contactEquationRelaxation = data.contactEquationRelaxation;
-    this.contactMaterial.frictionEquationStiffness = data.frictionEquationStiffness;
-    this.contactMaterial.frictionEquationRegularization = data.frictionEquationRegularization;
-  }
-};
-
-},{"../constants":70,"cannon":5}]},{},[1]);
+  "version": "0.6.2"
+}
+
+},{}],73:[function(require,module,exports){
+arguments[4][5][0].apply(exports,arguments)
+},{"../package.json":72,"./collision/AABB":74,"./collision/ArrayCollisionMatrix":75,"./collision/Broadphase":76,"./collision/GridBroadphase":77,"./collision/NaiveBroadphase":78,"./collision/ObjectCollisionMatrix":79,"./collision/Ray":81,"./collision/RaycastResult":82,"./collision/SAPBroadphase":83,"./constraints/ConeTwistConstraint":84,"./constraints/Constraint":85,"./constraints/DistanceConstraint":86,"./constraints/HingeConstraint":87,"./constraints/LockConstraint":88,"./constraints/PointToPointConstraint":89,"./equations/ContactEquation":91,"./equations/Equation":92,"./equations/FrictionEquation":93,"./equations/RotationalEquation":94,"./equations/RotationalMotorEquation":95,"./material/ContactMaterial":96,"./material/Material":97,"./math/Mat3":99,"./math/Quaternion":100,"./math/Transform":101,"./math/Vec3":102,"./objects/Body":103,"./objects/RaycastVehicle":104,"./objects/RigidVehicle":105,"./objects/SPHSystem":106,"./objects/Spring":107,"./shapes/Box":109,"./shapes/ConvexPolyhedron":110,"./shapes/Cylinder":111,"./shapes/Heightfield":112,"./shapes/Particle":113,"./shapes/Plane":114,"./shapes/Shape":115,"./shapes/Sphere":116,"./shapes/Trimesh":117,"./solver/GSSolver":118,"./solver/Solver":119,"./solver/SplitSolver":120,"./utils/EventTarget":121,"./utils/Pool":123,"./utils/Vec3Pool":126,"./world/Narrowphase":127,"./world/World":128,"dup":5}],74:[function(require,module,exports){
+arguments[4][6][0].apply(exports,arguments)
+},{"../math/Vec3":102,"../utils/Utils":125,"dup":6}],75:[function(require,module,exports){
+arguments[4][7][0].apply(exports,arguments)
+},{"dup":7}],76:[function(require,module,exports){
+arguments[4][8][0].apply(exports,arguments)
+},{"../math/Quaternion":100,"../math/Vec3":102,"../objects/Body":103,"../shapes/Plane":114,"../shapes/Shape":115,"dup":8}],77:[function(require,module,exports){
+arguments[4][9][0].apply(exports,arguments)
+},{"../math/Vec3":102,"../shapes/Shape":115,"./Broadphase":76,"dup":9}],78:[function(require,module,exports){
+arguments[4][10][0].apply(exports,arguments)
+},{"./AABB":74,"./Broadphase":76,"dup":10}],79:[function(require,module,exports){
+arguments[4][11][0].apply(exports,arguments)
+},{"dup":11}],80:[function(require,module,exports){
+arguments[4][12][0].apply(exports,arguments)
+},{"dup":12}],81:[function(require,module,exports){
+arguments[4][13][0].apply(exports,arguments)
+},{"../collision/AABB":74,"../collision/RaycastResult":82,"../math/Quaternion":100,"../math/Transform":101,"../math/Vec3":102,"../shapes/Box":109,"../shapes/ConvexPolyhedron":110,"../shapes/Shape":115,"dup":13}],82:[function(require,module,exports){
+arguments[4][14][0].apply(exports,arguments)
+},{"../math/Vec3":102,"dup":14}],83:[function(require,module,exports){
+arguments[4][15][0].apply(exports,arguments)
+},{"../collision/Broadphase":76,"../shapes/Shape":115,"dup":15}],84:[function(require,module,exports){
+arguments[4][16][0].apply(exports,arguments)
+},{"../equations/ConeEquation":90,"../equations/ContactEquation":91,"../equations/RotationalEquation":94,"../math/Vec3":102,"./Constraint":85,"./PointToPointConstraint":89,"dup":16}],85:[function(require,module,exports){
+arguments[4][17][0].apply(exports,arguments)
+},{"../utils/Utils":125,"dup":17}],86:[function(require,module,exports){
+arguments[4][18][0].apply(exports,arguments)
+},{"../equations/ContactEquation":91,"./Constraint":85,"dup":18}],87:[function(require,module,exports){
+arguments[4][19][0].apply(exports,arguments)
+},{"../equations/ContactEquation":91,"../equations/RotationalEquation":94,"../equations/RotationalMotorEquation":95,"../math/Vec3":102,"./Constraint":85,"./PointToPointConstraint":89,"dup":19}],88:[function(require,module,exports){
+arguments[4][20][0].apply(exports,arguments)
+},{"../equations/ContactEquation":91,"../equations/RotationalEquation":94,"../equations/RotationalMotorEquation":95,"../math/Vec3":102,"./Constraint":85,"./PointToPointConstraint":89,"dup":20}],89:[function(require,module,exports){
+arguments[4][21][0].apply(exports,arguments)
+},{"../equations/ContactEquation":91,"../math/Vec3":102,"./Constraint":85,"dup":21}],90:[function(require,module,exports){
+arguments[4][22][0].apply(exports,arguments)
+},{"../math/Mat3":99,"../math/Vec3":102,"./Equation":92,"dup":22}],91:[function(require,module,exports){
+arguments[4][23][0].apply(exports,arguments)
+},{"../math/Mat3":99,"../math/Vec3":102,"./Equation":92,"dup":23}],92:[function(require,module,exports){
+arguments[4][24][0].apply(exports,arguments)
+},{"../math/JacobianElement":98,"../math/Vec3":102,"dup":24}],93:[function(require,module,exports){
+arguments[4][25][0].apply(exports,arguments)
+},{"../math/Mat3":99,"../math/Vec3":102,"./Equation":92,"dup":25}],94:[function(require,module,exports){
+arguments[4][26][0].apply(exports,arguments)
+},{"../math/Mat3":99,"../math/Vec3":102,"./Equation":92,"dup":26}],95:[function(require,module,exports){
+arguments[4][27][0].apply(exports,arguments)
+},{"../math/Mat3":99,"../math/Vec3":102,"./Equation":92,"dup":27}],96:[function(require,module,exports){
+arguments[4][28][0].apply(exports,arguments)
+},{"../utils/Utils":125,"dup":28}],97:[function(require,module,exports){
+arguments[4][29][0].apply(exports,arguments)
+},{"dup":29}],98:[function(require,module,exports){
+arguments[4][30][0].apply(exports,arguments)
+},{"./Vec3":102,"dup":30}],99:[function(require,module,exports){
+arguments[4][31][0].apply(exports,arguments)
+},{"./Vec3":102,"dup":31}],100:[function(require,module,exports){
+arguments[4][32][0].apply(exports,arguments)
+},{"./Vec3":102,"dup":32}],101:[function(require,module,exports){
+arguments[4][33][0].apply(exports,arguments)
+},{"./Quaternion":100,"./Vec3":102,"dup":33}],102:[function(require,module,exports){
+arguments[4][34][0].apply(exports,arguments)
+},{"./Mat3":99,"dup":34}],103:[function(require,module,exports){
+arguments[4][35][0].apply(exports,arguments)
+},{"../collision/AABB":74,"../material/Material":97,"../math/Mat3":99,"../math/Quaternion":100,"../math/Vec3":102,"../shapes/Box":109,"../shapes/Shape":115,"../utils/EventTarget":121,"dup":35}],104:[function(require,module,exports){
+arguments[4][36][0].apply(exports,arguments)
+},{"../collision/Ray":81,"../collision/RaycastResult":82,"../math/Quaternion":100,"../math/Vec3":102,"../objects/WheelInfo":108,"./Body":103,"dup":36}],105:[function(require,module,exports){
+arguments[4][37][0].apply(exports,arguments)
+},{"../constraints/HingeConstraint":87,"../math/Vec3":102,"../shapes/Box":109,"../shapes/Sphere":116,"./Body":103,"dup":37}],106:[function(require,module,exports){
+arguments[4][38][0].apply(exports,arguments)
+},{"../material/Material":97,"../math/Quaternion":100,"../math/Vec3":102,"../objects/Body":103,"../shapes/Particle":113,"../shapes/Shape":115,"dup":38}],107:[function(require,module,exports){
+arguments[4][39][0].apply(exports,arguments)
+},{"../math/Vec3":102,"dup":39}],108:[function(require,module,exports){
+arguments[4][40][0].apply(exports,arguments)
+},{"../collision/RaycastResult":82,"../math/Transform":101,"../math/Vec3":102,"../utils/Utils":125,"dup":40}],109:[function(require,module,exports){
+arguments[4][41][0].apply(exports,arguments)
+},{"../math/Vec3":102,"./ConvexPolyhedron":110,"./Shape":115,"dup":41}],110:[function(require,module,exports){
+arguments[4][42][0].apply(exports,arguments)
+},{"../math/Quaternion":100,"../math/Transform":101,"../math/Vec3":102,"./Shape":115,"dup":42}],111:[function(require,module,exports){
+arguments[4][43][0].apply(exports,arguments)
+},{"../math/Quaternion":100,"../math/Vec3":102,"./ConvexPolyhedron":110,"./Shape":115,"dup":43}],112:[function(require,module,exports){
+arguments[4][44][0].apply(exports,arguments)
+},{"../math/Vec3":102,"../utils/Utils":125,"./ConvexPolyhedron":110,"./Shape":115,"dup":44}],113:[function(require,module,exports){
+arguments[4][45][0].apply(exports,arguments)
+},{"../math/Vec3":102,"./Shape":115,"dup":45}],114:[function(require,module,exports){
+arguments[4][46][0].apply(exports,arguments)
+},{"../math/Vec3":102,"./Shape":115,"dup":46}],115:[function(require,module,exports){
+arguments[4][47][0].apply(exports,arguments)
+},{"../material/Material":97,"../math/Quaternion":100,"../math/Vec3":102,"./Shape":115,"dup":47}],116:[function(require,module,exports){
+arguments[4][48][0].apply(exports,arguments)
+},{"../math/Vec3":102,"./Shape":115,"dup":48}],117:[function(require,module,exports){
+arguments[4][49][0].apply(exports,arguments)
+},{"../collision/AABB":74,"../math/Quaternion":100,"../math/Transform":101,"../math/Vec3":102,"../utils/Octree":122,"./Shape":115,"dup":49}],118:[function(require,module,exports){
+arguments[4][50][0].apply(exports,arguments)
+},{"../math/Quaternion":100,"../math/Vec3":102,"./Solver":119,"dup":50}],119:[function(require,module,exports){
+arguments[4][51][0].apply(exports,arguments)
+},{"dup":51}],120:[function(require,module,exports){
+arguments[4][52][0].apply(exports,arguments)
+},{"../math/Quaternion":100,"../math/Vec3":102,"../objects/Body":103,"./Solver":119,"dup":52}],121:[function(require,module,exports){
+arguments[4][53][0].apply(exports,arguments)
+},{"dup":53}],122:[function(require,module,exports){
+arguments[4][54][0].apply(exports,arguments)
+},{"../collision/AABB":74,"../math/Vec3":102,"dup":54}],123:[function(require,module,exports){
+arguments[4][55][0].apply(exports,arguments)
+},{"dup":55}],124:[function(require,module,exports){
+arguments[4][56][0].apply(exports,arguments)
+},{"dup":56}],125:[function(require,module,exports){
+arguments[4][57][0].apply(exports,arguments)
+},{"dup":57}],126:[function(require,module,exports){
+arguments[4][58][0].apply(exports,arguments)
+},{"../math/Vec3":102,"./Pool":123,"dup":58}],127:[function(require,module,exports){
+arguments[4][59][0].apply(exports,arguments)
+},{"../collision/AABB":74,"../collision/Ray":81,"../equations/ContactEquation":91,"../equations/FrictionEquation":93,"../math/Quaternion":100,"../math/Transform":101,"../math/Vec3":102,"../objects/Body":103,"../shapes/ConvexPolyhedron":110,"../shapes/Shape":115,"../solver/Solver":119,"../utils/Vec3Pool":126,"dup":59}],128:[function(require,module,exports){
+arguments[4][60][0].apply(exports,arguments)
+},{"../collision/AABB":74,"../collision/ArrayCollisionMatrix":75,"../collision/NaiveBroadphase":78,"../collision/OverlapKeeper":80,"../collision/Ray":81,"../collision/RaycastResult":82,"../equations/ContactEquation":91,"../equations/FrictionEquation":93,"../material/ContactMaterial":96,"../material/Material":97,"../math/Quaternion":100,"../math/Vec3":102,"../objects/Body":103,"../shapes/Shape":115,"../solver/GSSolver":118,"../utils/EventTarget":121,"../utils/TupleDictionary":124,"./Narrowphase":127,"dup":60}]},{},[1]);

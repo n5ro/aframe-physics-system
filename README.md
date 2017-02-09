@@ -14,13 +14,13 @@ Components for A-Frame physics integration, built on [CANNON.js](http://schteppe
 In the [dist/](https://github.com/donmccurdy/aframe-physics-system/tree/master/dist) folder, download the full or minified build. Include the script on your page, and all components are automatically registered for you:
 
 ```html
-<script src="//cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.2.0/dist/aframe-physics-system.min.js"></script>
+<script src="//cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.2.1/dist/aframe-physics-system.min.js"></script>
 ```
 
-CDN builds for aframe-physics-system/v1.2.0:
+CDN builds for aframe-physics-system/v1.2.1:
 
-- [aframe-physics-system.js](https://cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.2.0/dist/aframe-physics-system.js) *(development)*
-- [aframe-physics-system.min.js](https://cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.2.0/dist/aframe-physics-system.min.js) *(production)*
+- [aframe-physics-system.js](https://cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.2.1/dist/aframe-physics-system.js) *(development)*
+- [aframe-physics-system.min.js](https://cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.2.1/dist/aframe-physics-system.min.js) *(production)*
 
 ## Usage (NPM)
 
