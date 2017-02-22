@@ -148,7 +148,7 @@ AFRAME.registerComponent('force-float', {
       <a-entity camera
                 look-controls
                 position="0 1.764 0">
-        <a-entity cursor="maxDistance: 75"
+        <a-entity cursor raycaster="far: 75"
                   position="0 0 -1"
                   geometry="primitive: circle; radius: 0.01; segments: 4;"
                   material="color: #FF4444; shader: flat"></a-entity>
