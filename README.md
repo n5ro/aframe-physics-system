@@ -50,14 +50,14 @@ The `dynamic-body` and `static-body` components may be added to any `<a-entity/>
 - **dynamic-body**: A freely-moving object. Dynamic bodies have mass, collide with other objects, bounce or slow during collisions, and fall if gravity is enabled.
 - **static-body**: A fixed-position or animated object. Other objects may collide with static bodies, but static bodies themselves are unaffected by gravity and collisions.
 
-| Property       | Dependencies     | Default | Description                                 |
-|----------------|------------------|---------|---------------------------------------------|
-| shape          | —                | `auto`  | `auto`, `box`, `cylinder`, `sphere`, `hull` |
-| mass           | `dynamic-body`   | 5       | Simulated mass of the object, > 0.          |
-| linearDamping  | `dynamic-body`   | 0.01    | Resistance to movement.                     |
-| angularDamping | `dynamic-body`   | 0.01    | Resistance to rotation.                     |
-| sphereRadius   |  `shape:sphere`  | —       | Override default radius of bounding sphere. |
-| cylinderAxis   | `shape:cylinder` | —       | Override default axis of bounding cylinder. |
+| Property       | Dependencies     | Default | Description                                         |
+|----------------|------------------|---------|-----------------------------------------------------|
+| shape          | —                | `auto`  | `auto`, `box`, `cylinder`, `sphere`, `hull`, `none` |
+| mass           | `dynamic-body`   | 5       | Simulated mass of the object, > 0.                  |
+| linearDamping  | `dynamic-body`   | 0.01    | Resistance to movement.                             |
+| angularDamping | `dynamic-body`   | 0.01    | Resistance to rotation.                             |
+| sphereRadius   |  `shape:sphere`  | —       | Override default radius of bounding sphere.         |
+| cylinderAxis   | `shape:cylinder` | —       | Override default axis of bounding cylinder.         |
 
 ### Basics
 
@@ -134,6 +134,7 @@ Body components will attempt to find an appropriate CANNON.js shape to fit your 
 * **Primitives** – Plane/Cylinder/Sphere. Used automatically with the corresponding A-Frame primitives.
 * **Trimesh** – *Deprecated.* Not available as a custom shape, but may be chosen as a last resort for custom geometry. Trimeshes adapt to fit custom geometry (e.g. a `.OBJ` or `.DAE` file), but have very minimal support. Arbitrary trimesh shapes are difficult to model in any JS physics engine, will "fall through" certain other shapes, and have serious performance limitations.
 * **Compound** – *In progress.* Compound shapes require a bit of work to set up, but allow you to use multiple primitives to define a physics shape around custom models. These will generally perform better, and behave more accurately, than Trimesh or Convex shapes. For example, a stool might be modeled as a cylinder-shaped seat, on four long cylindrical legs.
+* **None** (`none`) – Does not add collision geometry.
 
 For more details, see the CANNON.js [collision matrix](https://github.com/schteppe/cannon.js#features).
 

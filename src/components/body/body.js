@@ -49,11 +49,6 @@ module.exports = {
     // Potential fix: https://github.com/mrdoob/three.js/pull/7019
     this.el.object3D.updateMatrixWorld(true);
 
-    // There are some cases where collision geometry is not desirable
-    // One use case is using a lock constraint of a dynamic body to a hand-controls object
-    // The hand controls can't directly reconcile being a dynamic object with being directly positioned
-    // The lock constraint has a limit on the force that it will apply to enforce the constraint
-    // This prevents the locked object from clipping through static geometry.
     if(data.shape !== 'none') {
       var options = data.shape === 'auto' ? undefined : AFRAME.utils.extend({}, this.data, {
         type: mesh2shape.Type[data.shape.toUpperCase()]
