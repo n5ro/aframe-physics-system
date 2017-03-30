@@ -14723,7 +14723,7 @@ require('../../../lib/CANNON-shape2mesh');
 
 module.exports = {
   schema: {
-    shape: {default: 'auto', oneOf: ['auto', 'box', 'cylinder', 'sphere', 'hull']},
+    shape: {default: 'auto', oneOf: ['auto', 'box', 'cylinder', 'sphere', 'hull', 'none']},
     cylinderAxis: {default: 'y', oneOf: ['x', 'y', 'z']},
     sphereRadius: {default: NaN}
   },
@@ -14750,23 +14750,7 @@ module.exports = {
     var shape,
         el = this.el,
         data = this.data,
-        pos = el.getAttribute('position'),
-        options = data.shape === 'auto' ? undefined : AFRAME.utils.extend({}, this.data, {
-          type: mesh2shape.Type[data.shape.toUpperCase()]
-        });
-
-    // Matrix World must be updated at root level, if scale is to be applied – updateMatrixWorld()
-    // only checks an object's parent, not the rest of the ancestors. Hence, a wrapping entity with
-    // scale="0.5 0.5 0.5" will be ignored.
-    // Reference: https://github.com/mrdoob/three.js/blob/master/src/core/Object3D.js#L511-L541
-    // Potential fix: https://github.com/mrdoob/three.js/pull/7019
-    this.el.object3D.updateMatrixWorld(true);
-    shape = mesh2shape(this.el.object3D, options);
-
-    if (!shape) {
-      this.el.addEventListener('model-loaded', this.initBody.bind(this));
-      return;
-    }
+        pos = el.getAttribute('position');
 
     this.body = new CANNON.Body({
       mass: data.mass || 0,
@@ -14775,7 +14759,33 @@ module.exports = {
       linearDamping: data.linearDamping,
       angularDamping: data.angularDamping
     });
-    this.body.addShape(shape, shape.offset, shape.orientation);
+
+    // Matrix World must be updated at root level, if scale is to be applied – updateMatrixWorld()
+    // only checks an object's parent, not the rest of the ancestors. Hence, a wrapping entity with
+    // scale="0.5 0.5 0.5" will be ignored.
+    // Reference: https://github.com/mrdoob/three.js/blob/master/src/core/Object3D.js#L511-L541
+    // Potential fix: https://github.com/mrdoob/three.js/pull/7019
+    this.el.object3D.updateMatrixWorld(true);
+
+    if(data.shape !== 'none') {
+      var options = data.shape === 'auto' ? undefined : AFRAME.utils.extend({}, this.data, {
+        type: mesh2shape.Type[data.shape.toUpperCase()]
+      });
+
+      shape = mesh2shape(this.el.object3D, options);
+
+      if (!shape) {
+        this.el.addEventListener('model-loaded', this.initBody.bind(this));
+        return;
+      }
+
+      this.body.addShape(shape, shape.offset, shape.orientation);
+
+      // Show wireframe
+      if (this.system.debug) {
+        this.createWireframe(this.body, shape);
+      }
+    }
 
     // Apply rotation
     var rot = el.getAttribute('rotation');
@@ -14785,11 +14795,6 @@ module.exports = {
       THREE.Math.degToRad(rot.z),
       'XYZ'
     ).normalize();
-
-    // Show wireframe
-    if (this.system.debug) {
-      this.createWireframe(this.body, shape);
-    }
 
     this.el.body = this.body;
     this.body.el = this.el;
