@@ -46,9 +46,30 @@ module.exports = {
   },
 
   update: function () {
+    /* Wrap constraint functions for a consistent interface */
+    function WrappedDistanceConstraint(bodyA, bodyB, options) {
+      CANNON.DistanceConstraint.call(this, bodyA, bodyB, options.distance, options.maxForce);
+    }
+    WrappedDistanceConstraint.prototype = CANNON.DistanceConstraint.prototype;
+
+    function WrappedPointToPointConstraint(bodyA, bodyB, options) {
+      CANNON.PointToPointConstraint.call(this, bodyA, options.pivotA, bodyB, options.pivotB, options.maxForce);
+    }
+    WrappedPointToPointConstraint.prototype = CANNON.PointToPointConstraint.prototype;
+    WrappedPointToPointConstraint.constructor = WrappedPointToPointConstraint;
+
     var el = this.el,
         data = this.data,
-        options = AFRAME.utils.extend({}, data.options);
+        constraintTypes = {
+          'lock': CANNON.LockConstraint,
+          'distance': WrappedDistanceConstraint,
+          'pointToPoint': WrappedPointToPointConstraint,
+          'hinge': CANNON.HingeConstraint,
+          'coneTwist': CANNON.ConeTwistConstraint
+        },
+        options = {
+          'maxForce': data.maxForce
+        };
 
     this.remove();
 
@@ -57,23 +78,29 @@ module.exports = {
       return;
     }
 
+    /* Generate the options object */
     switch (data.type) {
-      case 'distance':
-        this.constraint = new CANNON.DistanceConstraint(
-          el.body,
-          data.target.body,
-          options.distance || undefined,
-          options.maxForce
-        );
-        break;
       case 'lock':
-        this.constraint = new CANNON.LockConstraint(el.body, data.target.body, options);
         break;
-      case 'coneTwist':
+      case 'distance':
+        AFRAME.utils.extend(options, { "distance": data.distance || undefined });
+        break;
       case 'hinge':
+      case 'coneTwist':
+        options = AFRAME.utils.extend(options, {
+          "axisA": data.axis,
+          "axisB": data.axisTarget
+        });
       case 'pointToPoint':
+        options = AFRAME.utils.extend(options, {
+          "pivotA": data.pivot,
+          "pivotB": data.pivotTarget
+        });
+        break;
+      default:
         throw new Error('[constraint] Unimplemented type.');
     }
+    this.constraint = new constraintTypes[data.type](this.el.body, data.target.body, options);
 
     this.system.world.addConstraint(this.constraint);
   }
