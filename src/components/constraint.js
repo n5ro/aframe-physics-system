@@ -29,7 +29,7 @@ module.exports = {
     pivotTarget: {type: 'vec3'},
 
     // An axis that each body can rotate around, defined locally to that body.
-    axis: {type: 'vec3', default: { x: 0, y: 0, z: 1 },
+    axis: {type: 'vec3', default: { x: 0, y: 0, z: 1 }},
     axisTarget: {type: 'vec3'},
   },
 
@@ -46,30 +46,8 @@ module.exports = {
   },
 
   update: function () {
-    /* Wrap constraint functions for a consistent interface */
-    function WrappedDistanceConstraint(bodyA, bodyB, options) {
-      CANNON.DistanceConstraint.call(this, bodyA, bodyB, options.distance, options.maxForce);
-    }
-    WrappedDistanceConstraint.prototype = CANNON.DistanceConstraint.prototype;
-
-    function WrappedPointToPointConstraint(bodyA, bodyB, options) {
-      CANNON.PointToPointConstraint.call(this, bodyA, options.pivotA, bodyB, options.pivotB, options.maxForce);
-    }
-    WrappedPointToPointConstraint.prototype = CANNON.PointToPointConstraint.prototype;
-    WrappedPointToPointConstraint.constructor = WrappedPointToPointConstraint;
-
     var el = this.el,
-        data = this.data,
-        constraintTypes = {
-          'lock': CANNON.LockConstraint,
-          'distance': WrappedDistanceConstraint,
-          'pointToPoint': WrappedPointToPointConstraint,
-          'hinge': CANNON.HingeConstraint,
-          'coneTwist': CANNON.ConeTwistConstraint
-        },
-        options = {
-          'maxForce': data.maxForce
-        };
+        data = this.data;
 
     this.remove();
 
@@ -78,30 +56,50 @@ module.exports = {
       return;
     }
 
-    /* Generate the options object */
+    /* 
+     * This is actually the simplest way even with the superficial code duplication
+     * Cannon's constraint interface's inconsistencies makes it so.
+     */
     switch (data.type) {
       case 'lock':
+        this.constraint = new CANNON.LockConstraint(this.el.body, data.target.body, { "maxForce": data.maxForce });
         break;
       case 'distance':
-        AFRAME.utils.extend(options, { "distance": data.distance || undefined });
+        this.constraint = new CANNON.DistanceConstraint(this.el.body, data.target.body, data.distance, data.maxForce);
         break;
       case 'hinge':
+        this.constraint = new CANNON.HingeConstraint(
+          this.el.body,
+          data.target.body, {
+            "pivotA": data.axis,
+            "pivotB": data.axisTarget,
+            "axisA": data.pivot,
+            "axisB": data.pivotTarget,
+            "maxForce": data.maxForce
+          });
+        break;
       case 'coneTwist':
-        options = AFRAME.utils.extend(options, {
-          "axisA": data.axis,
-          "axisB": data.axisTarget
-        });
+        this.constraint = new CANNON.ConeTwistConstraint(
+          this.el.body,
+          data.target.body, {
+            "pivotA": data.axis,
+            "pivotB": data.axisTarget,
+            "axisA": data.pivot,
+            "axisB": data.pivotTarget,
+            "maxForce": data.maxForce
+          });
+        break;
       case 'pointToPoint':
-        options = AFRAME.utils.extend(options, {
-          "pivotA": data.pivot,
-          "pivotB": data.pivotTarget
-        });
+        this.constraint = new Cannon.PointToPointConstraint(
+          this.el.body,
+          data.pivot,
+          data.target.body,
+          data.pivotTarget,
+          data.maxForce);
         break;
       default:
         throw new Error('[constraint] Unimplemented type.');
     }
-    this.constraint = new constraintTypes[data.type](this.el.body, data.target.body, options);
-
     this.system.world.addConstraint(this.constraint);
-  }
+  },
 };
