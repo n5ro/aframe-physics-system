@@ -29,7 +29,7 @@ module.exports = {
     pivotTarget: {type: 'vec3'},
 
     // An axis that each body can rotate around, defined locally to that body.
-    axis: {type: 'vec3'},
+    axis: {type: 'vec3', default: { x: 0, y: 0, z: 1 },
     axisTarget: {type: 'vec3'},
   },
 

@@ -94,12 +94,16 @@ Example:
 
 | Property         | Dependencies    | Default | Description |
 | --- | --- | --- | --- |
-| type             | —               | `lock`  | Type of constraint. Options: `lock`, `distance`, and more to come. |
+| type             | —               | `lock`  | Type of constraint. Options: `lock`, `distance`, `hinge`, `coneTwist`, `pointToPoint`. |
 | target           | —               | —       | Selector for a single entity to which current entity should be bound. |
 | maxForce         | —               | 1e6     | Maximum force that may be exerted to enforce this constraint. |
 | collideConnected | —               | true    | If true, connected bodies may collide with one another. |
 | wakeUpBodies     | —               | true    | If true, sleeping bodies are woken up by this constraint. |
 | distance         | `type:distance` | auto    | Distance at which bodies should be fixed. Default, or 0, for current distance. |
+| pivot            | `type: pointToPoint, coneTwist, hinge` | 0 0 0 | Offset of the hinge or point-to-point constraint, defined locally in this element's body. |
+| pivotTarget      | `type: pointToPoint, coneTwist, hinge` | 0 0 0 | Offset of the hinge or point-to-point constraint, defined locally in the target's body. |
+| axis             | `type: coneTwist, hinge` | 0 0 1 | An axis that each body can rotate around, defined locally to this element's body. |
+| axisTarget       | `type: coneTwist, hinge` | 0 0 1 | An axis that each body can rotate around, defined locally to the target's body. |
 
 ## Using the CANNON.js API
 
