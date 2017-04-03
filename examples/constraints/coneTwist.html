@@ -1,0 +1,26 @@
+
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,maximum-scale=1">
+    <title>Distance Constraint Example</title>
+    <script type="text/javascript" src="https://aframe.io/releases/0.5.0/aframe.min.js"></script>
+    <script type="text/javascript" src="../../dist/aframe-physics-system.js"></script>
+    <script type="text/javascript">
+
+    </script>
+  </head>
+  <body>
+    <a-scene>
+      <!-- A gray static-body door that forms one side of the doorway -->
+      <a-sphere id="static-box" radius="0.5" color="#777" position="-0.5 0.5 0.0" static-body="shape: none"></a-sphere>
+      <!-- A red dynamic-body door constrained to dangle from the static box -->
+      <a-box width="1.0" height="1.0" depth="1.0" color="#F00" position="0.5 -0.5 0.0" dynamic-body
+        constraint__hinge="type: coneTwist; target: #static-box; pivot: 0.5 0.0 0.0; pivotTarget: -0.5 0.0 0.0; axis: 1.0 0.0 0.0; axisTarget: 1.0 0.0 0.0">
+      </a-box>
+      <a-camera position="0 5 0" rotation="-90 0 0"></a-camera>
+    </a-scene>
+  </body>
+</html>
+

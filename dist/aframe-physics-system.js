@@ -15859,7 +15859,7 @@ module.exports = {
 
     // An axis that each body can rotate around, defined locally to that body.
     axis: {type: 'vec3', default: { x: 0, y: 0, z: 1 }},
-    axisTarget: {type: 'vec3'},
+    axisTarget: {type: 'vec3', default: { x: 0, y: 0, z: 1}}
   },
 
   init: function () {
@@ -15885,6 +15885,12 @@ module.exports = {
       return;
     }
 
+    /** The body frame differs from the element frame */
+    var pivot = new CANNON.Vec3(data.pivot.x, data.pivot.y, data.pivot.z);
+    var pivotTarget = new CANNON.Vec3(data.pivotTarget.x, data.pivotTarget.y, data.pivotTarget.z);
+    var axis = new CANNON.Vec3(data.axis.x, data.axis.y, data.axis.z);
+    var axisTarget = new CANNON.Vec3(data.axisTarget.x, data.axisTarget.y, data.axisTarget.z);
+
     /* 
      * This is actually the simplest way even with the superficial code duplication
      * Cannon's constraint interface's inconsistencies makes it so.
@@ -15900,10 +15906,10 @@ module.exports = {
         this.constraint = new CANNON.HingeConstraint(
           this.el.body,
           data.target.body, {
-            "pivotA": data.axis,
-            "pivotB": data.axisTarget,
-            "axisA": data.pivot,
-            "axisB": data.pivotTarget,
+            "pivotA": pivot,
+            "pivotB": pivotTarget,
+            "axisA": axis,
+            "axisB": axisTarget,
             "maxForce": data.maxForce
           });
         break;
@@ -15911,19 +15917,19 @@ module.exports = {
         this.constraint = new CANNON.ConeTwistConstraint(
           this.el.body,
           data.target.body, {
-            "pivotA": data.axis,
-            "pivotB": data.axisTarget,
-            "axisA": data.pivot,
-            "axisB": data.pivotTarget,
+            "pivotA": pivot,
+            "pivotB": pivotTarget,
+            "axisA": axis,
+            "axisB": axisTarget,
             "maxForce": data.maxForce
           });
         break;
       case 'pointToPoint':
-        this.constraint = new Cannon.PointToPointConstraint(
+        this.constraint = new CANNON.PointToPointConstraint(
           this.el.body,
-          data.pivot,
+          pivot,
           data.target.body,
-          data.pivotTarget,
+          pivotTarget,
           data.maxForce);
         break;
       default:
