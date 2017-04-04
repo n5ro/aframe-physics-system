@@ -4,9 +4,9 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,maximum-scale=1">
-    <title>Distance Constraint Example</title>
+    <title>Hinge Constraint Example</title>
     <script type="text/javascript" src="https://aframe.io/releases/0.5.0/aframe.min.js"></script>
-    <script type="text/javascript" src="../../dist/aframe-physics-system.js"></script>
+    <script type="text/javascript" src="../bundle.js"></script>
     <script type="text/javascript">
 
     </script>
@@ -17,7 +17,7 @@
       <a-box id="static-box" width="1.0" height="1.0" depth="1.0" position="-1.0 0.5 0.0" color="#777" static-body></a-box>
       <!-- A red dynamic-body door constrained to the static box -->
       <a-box width="1.0" height="1.0" depth="0.1" color="#F00" position="0.0 0.5 0.0" dynamic-body
-        constraint__hinge="type: hinge; target: #static-box; axis: 0 1 0; axisTarget: 0 1 0; pivot: -0.5 0.0 0.05; pivotTarget: 0.5 0.0 0.5">
+        constraint__hinge="type: hinge; target: #static-box; axis: 0 1 0; targetAxis: 0 1 0; pivot: -0.5 0.0 0.05; targetPivot: 0.5 0.0 0.5">
       </a-box>
       <!-- A gray static-body door that forms one side of the doorway-->
       <a-box id="static-box" width="1.0" height="1.0" depth="1.0" position="1.1 0.5 0.0" color="#777" static-body circle-path="radius: 3; center: -5.0 1.0 0.0"></a-box>

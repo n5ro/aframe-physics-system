@@ -26,11 +26,11 @@ module.exports = {
 
     // Offset of the hinge or point-to-point constraint, defined locally in the body.
     pivot: {type: 'vec3'},
-    pivotTarget: {type: 'vec3'},
+    targetPivot: {type: 'vec3'},
 
     // An axis that each body can rotate around, defined locally to that body.
     axis: {type: 'vec3', default: { x: 0, y: 0, z: 1 }},
-    axisTarget: {type: 'vec3', default: { x: 0, y: 0, z: 1}}
+    targetAxis: {type: 'vec3', default: { x: 0, y: 0, z: 1}}
   },
 
   init: function () {
@@ -58,9 +58,9 @@ module.exports = {
 
     /** The body frame differs from the element frame */
     var pivot = new CANNON.Vec3(data.pivot.x, data.pivot.y, data.pivot.z);
-    var pivotTarget = new CANNON.Vec3(data.pivotTarget.x, data.pivotTarget.y, data.pivotTarget.z);
+    var targetPivot = new CANNON.Vec3(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z);
     var axis = new CANNON.Vec3(data.axis.x, data.axis.y, data.axis.z);
-    var axisTarget = new CANNON.Vec3(data.axisTarget.x, data.axisTarget.y, data.axisTarget.z);
+    var targetAxis= new CANNON.Vec3(data.targetAxis.x, data.targetAxis.y, data.targetAxis.z);
 
     /* 
      * This is actually the simplest way even with the superficial code duplication
@@ -78,9 +78,9 @@ module.exports = {
           this.el.body,
           data.target.body, {
             "pivotA": pivot,
-            "pivotB": pivotTarget,
+            "pivotB": targetPivot,
             "axisA": axis,
-            "axisB": axisTarget,
+            "axisB": targetAxis,
             "maxForce": data.maxForce
           });
         break;
@@ -89,9 +89,9 @@ module.exports = {
           this.el.body,
           data.target.body, {
             "pivotA": pivot,
-            "pivotB": pivotTarget,
+            "pivotB": targetPivot,
             "axisA": axis,
-            "axisB": axisTarget,
+            "axisB": targetAxis,
             "maxForce": data.maxForce
           });
         break;
@@ -100,11 +100,11 @@ module.exports = {
           this.el.body,
           pivot,
           data.target.body,
-          pivotTarget,
+          targetPivot,
           data.maxForce);
         break;
       default:
-        throw new Error('[constraint] Unimplemented type.');
+        throw new Error('[constraint] Unexpected type: ' + data.type);
     }
     this.system.world.addConstraint(this.constraint);
   },

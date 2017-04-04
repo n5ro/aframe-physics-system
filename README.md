@@ -101,9 +101,9 @@ Example:
 | wakeUpBodies     | —               | true    | If true, sleeping bodies are woken up by this constraint. |
 | distance         | `type:distance` | auto    | Distance at which bodies should be fixed. Default, or 0, for current distance. |
 | pivot            | `type: pointToPoint, coneTwist, hinge` | 0 0 0 | Offset of the hinge or point-to-point constraint, defined locally in this element's body. |
-| pivotTarget      | `type: pointToPoint, coneTwist, hinge` | 0 0 0 | Offset of the hinge or point-to-point constraint, defined locally in the target's body. |
+| targetPivot      | `type: pointToPoint, coneTwist, hinge` | 0 0 0 | Offset of the hinge or point-to-point constraint, defined locally in the target's body. |
 | axis             | `type: coneTwist, hinge` | 0 0 1 | An axis that each body can rotate around, defined locally to this element's body. |
-| axisTarget       | `type: coneTwist, hinge` | 0 0 1 | An axis that each body can rotate around, defined locally to the target's body. |
+| targetAxis       | `type: coneTwist, hinge` | 0 0 1 | An axis that each body can rotate around, defined locally to the target's body. |
 
 ## Using the CANNON.js API
 

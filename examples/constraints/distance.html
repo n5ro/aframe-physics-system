@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,maximum-scale=1">
     <title>Distance Constraint Example</title>
     <script type="text/javascript" src="https://aframe.io/releases/0.5.0/aframe.min.js"></script>
-    <script type="text/javascript" src="../../dist/aframe-physics-system.js"></script>
+    <script type="text/javascript" src="../bundle.js"></script>
     <script type="text/javascript">
 
 /**
@@ -19,11 +19,9 @@ AFRAME.registerComponent("circle-path", {
     "center": { "type": "vec3", "default": { "x": 0, "y": 0, "z": 0 } }
   },
   "tick": function(time, timeDelta) {
-    console.log(this.data.center.x + ", " + this.data.center.y + ", " + this.data.center.z);
     var x = this.data.center.x + this.data.radius * Math.sin(time * 2 * Math.PI / (1000 * this.data.period));
     var y = this.data.center.y;
     var z = this.data.center.z + this.data.radius * Math.cos(time * 2 * Math.PI / (1000 * this.data.period));
-    console.log(x + ", " + y + ", " + z);
     this.el.setAttribute("position", { "x": x, "y": y, "z": z} );
   }
 });
