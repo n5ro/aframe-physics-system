@@ -1,0 +1,44 @@
+
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,maximum-scale=1">
+    <title>Lock Constraint Example</title>
+    <script type="text/javascript" src="https://aframe.io/releases/0.5.0/aframe.min.js"></script>
+    <script type="text/javascript" src="../bundle.js"></script>
+    <script type="text/javascript">
+
+/**
+ *  Forces an object on a circular path around the y-axis
+ */
+AFRAME.registerComponent("circle-path", {
+  "schema": {
+    "radius": { "default": 0.5 },
+    "period": { "default": 4 },
+    "height": { "default": 1 }
+  },
+  "tick": function(time, timeDelta) {
+    var x = this.data.radius * Math.sin(time * 2 * Math.PI / (1000 * this.data.period));
+    var y = this.data.height;
+    var z = this.data.radius * Math.cos(time * 2 * Math.PI / (1000 * this.data.period));
+    this.el.setAttribute("position", { "x": x, "y": y, "z": z} );
+  }
+});
+
+    </script>
+  </head>
+  <body>
+    <a-scene>
+      <!-- A gray static-body cube that moves in a circle -->
+      <a-box id="static-box" width="1.0" height="1.0" depth="1.0" position="0.0 1.0 0.5" color="#777" static-body="shape: none" circle-path></a-box>
+      <!-- A red dynamic-body cube constrained to the static box -->
+      <a-box width="1.0" height="1.0" depth="1.0" color="#F00" position="0.0 1.0 0.5" dynamic-body constraint="type: lock; target: #static-box; maxForce: 100"></a-box>
+      <!-- A plane that the static sphere can phase through but the dynamic box can't -->
+      <a-plane width="15.0" height="2.0" position="0.0 1.0 -0.5" color="#00F" static-body></a-plane>
+      <!-- The camera should have a top-down view -->
+      <a-camera position="0 10 0" rotation="-90 0 0"></a-camera>
+    </a-scene>
+  </body>
+</html>
+
