@@ -56,56 +56,65 @@ module.exports = {
       return;
     }
 
-    /** The body frame differs from the element frame */
-    var pivot = new CANNON.Vec3(data.pivot.x, data.pivot.y, data.pivot.z);
-    var targetPivot = new CANNON.Vec3(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z);
-    var axis = new CANNON.Vec3(data.axis.x, data.axis.y, data.axis.z);
-    var targetAxis= new CANNON.Vec3(data.targetAxis.x, data.targetAxis.y, data.targetAxis.z);
+    this.constraint = this.createConstraint();
+    this.system.world.addConstraint(this.constraint);
+  },
 
-    /* 
-     * This is actually the simplest way even with the superficial code duplication
-     * Cannon's constraint interface's inconsistencies makes it so.
-     */
+  /**
+   * Creates a new constraint, given current component data. The CANNON.js constructors are a bit
+   * different for each constraint type.
+   * @return {CANNON.Constraint}
+   */
+  createConstraint: function () {
+    var data = this.data,
+        pivot = new CANNON.Vec3(data.pivot.x, data.pivot.y, data.pivot.z),
+        targetPivot = new CANNON.Vec3(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z),
+        axis = new CANNON.Vec3(data.axis.x, data.axis.y, data.axis.z),
+        targetAxis= new CANNON.Vec3(data.targetAxis.x, data.targetAxis.y, data.targetAxis.z);
+
     switch (data.type) {
       case 'lock':
-        this.constraint = new CANNON.LockConstraint(this.el.body, data.target.body, { "maxForce": data.maxForce });
-        break;
+        return new CANNON.LockConstraint(
+          this.el.body,
+          data.target.body,
+          {maxForce: data.maxForce}
+        );
       case 'distance':
-        this.constraint = new CANNON.DistanceConstraint(this.el.body, data.target.body, data.distance, data.maxForce);
-        break;
+        return new CANNON.DistanceConstraint(
+          this.el.body,
+          data.target.body,
+          data.distance,
+          data.maxForce
+        );
       case 'hinge':
-        this.constraint = new CANNON.HingeConstraint(
+        return new CANNON.HingeConstraint(
           this.el.body,
           data.target.body, {
-            "pivotA": pivot,
-            "pivotB": targetPivot,
-            "axisA": axis,
-            "axisB": targetAxis,
-            "maxForce": data.maxForce
+            pivotA: pivot,
+            pivotB: targetPivot,
+            axisA: axis,
+            axisB: targetAxis,
+            maxForce: data.maxForce
           });
-        break;
       case 'coneTwist':
-        this.constraint = new CANNON.ConeTwistConstraint(
+        return new CANNON.ConeTwistConstraint(
           this.el.body,
           data.target.body, {
-            "pivotA": pivot,
-            "pivotB": targetPivot,
-            "axisA": axis,
-            "axisB": targetAxis,
-            "maxForce": data.maxForce
+            pivotA: pivot,
+            pivotB: targetPivot,
+            axisA: axis,
+            axisB: targetAxis,
+            maxForce: data.maxForce
           });
-        break;
       case 'pointToPoint':
-        this.constraint = new CANNON.PointToPointConstraint(
+        return new CANNON.PointToPointConstraint(
           this.el.body,
           pivot,
           data.target.body,
           targetPivot,
           data.maxForce);
-        break;
       default:
         throw new Error('[constraint] Unexpected type: ' + data.type);
     }
-    this.system.world.addConstraint(this.constraint);
-  },
+  }
 };
