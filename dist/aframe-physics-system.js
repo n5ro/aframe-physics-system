@@ -15037,11 +15037,11 @@ module.exports = {
 
     // Offset of the hinge or point-to-point constraint, defined locally in the body.
     pivot: {type: 'vec3'},
-    pivotTarget: {type: 'vec3'},
+    targetPivot: {type: 'vec3'},
 
     // An axis that each body can rotate around, defined locally to that body.
-    axis: {type: 'vec3'},
-    axisTarget: {type: 'vec3'},
+    axis: {type: 'vec3', default: { x: 0, y: 0, z: 1 }},
+    targetAxis: {type: 'vec3', default: { x: 0, y: 0, z: 1}}
   },
 
   init: function () {
@@ -15058,8 +15058,7 @@ module.exports = {
 
   update: function () {
     var el = this.el,
-        data = this.data,
-        options = AFRAME.utils.extend({}, data.options);
+        data = this.data;
 
     this.remove();
 
@@ -15068,25 +15067,66 @@ module.exports = {
       return;
     }
 
-    switch (data.type) {
-      case 'distance':
-        this.constraint = new CANNON.DistanceConstraint(
-          el.body,
-          data.target.body,
-          options.distance || undefined,
-          options.maxForce
-        );
-        break;
-      case 'lock':
-        this.constraint = new CANNON.LockConstraint(el.body, data.target.body, options);
-        break;
-      case 'coneTwist':
-      case 'hinge':
-      case 'pointToPoint':
-        throw new Error('[constraint] Unimplemented type.');
-    }
-
+    this.constraint = this.createConstraint();
     this.system.world.addConstraint(this.constraint);
+  },
+
+  /**
+   * Creates a new constraint, given current component data. The CANNON.js constructors are a bit
+   * different for each constraint type.
+   * @return {CANNON.Constraint}
+   */
+  createConstraint: function () {
+    var data = this.data,
+        pivot = new CANNON.Vec3(data.pivot.x, data.pivot.y, data.pivot.z),
+        targetPivot = new CANNON.Vec3(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z),
+        axis = new CANNON.Vec3(data.axis.x, data.axis.y, data.axis.z),
+        targetAxis= new CANNON.Vec3(data.targetAxis.x, data.targetAxis.y, data.targetAxis.z);
+
+    switch (data.type) {
+      case 'lock':
+        return new CANNON.LockConstraint(
+          this.el.body,
+          data.target.body,
+          {maxForce: data.maxForce}
+        );
+      case 'distance':
+        return new CANNON.DistanceConstraint(
+          this.el.body,
+          data.target.body,
+          data.distance,
+          data.maxForce
+        );
+      case 'hinge':
+        return new CANNON.HingeConstraint(
+          this.el.body,
+          data.target.body, {
+            pivotA: pivot,
+            pivotB: targetPivot,
+            axisA: axis,
+            axisB: targetAxis,
+            maxForce: data.maxForce
+          });
+      case 'coneTwist':
+        return new CANNON.ConeTwistConstraint(
+          this.el.body,
+          data.target.body, {
+            pivotA: pivot,
+            pivotB: targetPivot,
+            axisA: axis,
+            axisB: targetAxis,
+            maxForce: data.maxForce
+          });
+      case 'pointToPoint':
+        return new CANNON.PointToPointConstraint(
+          this.el.body,
+          pivot,
+          data.target.body,
+          targetPivot,
+          data.maxForce);
+      default:
+        throw new Error('[constraint] Unexpected type: ' + data.type);
+    }
   }
 };
 
