@@ -1,4 +1,4 @@
-var Physics = require('../../../src/system/physics'),
+var Physics = require('../../../src/system'),
     CustomPhysics = function () {};
 
 AFRAME.utils.extend(CustomPhysics.prototype, Physics);

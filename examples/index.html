@@ -49,16 +49,6 @@ AFRAME.registerComponent('rain-of-entities', {
       box.setAttribute(parts[0], parts[1] || '');
     });
 
-    // var currentIndex = this.boxes.length - 1;
-    // var boxes = this.boxes;
-    // var system = this.el.sceneEl.systems.physics;
-    // box.addEventListener('body-play', function (e) {
-    //   if (currentIndex % 2 === 0) return;
-    //   var body1 = e.detail.body,
-    //       body2 = boxes[currentIndex - 1].body;
-    //   system.addConstraint(new CANNON.LockConstraint(body1, body2));
-    // });
-
     // Recycling is important, kids.
     setInterval(function () {
       if (box.body.position.y > 0) return;
@@ -94,7 +84,7 @@ AFRAME.registerComponent('rain-of-entities', {
  */
 AFRAME.registerComponent('force-pushable', {
   schema: {
-    force: { default: 100 }
+    force: { default: 10 }
   },
   init: function () {
     this.pStart = new THREE.Vector3();
@@ -187,7 +177,7 @@ AFRAME.registerComponent('grab', {
              rain-of-entities="spread: 3"
              physics="driver: worker;">
       <!-- Player -->
-      <a-entity camera look-controls position="0 0.1 0">
+      <a-entity camera="userHeight: 0.6" look-controls position="0 0.1 0">
         <a-entity cursor
                   position="0 0 -0.5"
                   geometry="primitive: circle; radius: 0.01; segments: 4;"

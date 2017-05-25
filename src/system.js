@@ -14,7 +14,7 @@ module.exports = AFRAME.registerSystem('physics', {
   schema: {
     // CANNON.js driver type
     driver:                         { default: 'local', oneOf: ['local', 'worker', 'network', 'ammo'] },
-    networkUrl:                      { default: '', if: {driver: 'network'} },
+    networkUrl:                     { default: '', if: {driver: 'network'} },
     workerFps:                      { default: 60, if: {driver: 'worker'} },
     workerEngine:                   { default: 'cannon', if: {driver: 'worker'}, oneOf: ['cannon'] },
     workerDebug:                    { default: false, if: {driver: 'worker'} },

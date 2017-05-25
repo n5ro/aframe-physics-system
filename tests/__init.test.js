@@ -6,8 +6,6 @@ window.debug = true;
 var AScene = require('aframe').AScene;
 var physics = require('../');
 
-physics.registerAll();
-
 setup(function () {
   this.sinon = sinon.sandbox.create();
   // Stubs to not create a WebGL context since Travis CI runs headless.
