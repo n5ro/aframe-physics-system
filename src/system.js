@@ -4,7 +4,7 @@ var CONSTANTS = require('./constants'),
 
 var LocalDriver = require('./drivers/local-driver'),
     WorkerDriver = require('./drivers/worker-driver'),
-    ServerDriver = require('./drivers/server-driver'),
+    NetworkDriver = require('./drivers/network-driver'),
     AmmoDriver = require('./drivers/ammo-driver');
 
 /**
@@ -13,10 +13,10 @@ var LocalDriver = require('./drivers/local-driver'),
 module.exports = {
   schema: {
     // CANNON.js driver type
-    driver:                         { default: 'local', oneOf: ['local', 'worker', 'server', 'ammo'] },
-    serverUrl:                      { default: '', if: {driver: 'server'} },
+    driver:                         { default: 'local', oneOf: ['local', 'worker', 'network', 'ammo'] },
+    networkUrl:                      { default: '', if: {driver: 'network'} },
     workerFps:                      { default: 60, if: {driver: 'worker'} },
-    workerEngine:                   { default: 'cannon', if: {driver: 'worker'}, oneOf: ['cannon', 'ammo'] },
+    workerEngine:                   { default: 'cannon', if: {driver: 'worker'}, oneOf: ['cannon'] },
     workerDebug:                    { default: false, if: {driver: 'worker'} },
 
     gravity:                        { default: C_GRAV },
@@ -66,8 +66,8 @@ module.exports = {
         this.driver = new LocalDriver();
         break;
 
-      case 'server':
-        this.driver = new ServerDriver(data.serverUrl);
+      case 'network':
+        this.driver = new NetworkDriver(data.networkUrl);
         break;
 
       case 'worker':
