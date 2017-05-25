@@ -155,23 +155,31 @@ module.exports.serializeConstraint = function (constraint) {
 
   var message = {
     id: constraint[ID],
+    type: constraint.type,
     maxForce: constraint.maxForce,
     bodyA: constraint.bodyA[ID],
     bodyB: constraint.bodyB[ID]
   };
 
-  if (constraint instanceof CANNON.LockConstraint) {
-    message.type = 'LockConstraint';
-  } else if (constraint instanceof CANNON.DistanceConstraint) {
-    message.type = 'DistanceConstraint';
-  } else if (constraint instanceof CANNON.HingeConstraint) {
-    message.type = 'HingeConstraint';
-  } else if (constraint instanceof CANNON.ConeTwistConstraint) {
-    message.type = 'ConeTwistConstraint';
-  } else if (constraint instanceof CANNON.PointToPointConstraint) {
-    message.type = 'PointToPointConstraint';
-  } else {
-    throw new Error('Unexpected constraint type');
+  switch (constraint.type) {
+    case 'LockConstraint':
+      break;
+    case 'DistanceConstraint':
+      message.distance = constraint.distance;
+      break;
+    case 'HingeConstraint':
+    case 'ConeTwistConstraint':
+      message.axisA = serializeVec3(constraint.axisA);
+      message.axisB = serializeVec3(constraint.axisB);
+      message.pivotA = serializeVec3(constraint.pivotA);
+      message.pivotB = serializeVec3(constraint.pivotB);
+      break;
+    case 'PointToPointConstraint':
+      message.pivotA = serializeVec3(constraint.pivotA);
+      message.pivotB = serializeVec3(constraint.pivotB);
+      break;
+    default:
+      throw new Error('Unexpected constraint type: ' + constraint.type);
   }
 
   return message;
@@ -179,7 +187,39 @@ module.exports.serializeConstraint = function (constraint) {
 
 module.exports.deserializeConstraint = function (message, bodies) {
   var TypedConstraint = CANNON[message.type];
-  return new TypedConstraint(bodies[message.bodyA], bodies[message.bodyB], message);
+  var bodyA = bodies[message.bodyA];
+  var bodyB = bodies[message.bodyB];
+
+  switch (message.type) {
+    case 'LockConstraint':
+      return new CANNON.LockConstraint(bodyA, bodyB, message);
+    case 'DistanceConstraint':
+      return new CANNON.DistanceConstraint(
+        bodyA,
+        bodyB,
+        message.distance,
+        message.maxForce
+      );
+    case 'HingeConstraint':
+    case 'ConeTwistConstraint':
+      return new TypedConstraint(bodyA, bodyB, {
+        pivotA: deserializeVec3(message.pivotA),
+        pivotB: deserializeVec3(message.pivotB),
+        axisA: deserializeVec3(message.axisA),
+        axisB: deserializeVec3(message.axisB),
+        maxForce: message.maxForce
+      });
+    case 'PointToPointConstraint':
+      return new CANNON.PointToPointConstraint(
+        bodyA,
+        deserializeVec3(message.pivotA),
+        bodyB,
+        deserializeVec3(message.pivotB),
+        message.maxForce
+      );
+    default:
+      throw new Error('Unexpected constraint type: ' + message.type);
+  }
 };
 
 /******************************************************************************
