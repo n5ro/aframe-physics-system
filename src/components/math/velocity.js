@@ -1,7 +1,7 @@
 /**
  * Velocity, in m/s.
  */
-module.exports = {
+module.exports = AFRAME.registerComponent('velocity', {
   schema: {type: 'vec3'},
 
   init: function () {
@@ -41,4 +41,4 @@ module.exports = {
       z: position.z + velocity.z * dt / 1000
     });
   }
-};
+});

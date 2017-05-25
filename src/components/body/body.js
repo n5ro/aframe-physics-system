@@ -5,7 +5,7 @@ require('../../../lib/CANNON-shape2mesh');
 
 module.exports = {
   schema: {
-    shape: {default: 'auto', oneOf: ['auto', 'box', 'cylinder', 'sphere', 'hull', 'none']},
+    shape: {default: 'auto', oneOf: ['auto', 'box', 'cylinder', 'sphere', 'hull', 'mesh', 'none']},
     cylinderAxis: {default: 'y', oneOf: ['x', 'y', 'z']},
     sphereRadius: {default: NaN}
   },

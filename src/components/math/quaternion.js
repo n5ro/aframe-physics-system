@@ -6,7 +6,7 @@
  *
  * See: https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
  */
-module.exports = {
+module.exports = AFRAME.registerComponent('quaternion', {
   schema: {type: 'vec4'},
 
   play: function () {
@@ -24,4 +24,4 @@ module.exports = {
     var data = this.data;
     this.el.object3D.quaternion.set(data.x, data.y, data.z, data.w);
   }
-};
+});

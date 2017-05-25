@@ -5,7 +5,7 @@ var Body = require('./body');
  *
  * Moves according to physics simulation, and may collide with other objects.
  */
-module.exports = AFRAME.utils.extend({}, Body, {
+var DynamicBody = AFRAME.utils.extend({}, Body, {
   dependencies: ['quaternion', 'velocity'],
 
   schema: AFRAME.utils.extend({}, Body.schema, {
@@ -18,3 +18,5 @@ module.exports = AFRAME.utils.extend({}, Body, {
     this.syncFromPhysics();
   }
 });
+
+module.exports = AFRAME.registerComponent('dynamic-body', DynamicBody);

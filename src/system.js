@@ -10,7 +10,7 @@ var LocalDriver = require('./drivers/local-driver'),
 /**
  * Physics system.
  */
-module.exports = {
+module.exports = AFRAME.registerSystem('physics', {
   schema: {
     // CANNON.js driver type
     driver:                         { default: 'local', oneOf: ['local', 'worker', 'network', 'ammo'] },
@@ -196,4 +196,4 @@ module.exports = {
   getContacts: function () {
     return this.driver.getContacts();
   }
-};
+});

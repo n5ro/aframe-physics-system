@@ -30,8 +30,7 @@ npm install --save aframe-physics-system
 
 ```javascript
 // my-app.js
-var physics = require('aframe-physics-system');
-physics.registerAll();
+require('aframe-physics-system');
 ```
 
 Once installed, you'll need to compile your JavaScript using something like [Browserify](http://browserify.org/) or [Webpack](http://webpack.github.io/). Example:
