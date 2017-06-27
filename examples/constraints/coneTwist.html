@@ -14,7 +14,7 @@
       <a-sphere id="static-box" radius="0.5" color="#777" position="-0.5 0.5 0.0" static-body="shape: none"></a-sphere>
       <!-- A red dynamic-body door constrained to dangle from the static box -->
       <a-box width="1.0" height="1.0" depth="1.0" color="#F00" position="0.5 -0.5 0.0" dynamic-body
-        constraint__coneTwist="type: coneTwist; target: #static-box; pivot: 0.5 0.0 0.0; targetPivot: -0.5 0.0 0.0; axis: 1.0 0.0 0.0; targetAxis: 1.0 0.0 0.0">
+        constraint__conetwist="type: coneTwist; target: #static-box; pivot: 0.5 0.0 0.0; targetPivot: -0.5 0.0 0.0; axis: 1.0 0.0 0.0; targetAxis: 1.0 0.0 0.0">
       </a-box>
       <a-camera position="0 5 0" rotation="-90 0 0"></a-camera>
     </a-scene>
