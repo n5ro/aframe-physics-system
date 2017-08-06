@@ -191,8 +191,19 @@ Contact materials define what happens when two objects meet, including physical 
 | contactEquationRelaxation       | 3       | Relaxation time of the produced contact equations. |
 | frictionEquationStiffness       | 1e8     | Stiffness of the produced friction equations.      |
 | frictionEquationRegularization  | 3       | Relaxation time of the produced friction equations |
+| driver                          | local   | [`local`, `worker`]                                |
+| workerFps                       | 60      | Steps per second to be used in physics simulation on worker. |
+| workerInterpolate               | true    | Whether the main thread should interpolate physics frames from the worker. |
+| workerInterpBufferSize          | 2       | Number of physics frames to be 'padded' before displaying. Advanced. |
+| workerDebug                     | false   | If true, the worker codepaths are used on the main thread. This is slow, because physics snapshots are needlessly serialized, but helpful for debugging. |
 
 More advanced configuration, including specifying different collision behaviors for different objects, is available through the CANNON.js JavaScript API.
+
+> NOTE: It is possible to run physics on a Web Worker using the `physics="driver: worker"` option.
+> Using a worker is helpful for maintaining a smooth framerate, because physics simulation does
+> not block the main thread. However, scenes needing highly-responsive interaction (for example,
+> tossing and catching objects) may prefer to run physics locally, where feedback from the physics
+> system will be immediate.
 
 Resources:
 
