@@ -5,11 +5,20 @@
 
 Components for A-Frame physics integration, built on [CANNON.js](http://schteppe.github.io/cannon.js/).
 
-![d6590832-8bdb-11e6-9336-658b00bc0460 3](https://cloud.githubusercontent.com/assets/1848368/19297499/806d059a-9013-11e6-9b20-c03294acbc4c.png)
+## Contents
 
-> Image credit [@andgokevin](https://twitter.com/andgokevin).
++ [Installation](#installation)
++ [Basics](#basics)
++ [Components](#components)
+  + [`dynamic-body` and `static-body`](#dynamic-body-and-static-body)
+  + [`constraint`](#constraint)
++ [Using the CANNON.js API](#using-the-cannonjs-api)
++ [Collision Events](#collision-events)
++ [System Configuration](#system-configuration)
 
-## Usage (Scripts)
+## Installation
+
+### Scripts
 
 In the [dist/](https://github.com/donmccurdy/aframe-physics-system/tree/master/dist) folder, download the full or minified build. Include the script on your page, and all components are automatically registered for you:
 
@@ -22,7 +31,7 @@ CDN builds for aframe-physics-system/v1.4.3:
 - [aframe-physics-system.js](https://cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.4.3/dist/aframe-physics-system.js) *(development)*
 - [aframe-physics-system.min.js](https://cdn.rawgit.com/donmccurdy/aframe-physics-system/v1.4.3/dist/aframe-physics-system.min.js) *(production)*
 
-## Usage (NPM)
+### npm
 
 ```
 npm install --save aframe-physics-system
@@ -42,23 +51,7 @@ browserify my-app.js -o bundle.js
 
 `bundle.js` may then be included in your page. See [here](http://browserify.org/#middle-section) for a better introduction to Browserify.
 
-## Components – `dynamic-body` and `static-body`
-
-The `dynamic-body` and `static-body` components may be added to any `<a-entity/>` that contains a mesh. Generally, each scene will have at least one `static-body` for the ground, and one or more `dynamic-body` instances that the player can interact with.
-
-- **dynamic-body**: A freely-moving object. Dynamic bodies have mass, collide with other objects, bounce or slow during collisions, and fall if gravity is enabled.
-- **static-body**: A fixed-position or animated object. Other objects may collide with static bodies, but static bodies themselves are unaffected by gravity and collisions.
-
-| Property       | Dependencies     | Default | Description                                         |
-|----------------|------------------|---------|-----------------------------------------------------|
-| shape          | —                | `auto`  | `auto`, `box`, `cylinder`, `sphere`, `hull`, `none` |
-| mass           | `dynamic-body`   | 5       | Simulated mass of the object, > 0.                  |
-| linearDamping  | `dynamic-body`   | 0.01    | Resistance to movement.                             |
-| angularDamping | `dynamic-body`   | 0.01    | Resistance to rotation.                             |
-| sphereRadius   |  `shape:sphere`  | —       | Override default radius of bounding sphere.         |
-| cylinderAxis   | `shape:cylinder` | —       | Override default axis of bounding cylinder.         |
-
-### Basics
+## Basics
 
 ```html
 <!-- The debug:true option creates a wireframe around each physics body. If you don't see a wireframe,
@@ -80,7 +73,51 @@ The `dynamic-body` and `static-body` components may be added to any `<a-entity/>
 </a-scene>
 ```
 
-## Components – `constraint`
+## Components
+
+### `dynamic-body` and `static-body`
+
+The `dynamic-body` and `static-body` components may be added to any `<a-entity/>` that contains a mesh. Generally, each scene will have at least one `static-body` for the ground, and one or more `dynamic-body` instances that the player can interact with.
+
+- **dynamic-body**: A freely-moving object. Dynamic bodies have mass, collide with other objects, bounce or slow during collisions, and fall if gravity is enabled.
+- **static-body**: A fixed-position or animated object. Other objects may collide with static bodies, but static bodies themselves are unaffected by gravity and collisions.
+
+| Property       | Dependencies     | Default | Description                                         |
+|----------------|------------------|---------|-----------------------------------------------------|
+| shape          | —                | `auto`  | `auto`, `box`, `cylinder`, `sphere`, `hull`, `none` |
+| mass           | `dynamic-body`   | 5       | Simulated mass of the object, > 0.                  |
+| linearDamping  | `dynamic-body`   | 0.01    | Resistance to movement.                             |
+| angularDamping | `dynamic-body`   | 0.01    | Resistance to rotation.                             |
+| sphereRadius   |  `shape:sphere`  | —       | Override default radius of bounding sphere.         |
+| cylinderAxis   | `shape:cylinder` | —       | Override default axis of bounding cylinder.         |
+
+#### Body Shapes
+
+Body components will attempt to find an appropriate CANNON.js shape to fit your model. When defining an object you may choose a shape or leave the default, `auto`. Select a shape carefully, as there are performance implications with different choices:
+
+* **Auto** (`auto`) – Chooses automatically from the available shapes.
+* **Box** (`box`) – Great performance, compared to Hull or Trimesh shapes, and may be fitted to custom models.
+* **Cylinder** (`cylinder`) – See `box`. Adds `cylinderAxis` option.
+* **Sphere** (`sphere`) – See `box`. Adds `sphereRadius` option.
+* **Convex** (`hull`) – Wraps a model like shrink-wrap. Convex shapes are more performant and better supported than Trimesh, but may still have some performance impact when used as dynamic objects.
+* **Primitives** – Plane/Cylinder/Sphere. Used automatically with the corresponding A-Frame primitives.
+* **Trimesh** (`mesh`) – *Deprecated.* Trimeshes adapt to fit custom geometry (e.g. a `.OBJ` or `.DAE` file), but have very minimal support. Arbitrary trimesh shapes are difficult to model in any JS physics engine, will "fall through" certain other shapes, and have serious performance limitations.
+* **Compound** – *In progress.* Compound shapes require a bit of work to set up, but allow you to use multiple primitives to define a physics shape around custom models. These will generally perform better, and behave more accurately, than Trimesh or Convex shapes. For example, a stool might be modeled as a cylinder-shaped seat, on four long cylindrical legs.
+* **None** (`none`) – Does not add collision geometry.
+
+For more details, see the CANNON.js [collision matrix](https://github.com/schteppe/cannon.js#features).
+
+Example using a bounding box for a custom model:
+
+```html
+<!-- Box -->
+<a-entity obj-model="obj: url(...)" dynamic-body="shape: box; mass: 2"></a-entity>
+
+<!-- Cylinder -->
+<a-entity obj-model="obj: url(...)" dynamic-body="shape: cylinder; cylinderAxis: y; mass: 5"></a-entity>
+```
+
+### `constraint`
 
 The `constraint` component is used to bind physics bodies together using hinges, fixed distances, or fixed attachment points.
 
@@ -125,32 +162,6 @@ el.body.applyImpulse(
 );
 ```
 
-## Body Shapes
-
-Body components will attempt to find an appropriate CANNON.js shape to fit your model. When defining an object you may choose a shape or leave the default, `auto`. Select a shape carefully, as there are performance implications with different choices:
-
-* **Auto** (`auto`) – Chooses automatically from the available shapes.
-* **Box** (`box`) – Great performance, compared to Hull or Trimesh shapes, and may be fitted to custom models.
-* **Cylinder** (`cylinder`) – See `box`. Adds `cylinderAxis` option.
-* **Sphere** (`sphere`) – See `box`. Adds `sphereRadius` option.
-* **Convex** (`hull`) – Wraps a model like shrink-wrap. Convex shapes are more performant and better supported than Trimesh, but may still have some performance impact when used as dynamic objects.
-* **Primitives** – Plane/Cylinder/Sphere. Used automatically with the corresponding A-Frame primitives.
-* **Trimesh** (`mesh`) – *Deprecated.* Trimeshes adapt to fit custom geometry (e.g. a `.OBJ` or `.DAE` file), but have very minimal support. Arbitrary trimesh shapes are difficult to model in any JS physics engine, will "fall through" certain other shapes, and have serious performance limitations.
-* **Compound** – *In progress.* Compound shapes require a bit of work to set up, but allow you to use multiple primitives to define a physics shape around custom models. These will generally perform better, and behave more accurately, than Trimesh or Convex shapes. For example, a stool might be modeled as a cylinder-shaped seat, on four long cylindrical legs.
-* **None** (`none`) – Does not add collision geometry.
-
-For more details, see the CANNON.js [collision matrix](https://github.com/schteppe/cannon.js#features).
-
-Example using a bounding box for a custom model:
-
-```html
-<!-- Box -->
-<a-entity obj-model="obj: url(...)" dynamic-body="shape: box; mass: 2"></a-entity>
-
-<!-- Cylinder -->
-<a-entity obj-model="obj: url(...)" dynamic-body="shape: cylinder; cylinderAxis: y; mass: 5"></a-entity>
-```
-
 ## Collision Events
 
 CANNON.js generates events when a collision is detected, which are propagated onto the associated A-Frame entity. Example:
@@ -169,7 +180,7 @@ playerEl.addEventListener('collide', function (e) {
 
 Note that CANNON.js cannot perfectly detect collisions with very fast-moving bodies. Doing so requires Continuous Collision Detection, which can be both slow and difficult to implement. If this is an issue for your scene, consider (1) slowing objects down, (2) detecting collisions manually (collisions with the floor are easy – `position.y - height / 2 <= 0`), or (3) attempting a PR to CANNON.js. See: [Collision with fast bodies](https://github.com/schteppe/cannon.js/issues/202).
 
-## Configuration
+## System Configuration
 
 Contact materials define what happens when two objects meet, including physical properties such as friction and restitution (bounciness). The default, scene-wide contact materials may be configured on the scene element:
 
@@ -178,6 +189,11 @@ Contact materials define what happens when two objects meet, including physical 
   <!-- ... -->
 </a-scene>
 ```
+> NOTE: It is possible to run physics on a Web Worker using the `physics="driver: worker"` option.
+> Using a worker is helpful for maintaining a smooth framerate, because physics simulation does
+> not block the main thread. However, scenes needing highly-responsive interaction (for example,
+> tossing and catching objects) may prefer to run physics locally, where feedback from the physics
+> system will be immediate.
 
 | Property                        | Default | Description                                        |
 |---------------------------------|---------|----------------------------------------------------|
@@ -198,12 +214,6 @@ Contact materials define what happens when two objects meet, including physical 
 | workerDebug                     | false   | If true, the worker codepaths are used on the main thread. This is slow, because physics snapshots are needlessly serialized, but helpful for debugging. |
 
 More advanced configuration, including specifying different collision behaviors for different objects, is available through the CANNON.js JavaScript API.
-
-> NOTE: It is possible to run physics on a Web Worker using the `physics="driver: worker"` option.
-> Using a worker is helpful for maintaining a smooth framerate, because physics simulation does
-> not block the main thread. However, scenes needing highly-responsive interaction (for example,
-> tossing and catching objects) may prefer to run physics locally, where feedback from the physics
-> system will be immediate.
 
 Resources:
 
