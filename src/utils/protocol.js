@@ -1,4 +1,5 @@
 var CANNON = require('CANNON');
+var mathUtils = require('./math');
 
 /******************************************************************************
  * IDs
@@ -60,6 +61,43 @@ module.exports.deserializeBodyUpdate = function (message, body) {
 
   if (body.mass !== message.mass) {
     body.mass = message.mass;
+    body.updateMassProperties();
+  }
+
+  return body;
+};
+
+module.exports.deserializeInterpBodyUpdate = function (message1, message2, body, mix) {
+  var weight1 = 1 - mix;
+  var weight2 = mix;
+
+  body.position.set(
+    message1.position[0] * weight1 + message2.position[0] * weight2,
+    message1.position[1] * weight1 + message2.position[1] * weight2,
+    message1.position[2] * weight1 + message2.position[2] * weight2
+  );
+  var quaternion = mathUtils.slerp(message1.quaternion, message2.quaternion, mix);
+  body.quaternion.set(quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
+  body.velocity.set(
+    message1.velocity[0] * weight1 + message2.velocity[0] * weight2,
+    message1.velocity[1] * weight1 + message2.velocity[1] * weight2,
+    message1.velocity[2] * weight1 + message2.velocity[2] * weight2
+  );
+  body.angularVelocity.set(
+    message1.angularVelocity[0] * weight1 + message2.angularVelocity[0] * weight2,
+    message1.angularVelocity[1] * weight1 + message2.angularVelocity[1] * weight2,
+    message1.angularVelocity[2] * weight1 + message2.angularVelocity[2] * weight2
+  );
+
+  body.linearDamping = message2.linearDamping;
+  body.angularDamping = message2.angularDamping;
+  body.fixedRotation = message2.fixedRotation;
+  body.allowSleep = message2.allowSleep;
+  body.sleepSpeedLimit = message2.sleepSpeedLimit;
+  body.sleepTimeLimit = message2.sleepTimeLimit;
+
+  if (body.mass !== message2.mass) {
+    body.mass = message2.mass;
     body.updateMassProperties();
   }
 
@@ -179,7 +217,10 @@ module.exports.serializeConstraint = function (constraint) {
       message.pivotB = serializeVec3(constraint.pivotB);
       break;
     default:
-      throw new Error('Unexpected constraint type: ' + constraint.type);
+      throw new Error(''
+        + 'Unexpected constraint type: ' + constraint.type + '. '
+        + 'You may need to manually set `constraint.type = "FooConstraint";`.'
+      );
   }
 
   return message;
@@ -190,36 +231,49 @@ module.exports.deserializeConstraint = function (message, bodies) {
   var bodyA = bodies[message.bodyA];
   var bodyB = bodies[message.bodyB];
 
+  var constraint;
+
   switch (message.type) {
     case 'LockConstraint':
-      return new CANNON.LockConstraint(bodyA, bodyB, message);
+      constraint = new CANNON.LockConstraint(bodyA, bodyB, message);
+      break;
+
     case 'DistanceConstraint':
-      return new CANNON.DistanceConstraint(
+      constraint = new CANNON.DistanceConstraint(
         bodyA,
         bodyB,
         message.distance,
         message.maxForce
       );
+      break;
+
     case 'HingeConstraint':
     case 'ConeTwistConstraint':
-      return new TypedConstraint(bodyA, bodyB, {
+      constraint = new TypedConstraint(bodyA, bodyB, {
         pivotA: deserializeVec3(message.pivotA),
         pivotB: deserializeVec3(message.pivotB),
         axisA: deserializeVec3(message.axisA),
         axisB: deserializeVec3(message.axisB),
         maxForce: message.maxForce
       });
+      break;
+
     case 'PointToPointConstraint':
-      return new CANNON.PointToPointConstraint(
+      constraint = new CANNON.PointToPointConstraint(
         bodyA,
         deserializeVec3(message.pivotA),
         bodyB,
         deserializeVec3(message.pivotB),
         message.maxForce
       );
+      break;
+
     default:
       throw new Error('Unexpected constraint type: ' + message.type);
   }
+
+  constraint[ID] = message.id;
+  return constraint;
 };
 
 /******************************************************************************

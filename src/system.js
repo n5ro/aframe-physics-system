@@ -1,4 +1,5 @@
-var CONSTANTS = require('./constants'),
+var CANNON = require('cannon'),
+    CONSTANTS = require('./constants'),
     C_GRAV = CONSTANTS.GRAVITY,
     C_MAT = CONSTANTS.CONTACT_MATERIAL;
 
@@ -16,6 +17,8 @@ module.exports = AFRAME.registerSystem('physics', {
     driver:                         { default: 'local', oneOf: ['local', 'worker', 'network', 'ammo'] },
     networkUrl:                     { default: '', if: {driver: 'network'} },
     workerFps:                      { default: 60, if: {driver: 'worker'} },
+    workerInterpolate:              { default: true, if: {driver: 'worker'} },
+    workerInterpBufferSize:         { default: 2, if: {driver: 'worker'} },
     workerEngine:                   { default: 'cannon', if: {driver: 'worker'}, oneOf: ['cannon'] },
     workerDebug:                    { default: false, if: {driver: 'worker'} },
 
@@ -74,6 +77,8 @@ module.exports = AFRAME.registerSystem('physics', {
         this.driver = new WorkerDriver({
           fps: data.workerFps,
           engine: data.workerEngine,
+          interpolate: data.workerInterpolate,
+          interpolationBufferSize: data.workerInterpBufferSize,
           debug: data.workerDebug
         });
         break;
@@ -165,6 +170,19 @@ module.exports = AFRAME.registerSystem('physics', {
 
   /** @param {CANNON.Constraint} constraint */
   addConstraint: function (constraint) {
+    if (!constraint.type) {
+      if (constraint instanceof CANNON.LockConstraint) {
+        constraint.type = 'LockConstraint';
+      } else if (constraint instanceof CANNON.DistanceConstraint) {
+        constraint.type = 'DistanceConstraint';
+      } else if (constraint instanceof CANNON.HingeConstraint) {
+        constraint.type = 'HingeConstraint';
+      } else if (constraint instanceof CANNON.ConeTwistConstraint) {
+        constraint.type = 'ConeTwistConstraint';
+      } else if (constraint instanceof CANNON.PointToPointConstraint) {
+        constraint.type = 'PointToPointConstraint';
+      }
+    }
     this.driver.addConstraint(constraint);
   },
 

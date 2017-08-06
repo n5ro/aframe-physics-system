@@ -1,3 +1,5 @@
+/* global performance */
+
 var webworkify = require('webworkify'),
     webworkifyDebug = require('./webworkify-debug'),
     Driver = require('./driver'),
@@ -14,10 +16,17 @@ var ID = protocol.ID;
 function WorkerDriver (options) {
   this.fps = options.fps;
   this.engine = options.engine;
+  this.interpolate = options.interpolate;
+  // Approximate number of physics steps to 'pad' rendering.
+  this.interpBufferSize = options.interpolationBufferSize;
   this.debug = options.debug;
 
   this.bodies = {};
   this.contacts = [];
+
+  // https://gafferongames.com/post/snapshot_interpolation/
+  this.frameDelay = this.interpBufferSize * 1000 / this.fps;
+  this.frameBuffer = [];
 
   this.worker = this.debug
     ? webworkifyDebug(worker)
@@ -44,8 +53,41 @@ WorkerDriver.prototype.init = function (worldConfig) {
   });
 };
 
-/* @param {number} deltaMS */
-WorkerDriver.prototype.step = function () {};
+/**
+ * Increments the physics world forward one step, if interpolation is enabled.
+ * If disabled, increments are performed as messages arrive.
+ * @param {number} deltaMS
+ */
+WorkerDriver.prototype.step = function () {
+  if (!this.interpolate) return;
+
+  // Get the two oldest frames that haven't expired. Ideally we would use all
+  // available frames to keep things smooth, but lerping is easier and faster.
+  var prevFrame = this.frameBuffer[0];
+  var nextFrame = this.frameBuffer[1];
+  var timestamp = performance.now();
+  while (prevFrame && nextFrame && timestamp - prevFrame.timestamp > this.frameDelay) {
+    this.frameBuffer.shift();
+    prevFrame = this.frameBuffer[0];
+    nextFrame = this.frameBuffer[1];
+  }
+
+  if (!prevFrame || !nextFrame) return;
+
+  var mix = (timestamp - prevFrame.timestamp) / this.frameDelay;
+  mix = (mix - (1 - 1 / this.interpBufferSize)) * this.interpBufferSize;
+
+  for (var id in prevFrame.bodies) {
+    if (prevFrame.bodies.hasOwnProperty(id) && nextFrame.bodies.hasOwnProperty(id)) {
+      protocol.deserializeInterpBodyUpdate(
+        prevFrame.bodies[id],
+        nextFrame.bodies[id],
+        this.bodies[id],
+        mix
+      );
+    }
+  }
+};
 
 WorkerDriver.prototype.destroy = function () {
   this.worker.terminate();
@@ -60,9 +102,15 @@ WorkerDriver.prototype._onMessage = function (event) {
 
     this.contacts = event.data.contacts;
 
-    for (var id in bodies) {
-      if (bodies.hasOwnProperty(id)) {
-        protocol.deserializeBodyUpdate(bodies[id], this.bodies[id]);
+    // If interpolation is enabled, store the frame. If not, update all bodies
+    // immediately.
+    if (this.interpolate) {
+      this.frameBuffer.push({timestamp: performance.now(), bodies: bodies});
+    } else {
+      for (var id in bodies) {
+        if (bodies.hasOwnProperty(id)) {
+          protocol.deserializeBodyUpdate(bodies[id], this.bodies[id]);
+        }
       }
     }
 

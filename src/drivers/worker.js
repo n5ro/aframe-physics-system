@@ -8,6 +8,7 @@ var ID = protocol.ID;
 module.exports = function (self) {
   var driver = null;
   var bodies = {};
+  var constraints = {};
   var stepSize;
 
   self.addEventListener('message', function (event) {
@@ -58,10 +59,13 @@ module.exports = function (self) {
 
       // Constraints.
       case Event.ADD_CONSTRAINT:
-        driver.addConstraint(protocol.deserializeConstraint(data.constraint, bodies));
+        var constraint = protocol.deserializeConstraint(data.constraint, bodies);
+        constraints[constraint[ID]] = constraint;
+        driver.addConstraint(constraint);
         break;
       case Event.REMOVE_CONSTRAINT:
-        console.warn('[Worker] Not implemented');
+        driver.removeConstraint(constraints[data.constraintID]);
+        delete constraints[data.constraintID];
         break;
 
       default:
