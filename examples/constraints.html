@@ -1,0 +1,111 @@
+
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,maximum-scale=1">
+    <title>Examples • Constraints</title>
+    <script type="text/javascript" src="https://aframe.io/releases/0.6.0/aframe.min.js"></script>
+    <script src="https://rawgit.com/feiss/aframe-environment-component/master/dist/aframe-environment-component.min.js"></script>
+    <script type="text/javascript" src="../bundle.js"></script>
+  </head>
+  <body>
+    <a-scene environment>
+
+      <!-- CONE TWIST -->
+      <a-entity position="2 0 -1">
+        <a-text value="Cone Twist" position="0 1.5 0" align="center"></a-text>
+        <a-sphere id="conetwist-target" radius="0.125" color="#777" position="0 1 0" static-body></a-sphere>
+        <a-box width="0.25" height="0.25" depth="0.25" color="#F00" position="-0.5 1 0"
+               dynamic-body
+               constraint="type: coneTwist;
+                           target: #conetwist-target;
+                           pivot: 0.125 0 0.0;
+                           targetPivot: -0.125 0.0 0.0;
+                           axis: 1.0 0.0 0.0;
+                           targetAxis: 1.0 0.0 0.0">
+        </a-box>
+      </a-entity>
+
+      <!-- HINGE -->
+      <a-entity position="-2 0 -1">
+        <a-text value="Hinge" position="0 1.5 0" align="center"></a-text>
+        <a-box id="hinge-target" position="-0.25 1 0.0" color="#777" static-body scale="0.25 0.25 0.25"></a-box>
+        <a-box depth="0.1"
+               color="#F00"
+               position="0.0 1 0.0"
+               scale="0.25 0.25 0.25"
+               dynamic-body
+               constraint="type: hinge;
+                           target: #hinge-target;
+                           axis: 0 1 0;
+                           targetAxis: 0 1 0;
+                           pivot: -0.125 0 0;
+                           targetPivot: 0.125 0 0.125">
+        </a-box>
+        <a-box position="0.26 1 0" scale="0.25 0.25 0.25" color="#777" static-body></a-box>
+      </a-entity>
+
+      <!-- LOCK -->
+      <a-entity position="0 0 -1">
+        <a-text value="Lock" position="0 1.5 0" align="center"></a-text>
+        <a-box id="lock-target"
+               position="0 1.0 0"
+               scale="0.25 0.25 0.25"
+               color="#777"
+               static-body>
+        </a-box>
+        <a-box color="#F00"
+               position="0 1.25 0"
+               scale="0.25 0.25 0.25"
+               dynamic-body
+               constraint="type: lock;
+                           target: #lock-target;
+                           maxForce: 100">
+        </a-box>
+      </a-entity>
+
+      <!-- POINT TO POINT -->
+      <a-entity position="4 0 -1">
+        <a-text value="Point to Point" position="0 1.5 0" align="center"></a-text>
+        <a-box id="pointtopoint-target"
+               color="#777"
+               position="0 1 0"
+               scale="0.25 0.25 0.25"
+               static-body>
+        </a-box>
+        <a-box color="#F00"
+               position="0.125 0.875 0"
+               scale="0.25 0.25 0.25"
+               dynamic-body
+               constraint="type: pointToPoint;
+                           target: #pointtopoint-target;
+                           pivot: -0.125 -0.125 0.125;
+                           targetPivot: 0.125 -0.125 0.125">
+        </a-box>
+      </a-entity>
+
+      <!-- DISTANCE -->
+      <a-entity position="-4 0 -1">
+        <a-text value="Distance" position="0 1.5 0" align="center"></a-text>
+        <a-sphere id="distance-target"
+               radius="0.125"
+               position="0 1 0"
+               color="#777"
+               static-body>
+        </a-sphere>
+        <a-sphere color="#F00"
+               radius="0.125"
+               position="0 1.2 0"
+               dynamic-body
+               constraint="type: distance;
+                           target: #distance-target;
+                           distance: 0.5;
+                           maxForce: 100;">
+        </a-sphere>
+      </a-entity>
+    </a-scene>
+  </body>
+</html>
+
+o
