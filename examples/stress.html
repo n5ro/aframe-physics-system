@@ -1,0 +1,115 @@
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,maximum-scale=1">
+    <title>Examples • Stress Test</title>
+    <script src="https://aframe.io/releases/0.6.0/aframe.min.js"></script>
+    <script src="https://rawgit.com/feiss/aframe-environment-component/master/dist/aframe-environment-component.min.js"></script>
+    <script src="https://cdn.rawgit.com/donmccurdy/aframe-extras/v3.2.5/dist/components/sphere-collider.js"></script>
+    <script src="bundle.js"></script>
+    <script>
+/**
+ * Force Pushable component.
+ *
+ * Applies behavior to the current entity such that cursor clicks will apply a
+ * strong impulse, pushing the entity away from the viewer.
+ *
+ * Requires: physics
+ */
+AFRAME.registerComponent('force-pushable', {
+  schema: {
+    force: { default: 50 }
+  },
+  init: function () {
+    this.pStart = new THREE.Vector3();
+    this.sourceEl = this.el.sceneEl.querySelector('[camera]');
+    this.el.addEventListener('click', this.forcePush.bind(this));
+  },
+  forcePush: function () {
+    var force,
+        el = this.el,
+        pStart = this.pStart.copy(this.sourceEl.getAttribute('position'));
+
+    // Compute direction of force, normalize, then scale.
+    force = el.body.position.vsub(pStart);
+    force.normalize();
+    force.scale(this.data.force, force);
+
+    el.body.applyImpulse(force, el.body.position);
+  }
+});
+    </script>
+  </head>
+  <body>
+    <a-scene stats="true"
+             environment
+             physics="driver: worker; workerFps: 60;">
+      <!-- Player -->
+      <a-entity camera="userHeight: 1.6" look-controls wasd-controls position="0 0.1 0">
+        <a-entity cursor
+                  position="0 0 -0.5"
+                  geometry="primitive: circle; radius: 0.01; segments: 4;"
+                  material="color: #FF4444; shader: flat"></a-entity>
+      </a-entity>
+      <a-entity static-body="shape: sphere; sphereRadius: 0.02;" vive-controls="hand: left" sphere-collider="objects: [dynamic-body];" grab></a-entity>
+      <a-entity static-body="shape: sphere; sphereRadius: 0.02;" vive-controls="hand: right" sphere-collider="objects: [dynamic-body];" grab></a-entity>
+
+      <!-- Terrain -->
+      <a-box width="75" height="0.1" depth="75" static-body visible="false"></a-box>
+
+      <!-- Blocks -->
+      <a-box position="0 0.5 -2" color="#a50026" dynamic-body force-pushable></a-box>
+      <a-box position="1 0.5 -2" color="#d73027" dynamic-body force-pushable></a-box>
+      <a-box position="2 0.5 -2" color="#f46d43" dynamic-body force-pushable></a-box>
+      <a-box position="3 0.5 -2" color="#fdae61" dynamic-body force-pushable></a-box>
+      <a-box position="0 1.5 -2" color="#fee08b" dynamic-body force-pushable></a-box>
+      <a-box position="1 1.5 -2" color="#ffffbf" dynamic-body force-pushable></a-box>
+      <a-box position="2 1.5 -2" color="#d9ef8b" dynamic-body force-pushable></a-box>
+      <a-box position="3 1.5 -2" color="#a6d96a" dynamic-body force-pushable></a-box>
+      <a-box position="0 2.5 -2" color="#a50026" dynamic-body force-pushable></a-box>
+      <a-box position="1 2.5 -2" color="#66bd63" dynamic-body force-pushable></a-box>
+      <a-box position="2 2.5 -2" color="#1a9850" dynamic-body force-pushable></a-box>
+      <a-box position="3 2.5 -2" color="#006837" dynamic-body force-pushable></a-box>
+
+      <a-box position="0 0.5 2" color="#a50026" dynamic-body force-pushable></a-box>
+      <a-box position="1 0.5 2" color="#d73027" dynamic-body force-pushable></a-box>
+      <a-box position="2 0.5 2" color="#f46d43" dynamic-body force-pushable></a-box>
+      <a-box position="3 0.5 2" color="#fdae61" dynamic-body force-pushable></a-box>
+      <a-box position="0 1.5 2" color="#fee08b" dynamic-body force-pushable></a-box>
+      <a-box position="1 1.5 2" color="#ffffbf" dynamic-body force-pushable></a-box>
+      <a-box position="2 1.5 2" color="#d9ef8b" dynamic-body force-pushable></a-box>
+      <a-box position="3 1.5 2" color="#a6d96a" dynamic-body force-pushable></a-box>
+      <a-box position="0 2.5 2" color="#a50026" dynamic-body force-pushable></a-box>
+      <a-box position="1 2.5 2" color="#66bd63" dynamic-body force-pushable></a-box>
+      <a-box position="2 2.5 2" color="#1a9850" dynamic-body force-pushable></a-box>
+      <a-box position="3 2.5 2" color="#006837" dynamic-body force-pushable></a-box>
+
+      <a-box position="0 0.5 4" color="#a50026" dynamic-body force-pushable></a-box>
+      <a-box position="1 0.5 4" color="#d73027" dynamic-body force-pushable></a-box>
+      <a-box position="2 0.5 4" color="#f46d43" dynamic-body force-pushable></a-box>
+      <a-box position="3 0.5 4" color="#fdae61" dynamic-body force-pushable></a-box>
+      <a-box position="0 1.5 4" color="#fee08b" dynamic-body force-pushable></a-box>
+      <a-box position="1 1.5 4" color="#ffffbf" dynamic-body force-pushable></a-box>
+      <a-box position="2 1.5 4" color="#d9ef8b" dynamic-body force-pushable></a-box>
+      <a-box position="3 1.5 4" color="#a6d96a" dynamic-body force-pushable></a-box>
+      <a-box position="0 2.5 4" color="#a50026" dynamic-body force-pushable></a-box>
+      <a-box position="1 2.5 4" color="#66bd63" dynamic-body force-pushable></a-box>
+      <a-box position="2 2.5 4" color="#1a9850" dynamic-body force-pushable></a-box>
+      <a-box position="3 2.5 4" color="#006837" dynamic-body force-pushable></a-box>
+
+      <a-box position="0 0.5 6" color="#a50026" dynamic-body force-pushable></a-box>
+      <a-box position="1 0.5 6" color="#d73027" dynamic-body force-pushable></a-box>
+      <a-box position="2 0.5 6" color="#f46d43" dynamic-body force-pushable></a-box>
+      <a-box position="3 0.5 6" color="#fdae61" dynamic-body force-pushable></a-box>
+      <a-box position="0 1.5 6" color="#fee08b" dynamic-body force-pushable></a-box>
+      <a-box position="1 1.5 6" color="#ffffbf" dynamic-body force-pushable></a-box>
+      <a-box position="2 1.5 6" color="#d9ef8b" dynamic-body force-pushable></a-box>
+      <a-box position="3 1.5 6" color="#a6d96a" dynamic-body force-pushable></a-box>
+      <a-box position="0 2.5 6" color="#a50026" dynamic-body force-pushable></a-box>
+      <a-box position="1 2.5 6" color="#66bd63" dynamic-body force-pushable></a-box>
+      <a-box position="2 2.5 6" color="#1a9850" dynamic-body force-pushable></a-box>
+      <a-box position="3 2.5 6" color="#006837" dynamic-body force-pushable></a-box>
+    </a-scene>
+  </body>
+</html>

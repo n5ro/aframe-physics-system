@@ -5,7 +5,7 @@ require('../../../lib/CANNON-shape2mesh');
 
 module.exports = {
   schema: {
-    shape: {default: 'auto', oneOf: ['auto', 'box', 'cylinder', 'sphere', 'hull', 'none']},
+    shape: {default: 'auto', oneOf: ['auto', 'box', 'cylinder', 'sphere', 'hull', 'mesh', 'none']},
     cylinderAxis: {default: 'y', oneOf: ['x', 'y', 'z']},
     sphereRadius: {default: NaN}
   },
@@ -101,11 +101,10 @@ module.exports = {
    * Internal helper to register component with physics system.
    */
   _play: function () {
+    this.syncToPhysics();
     this.system.addBehavior(this, this.system.Phase.SIMULATE);
     this.system.addBody(this.body);
     if (this.wireframe) this.el.sceneEl.object3D.add(this.wireframe);
-
-    this.syncToPhysics();
   },
 
   /**
@@ -215,6 +214,7 @@ module.exports = {
         body.position.copy(v);
       }
 
+      if (this.body.updateProperties) this.body.updateProperties();
       if (this.wireframe) this.syncWireframe();
     };
   }()),

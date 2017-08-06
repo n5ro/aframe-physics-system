@@ -1,0 +1,182 @@
+
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,maximum-scale=1">
+    <title>Examples • Constraints</title>
+    <script type="text/javascript" src="https://aframe.io/releases/0.6.0/aframe.min.js"></script>
+    <script src="https://rawgit.com/feiss/aframe-environment-component/master/dist/aframe-environment-component.min.js"></script>
+    <script src="https://rawgit.com/fernandojsg/aframe-teleport-controls/master/dist/aframe-teleport-controls.min.js"></script>
+    <script src="https://cdn.rawgit.com/donmccurdy/aframe-extras/v3.9.0/dist/components/sphere-collider.js"></script>
+    <script type="text/javascript" src="../bundle.js"></script>
+    <script>
+AFRAME.registerComponent('grab', {
+  init: function () {
+    this.system = this.el.sceneEl.systems.physics;
+
+    this.GRABBED_STATE = 'grabbed';
+
+    this.grabbing = false;
+    this.hitEl =      /** @type {AFRAME.Element}    */ null;
+    this.physics =    /** @type {AFRAME.System}     */ this.el.sceneEl.systems.physics;
+    this.constraint = /** @type {CANNON.Constraint} */ null;
+
+    // Bind event handlers
+    this.onHit = this.onHit.bind(this);
+    this.onGripOpen = this.onGripOpen.bind(this);
+    this.onGripClose = this.onGripClose.bind(this);
+  },
+
+  play: function () {
+    var el = this.el;
+    el.addEventListener('hit', this.onHit);
+    el.addEventListener('gripdown', this.onGripClose);
+    el.addEventListener('gripup', this.onGripOpen);
+    el.addEventListener('trackpaddown', this.onGripClose);
+    el.addEventListener('trackpadup', this.onGripOpen);
+    el.addEventListener('triggerdown', this.onGripClose);
+    el.addEventListener('triggerup', this.onGripOpen);
+  },
+
+  pause: function () {
+    var el = this.el;
+    el.removeEventListener('hit', this.onHit);
+    el.removeEventListener('gripdown', this.onGripClose);
+    el.removeEventListener('gripup', this.onGripOpen);
+    el.removeEventListener('trackpaddown', this.onGripClose);
+    el.removeEventListener('trackpadup', this.onGripOpen);
+    el.removeEventListener('triggerdown', this.onGripClose);
+    el.removeEventListener('triggerup', this.onGripOpen);
+  },
+
+  onGripClose: function (evt) {
+    this.grabbing = true;
+  },
+
+  onGripOpen: function (evt) {
+    var hitEl = this.hitEl;
+    this.grabbing = false;
+    if (!hitEl) { return; }
+    hitEl.removeState(this.GRABBED_STATE);
+    this.hitEl = undefined;
+    this.system.removeConstraint(this.constraint);
+    this.constraint = null;
+  },
+
+  onHit: function (evt) {
+    var hitEl = evt.detail.el;
+    // If the element is already grabbed (it could be grabbed by another controller).
+    // If the hand is not grabbing the element does not stick.
+    // If we're already grabbing something you can't grab again.
+    if (!hitEl || hitEl.is(this.GRABBED_STATE) || !this.grabbing || this.hitEl) { return; }
+    hitEl.addState(this.GRABBED_STATE);
+    this.hitEl = hitEl;
+    this.constraint = new CANNON.LockConstraint(this.el.body, hitEl.body, {maxForce: 100});
+    this.system.addConstraint(this.constraint);
+  }
+});
+    </script>
+  </head>
+  <body>
+    <a-scene environment>
+      <a-entity teleport-controls vive-controls="hand: left" static-body="shape: sphere; sphereRadius: 0.02;" sphere-collider="objects: [dynamic-body];" grab></a-entity>
+      <a-entity teleport-controls vive-controls="hand: right" static-body="shape: sphere; sphereRadius: 0.02;" sphere-collider="objects: [dynamic-body];" grab></a-entity>
+
+      <!-- CONE TWIST -->
+      <a-entity position="2 0 -1">
+        <a-text value="Cone Twist" position="0 1.5 0" align="center"></a-text>
+        <a-sphere id="conetwist-target" radius="0.125" color="#777" position="0 1 0" static-body></a-sphere>
+        <a-box width="0.25" height="0.25" depth="0.25" color="#F00" position="-0.5 1 0"
+               dynamic-body
+               constraint="type: coneTwist;
+                           target: #conetwist-target;
+                           pivot: 0.125 0 0.0;
+                           targetPivot: -0.125 0.0 0.0;
+                           axis: 1.0 0.0 0.0;
+                           targetAxis: 1.0 0.0 0.0">
+        </a-box>
+      </a-entity>
+
+      <!-- HINGE -->
+      <a-entity position="-2 0 -1">
+        <a-text value="Hinge" position="0 1.5 0" align="center"></a-text>
+        <a-box id="hinge-target" position="-0.25 1 0.0" color="#777" static-body scale="0.25 0.25 0.25"></a-box>
+        <a-box depth="0.1"
+               color="#F00"
+               position="0.0 1 0.0"
+               scale="0.25 0.25 0.25"
+               dynamic-body
+               constraint="type: hinge;
+                           target: #hinge-target;
+                           axis: 0 1 0;
+                           targetAxis: 0 1 0;
+                           pivot: -0.125 0 0;
+                           targetPivot: 0.125 0 0.125;">
+        </a-box>
+        <a-box position="0.26 1 0" scale="0.25 0.25 0.25" color="#777" static-body></a-box>
+      </a-entity>
+
+      <!-- LOCK -->
+      <a-entity position="0 0 -1">
+        <a-text value="Lock" position="0 1.5 0" align="center"></a-text>
+        <a-box id="lock-target"
+               position="0 1.0 0"
+               scale="0.25 0.25 0.25"
+               color="#777"
+               static-body>
+        </a-box>
+        <a-box color="#F00"
+               position="0 1.25 0"
+               scale="0.25 0.25 0.25"
+               dynamic-body
+               constraint="type: lock;
+                           target: #lock-target;
+                           maxForce: 100">
+        </a-box>
+      </a-entity>
+
+      <!-- POINT TO POINT -->
+      <a-entity position="4 0 -1">
+        <a-text value="Point to Point" position="0 1.5 0" align="center"></a-text>
+        <a-box id="pointtopoint-target"
+               color="#777"
+               position="0 1 0"
+               scale="0.25 0.25 0.25"
+               static-body>
+        </a-box>
+        <a-box color="#F00"
+               position="0.125 0.875 0"
+               scale="0.25 0.25 0.25"
+               dynamic-body
+               constraint="type: pointToPoint;
+                           target: #pointtopoint-target;
+                           pivot: -0.125 -0.125 0.125;
+                           targetPivot: 0.125 -0.125 0.125">
+        </a-box>
+      </a-entity>
+
+      <!-- DISTANCE -->
+      <a-entity position="-4 0 -1">
+        <a-text value="Distance" position="0 1.5 0" align="center"></a-text>
+        <a-sphere id="distance-target"
+               radius="0.125"
+               position="0 1 0"
+               color="#777"
+               static-body>
+        </a-sphere>
+        <a-sphere color="#F00"
+               radius="0.125"
+               position="0 1.2 0"
+               dynamic-body
+               constraint="type: distance;
+                           target: #distance-target;
+                           distance: 0.5;
+                           maxForce: 100;">
+        </a-sphere>
+      </a-entity>
+    </a-scene>
+  </body>
+</html>
+
+o

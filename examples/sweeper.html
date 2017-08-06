@@ -1,0 +1,197 @@
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,maximum-scale=1">
+    <title>Examples • Sweeper</title>
+    <script src="https://aframe.io/releases/0.6.0/aframe.min.js"></script>
+    <script src="https://rawgit.com/feiss/aframe-environment-component/master/dist/aframe-environment-component.min.js"></script>
+    <script src="https://cdn.rawgit.com/donmccurdy/aframe-extras/v3.9.0/dist/components/sphere-collider.js"></script>
+    <script src="bundle.js"></script>
+    <script>
+/**
+ * Rain of Entities component.
+ *
+ * Creates a spawner on the scene, which periodically generates new entities
+ * and drops them from the sky. Objects falling below altitude=0 will be
+ * recycled after a few seconds.
+ *
+ * Requires: physics
+ */
+AFRAME.registerComponent('rain-of-entities', {
+  schema: {
+    tagName:    { default: 'a-box' },
+    components: { default: ['dynamic-body', 'force-pushable', 'color|#39BB82', 'scale|0.2 0.2 0.2'] },
+    spread:     { default: 10, min: 0 },
+    maxCount:   { default: 10, min: 0 },
+    interval:   { default: 1000, min: 0 },
+    lifetime:   { default: 10000, min: 0 }
+  },
+  init: function () {
+    this.boxes = [];
+    this.timeout = setInterval(this.spawn.bind(this), this.data.interval);
+  },
+  spawn: function () {
+    if (this.boxes.length >= this.data.maxCount) {
+      clearTimeout(this.timeout);
+      return;
+    }
+
+    var data = this.data,
+        physics = this.el.sceneEl.systems.physics,
+        box = document.createElement(data.tagName);
+
+    this.boxes.push(box);
+    this.el.appendChild(box);
+
+    box.setAttribute('position', this.randomPosition());
+    data.components.forEach(function (s) {
+      var parts = s.split('|');
+      box.setAttribute(parts[0], parts[1] || '');
+    });
+
+    // Recycling is important, kids.
+    setInterval(function () {
+      if (box.body.position.y > 0) return;
+      box.body.position.copy(this.randomPosition());
+      box.body.quaternion.set(0, 0, 0, 1);
+      box.body.velocity.set(0, 0, 0);
+      box.body.angularVelocity.set(0, 0, 0);
+      box.body.updateProperties();
+    }.bind(this), this.data.lifetime);
+
+    var colliderEls = this.el.sceneEl.querySelectorAll('[sphere-collider]');
+    for (var i = 0; i < colliderEls.length; i++) {
+      colliderEls[i].components['sphere-collider'].update();
+    }
+  },
+  randomPosition: function () {
+    var spread = this.data.spread;
+    return {
+      x: Math.random() * spread - spread / 2,
+      y: 3,
+      z: Math.random() * spread - spread / 2
+    };
+  }
+});
+
+/**
+ * Force Pushable component.
+ *
+ * Applies behavior to the current entity such that cursor clicks will apply a
+ * strong impulse, pushing the entity away from the viewer.
+ *
+ * Requires: physics
+ */
+AFRAME.registerComponent('force-pushable', {
+  schema: {
+    force: { default: 10 }
+  },
+  init: function () {
+    this.pStart = new THREE.Vector3();
+    this.sourceEl = this.el.sceneEl.querySelector('[camera]');
+    this.el.addEventListener('click', this.forcePush.bind(this));
+  },
+  forcePush: function () {
+    var force,
+        el = this.el,
+        pStart = this.pStart.copy(this.sourceEl.getAttribute('position'));
+
+    // Compute direction of force, normalize, then scale.
+    force = el.body.position.vsub(pStart);
+    force.normalize();
+    force.scale(this.data.force, force);
+
+    el.body.applyImpulse(force, el.body.position);
+  }
+});
+
+AFRAME.registerComponent('grab', {
+  init: function () {
+    this.system = this.el.sceneEl.systems.physics;
+
+    this.GRABBED_STATE = 'grabbed';
+
+    this.grabbing = false;
+    this.hitEl =      /** @type {AFRAME.Element}    */ null;
+    this.physics =    /** @type {AFRAME.System}     */ this.el.sceneEl.systems.physics;
+    this.constraint = /** @type {CANNON.Constraint} */ null;
+
+    // Bind event handlers
+    this.onHit = this.onHit.bind(this);
+    this.onGripOpen = this.onGripOpen.bind(this);
+    this.onGripClose = this.onGripClose.bind(this);
+  },
+
+  play: function () {
+    var el = this.el;
+    el.addEventListener('hit', this.onHit);
+    el.addEventListener('gripdown', this.onGripClose);
+    el.addEventListener('gripup', this.onGripOpen);
+    el.addEventListener('trackpaddown', this.onGripClose);
+    el.addEventListener('trackpadup', this.onGripOpen);
+    el.addEventListener('triggerdown', this.onGripClose);
+    el.addEventListener('triggerup', this.onGripOpen);
+  },
+
+  pause: function () {
+    var el = this.el;
+    el.removeEventListener('hit', this.onHit);
+    el.removeEventListener('gripdown', this.onGripClose);
+    el.removeEventListener('gripup', this.onGripOpen);
+    el.removeEventListener('trackpaddown', this.onGripClose);
+    el.removeEventListener('trackpadup', this.onGripOpen);
+    el.removeEventListener('triggerdown', this.onGripClose);
+    el.removeEventListener('triggerup', this.onGripOpen);
+  },
+
+  onGripClose: function (evt) {
+    this.grabbing = true;
+  },
+
+  onGripOpen: function (evt) {
+    var hitEl = this.hitEl;
+    this.grabbing = false;
+    if (!hitEl) { return; }
+    hitEl.removeState(this.GRABBED_STATE);
+    this.hitEl = undefined;
+    this.system.removeConstraint(this.constraint);
+    this.constraint = null;
+  },
+
+  onHit: function (evt) {
+    var hitEl = evt.detail.el;
+    // If the element is already grabbed (it could be grabbed by another controller).
+    // If the hand is not grabbing the element does not stick.
+    // If we're already grabbing something you can't grab again.
+    if (!hitEl || hitEl.is(this.GRABBED_STATE) || !this.grabbing || this.hitEl) { return; }
+    hitEl.addState(this.GRABBED_STATE);
+    this.hitEl = hitEl;
+    this.constraint = new CANNON.LockConstraint(this.el.body, hitEl.body);
+    this.system.addConstraint(this.constraint);
+  }
+});
+    </script>
+  </head>
+  <body>
+    <a-scene environment
+             rain-of-entities="spread: 3"
+             physics="driver: worker; workerFps: 60; workerInterpolate: true; workerInterpBufferSize: 2;">
+      <!-- Player -->
+      <a-entity camera="userHeight: 0.6" look-controls position="0 0.1 0">
+        <a-entity cursor
+                  position="0 0 -0.5"
+                  geometry="primitive: circle; radius: 0.01; segments: 4;"
+                  material="color: #FF4444; shader: flat"></a-entity>
+      </a-entity>
+      <a-entity static-body="shape: sphere; sphereRadius: 0.02;" vive-controls="hand: left" sphere-collider="objects: [dynamic-body];" grab></a-entity>
+      <a-entity static-body="shape: sphere; sphereRadius: 0.02;" vive-controls="hand: right" sphere-collider="objects: [dynamic-body];" grab></a-entity>
+
+      <!-- Terrain -->
+      <a-box width="75" height="0.1" depth="75" static-body visible="false"></a-box>
+
+      <!-- Sweeper -->
+      <a-box width="20" height="1" depth="1" position="0 0.5 25" material="color: red; opacity: 0.5" velocity="0 0 -2" static-body></a-box>
+    </a-scene>
+  </body>
+</html>
