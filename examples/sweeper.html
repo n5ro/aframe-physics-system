@@ -3,9 +3,10 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,maximum-scale=1">
-    <title>Examples • Force Push</title>
+    <title>Examples • Sweeper</title>
     <script src="https://aframe.io/releases/0.6.0/aframe.min.js"></script>
-    <script src="https://cdn.rawgit.com/donmccurdy/aframe-extras/v3.2.5/dist/components/sphere-collider.js"></script>
+    <script src="https://rawgit.com/feiss/aframe-environment-component/master/dist/aframe-environment-component.min.js"></script>
+    <script src="https://cdn.rawgit.com/donmccurdy/aframe-extras/v3.9.0/dist/components/sphere-collider.js"></script>
     <script src="bundle.js"></script>
     <script>
 /**
@@ -68,7 +69,7 @@ AFRAME.registerComponent('rain-of-entities', {
     var spread = this.data.spread;
     return {
       x: Math.random() * spread - spread / 2,
-      y: 10,
+      y: 3,
       z: Math.random() * spread - spread / 2
     };
   }
@@ -173,9 +174,9 @@ AFRAME.registerComponent('grab', {
     </script>
   </head>
   <body>
-    <a-scene stats="true"
+    <a-scene environment
              rain-of-entities="spread: 3"
-             physics="driver: worker;">
+             physics="driver: worker; workerFps: 60; workerInterpolate: true; workerInterpBufferSize: 2;">
       <!-- Player -->
       <a-entity camera="userHeight: 0.6" look-controls position="0 0.1 0">
         <a-entity cursor
@@ -187,15 +188,10 @@ AFRAME.registerComponent('grab', {
       <a-entity static-body="shape: sphere; sphereRadius: 0.02;" vive-controls="hand: right" sphere-collider="objects: [dynamic-body];" grab></a-entity>
 
       <!-- Terrain -->
-      <a-box width="75" height="0.1" depth="75" color="#FFAAAA" static-body></a-box>
+      <a-box width="75" height="0.1" depth="75" static-body visible="false"></a-box>
 
       <!-- Sweeper -->
-      <a-box width="50" height="1" depth="1" position="0 0.5 25" material="color: red; opacity: 0.5" velocity="0 0 -2" static-body></a-box>
-
-      <!-- Lighting -->
-      <a-light type="ambient" color="#bbb"></a-light>
-      <a-light color="#ccc" position="0 30 0" distance="100" intensity="0.4" type="point"></a-light>
-      <a-light color="#ccc" position="3 10 -10" distance="50" intensity="0.4" type="point"></a-light>
+      <a-box width="20" height="1" depth="1" position="0 0.5 25" material="color: red; opacity: 0.5" velocity="0 0 -2" static-body></a-box>
     </a-scene>
   </body>
 </html>
