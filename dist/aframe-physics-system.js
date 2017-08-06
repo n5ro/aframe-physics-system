@@ -1,35 +1,22 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-require('./').registerAll();
+var CANNON = require('cannon');
 
-},{"./":2}],2:[function(require,module,exports){
-var CANNON = require('cannon'),
-    math = require('./src/components/math');
+require('./src/components/math');
+require('./src/components/body/dynamic-body');
+require('./src/components/body/static-body');
+require('./src/components/constraint');
+require('./src/system');
 
 module.exports = {
-  'dynamic-body':   require('./src/components/body/dynamic-body'),
-  'static-body':    require('./src/components/body/static-body'),
-  'constraint':     require('./src/components/constraint'),
-  'system':         require('./src/system/physics'),
-
-  registerAll: function (AFRAME) {
-    if (this._registered) return;
-
-    AFRAME = AFRAME || window.AFRAME;
-
-    math.registerAll();
-    if (!AFRAME.systems.physics)            AFRAME.registerSystem('physics',         this.system);
-    if (!AFRAME.components['dynamic-body']) AFRAME.registerComponent('dynamic-body', this['dynamic-body']);
-    if (!AFRAME.components['static-body'])  AFRAME.registerComponent('static-body',  this['static-body']);
-    if (!AFRAME.components['constraint'])   AFRAME.registerComponent('constraint',   this['constraint']);
-
-    this._registered = true;
+  registerAll: function () {
+    console.warn('registerAll() is deprecated. Components are automatically registered.');
   }
 };
 
 // Export CANNON.js.
 window.CANNON = window.CANNON || CANNON;
 
-},{"./src/components/body/dynamic-body":64,"./src/components/body/static-body":65,"./src/components/constraint":66,"./src/components/math":67,"./src/system/physics":71,"cannon":5}],3:[function(require,module,exports){
+},{"./src/components/body/dynamic-body":64,"./src/components/body/static-body":65,"./src/components/constraint":66,"./src/components/math":67,"./src/system":79,"cannon":4}],2:[function(require,module,exports){
 /**
  * CANNON.shape2mesh
  *
@@ -189,7 +176,7 @@ CANNON.shape2mesh = function(body){
 
 module.exports = CANNON.shape2mesh;
 
-},{"cannon":5}],4:[function(require,module,exports){
+},{"cannon":4}],3:[function(require,module,exports){
 module.exports={
   "_args": [
     [
@@ -298,7 +285,7 @@ module.exports={
   "version": "0.6.2"
 }
 
-},{}],5:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 // Export classes
 module.exports = {
     version :                       require('../package.json').version,
@@ -353,7 +340,7 @@ module.exports = {
     World :                         require('./world/World'),
 };
 
-},{"../package.json":4,"./collision/AABB":6,"./collision/ArrayCollisionMatrix":7,"./collision/Broadphase":8,"./collision/GridBroadphase":9,"./collision/NaiveBroadphase":10,"./collision/ObjectCollisionMatrix":11,"./collision/Ray":13,"./collision/RaycastResult":14,"./collision/SAPBroadphase":15,"./constraints/ConeTwistConstraint":16,"./constraints/Constraint":17,"./constraints/DistanceConstraint":18,"./constraints/HingeConstraint":19,"./constraints/LockConstraint":20,"./constraints/PointToPointConstraint":21,"./equations/ContactEquation":23,"./equations/Equation":24,"./equations/FrictionEquation":25,"./equations/RotationalEquation":26,"./equations/RotationalMotorEquation":27,"./material/ContactMaterial":28,"./material/Material":29,"./math/Mat3":31,"./math/Quaternion":32,"./math/Transform":33,"./math/Vec3":34,"./objects/Body":35,"./objects/RaycastVehicle":36,"./objects/RigidVehicle":37,"./objects/SPHSystem":38,"./objects/Spring":39,"./shapes/Box":41,"./shapes/ConvexPolyhedron":42,"./shapes/Cylinder":43,"./shapes/Heightfield":44,"./shapes/Particle":45,"./shapes/Plane":46,"./shapes/Shape":47,"./shapes/Sphere":48,"./shapes/Trimesh":49,"./solver/GSSolver":50,"./solver/Solver":51,"./solver/SplitSolver":52,"./utils/EventTarget":53,"./utils/Pool":55,"./utils/Vec3Pool":58,"./world/Narrowphase":59,"./world/World":60}],6:[function(require,module,exports){
+},{"../package.json":3,"./collision/AABB":5,"./collision/ArrayCollisionMatrix":6,"./collision/Broadphase":7,"./collision/GridBroadphase":8,"./collision/NaiveBroadphase":9,"./collision/ObjectCollisionMatrix":10,"./collision/Ray":12,"./collision/RaycastResult":13,"./collision/SAPBroadphase":14,"./constraints/ConeTwistConstraint":15,"./constraints/Constraint":16,"./constraints/DistanceConstraint":17,"./constraints/HingeConstraint":18,"./constraints/LockConstraint":19,"./constraints/PointToPointConstraint":20,"./equations/ContactEquation":22,"./equations/Equation":23,"./equations/FrictionEquation":24,"./equations/RotationalEquation":25,"./equations/RotationalMotorEquation":26,"./material/ContactMaterial":27,"./material/Material":28,"./math/Mat3":30,"./math/Quaternion":31,"./math/Transform":32,"./math/Vec3":33,"./objects/Body":34,"./objects/RaycastVehicle":35,"./objects/RigidVehicle":36,"./objects/SPHSystem":37,"./objects/Spring":38,"./shapes/Box":40,"./shapes/ConvexPolyhedron":41,"./shapes/Cylinder":42,"./shapes/Heightfield":43,"./shapes/Particle":44,"./shapes/Plane":45,"./shapes/Shape":46,"./shapes/Sphere":47,"./shapes/Trimesh":48,"./solver/GSSolver":49,"./solver/Solver":50,"./solver/SplitSolver":51,"./utils/EventTarget":52,"./utils/Pool":54,"./utils/Vec3Pool":57,"./world/Narrowphase":58,"./world/World":59}],5:[function(require,module,exports){
 var Vec3 = require('../math/Vec3');
 var Utils = require('../utils/Utils');
 
@@ -676,7 +663,7 @@ AABB.prototype.overlapsRay = function(ray){
 
     return true;
 };
-},{"../math/Vec3":34,"../utils/Utils":57}],7:[function(require,module,exports){
+},{"../math/Vec3":33,"../utils/Utils":56}],6:[function(require,module,exports){
 module.exports = ArrayCollisionMatrix;
 
 /**
@@ -749,7 +736,7 @@ ArrayCollisionMatrix.prototype.setNumObjects = function(n) {
     this.matrix.length = n*(n-1)>>1;
 };
 
-},{}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 var Body = require('../objects/Body');
 var Vec3 = require('../math/Vec3');
 var Quaternion = require('../math/Quaternion');
@@ -957,7 +944,7 @@ Broadphase.prototype.aabbQuery = function(world, aabb, result){
     console.warn('.aabbQuery is not implemented in this Broadphase subclass.');
     return [];
 };
-},{"../math/Quaternion":32,"../math/Vec3":34,"../objects/Body":35,"../shapes/Plane":46,"../shapes/Shape":47}],9:[function(require,module,exports){
+},{"../math/Quaternion":31,"../math/Vec3":33,"../objects/Body":34,"../shapes/Plane":45,"../shapes/Shape":46}],8:[function(require,module,exports){
 module.exports = GridBroadphase;
 
 var Broadphase = require('./Broadphase');
@@ -1187,7 +1174,7 @@ GridBroadphase.prototype.collisionPairs = function(world,pairs1,pairs2){
     this.makePairsUnique(pairs1,pairs2);
 };
 
-},{"../math/Vec3":34,"../shapes/Shape":47,"./Broadphase":8}],10:[function(require,module,exports){
+},{"../math/Vec3":33,"../shapes/Shape":46,"./Broadphase":7}],9:[function(require,module,exports){
 module.exports = NaiveBroadphase;
 
 var Broadphase = require('./Broadphase');
@@ -1262,7 +1249,7 @@ NaiveBroadphase.prototype.aabbQuery = function(world, aabb, result){
 
     return result;
 };
-},{"./AABB":6,"./Broadphase":8}],11:[function(require,module,exports){
+},{"./AABB":5,"./Broadphase":7}],10:[function(require,module,exports){
 module.exports = ObjectCollisionMatrix;
 
 /**
@@ -1335,7 +1322,7 @@ ObjectCollisionMatrix.prototype.reset = function() {
 ObjectCollisionMatrix.prototype.setNumObjects = function(n) {
 };
 
-},{}],12:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 module.exports = OverlapKeeper;
 
 /**
@@ -1431,7 +1418,7 @@ OverlapKeeper.prototype.getDiff = function(additions, removals) {
         }
     }
 };
-},{}],13:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 module.exports = Ray;
 
 var Vec3 = require('../math/Vec3');
@@ -2257,7 +2244,7 @@ function distanceFromIntersection(from, direction, position) {
 }
 
 
-},{"../collision/AABB":6,"../collision/RaycastResult":14,"../math/Quaternion":32,"../math/Transform":33,"../math/Vec3":34,"../shapes/Box":41,"../shapes/ConvexPolyhedron":42,"../shapes/Shape":47}],14:[function(require,module,exports){
+},{"../collision/AABB":5,"../collision/RaycastResult":13,"../math/Quaternion":31,"../math/Transform":32,"../math/Vec3":33,"../shapes/Box":40,"../shapes/ConvexPolyhedron":41,"../shapes/Shape":46}],13:[function(require,module,exports){
 var Vec3 = require('../math/Vec3');
 
 module.exports = RaycastResult;
@@ -2380,7 +2367,7 @@ RaycastResult.prototype.set = function(
 	this.body = body;
 	this.distance = distance;
 };
-},{"../math/Vec3":34}],15:[function(require,module,exports){
+},{"../math/Vec3":33}],14:[function(require,module,exports){
 var Shape = require('../shapes/Shape');
 var Broadphase = require('../collision/Broadphase');
 
@@ -2704,7 +2691,7 @@ SAPBroadphase.prototype.aabbQuery = function(world, aabb, result){
 
     return result;
 };
-},{"../collision/Broadphase":8,"../shapes/Shape":47}],16:[function(require,module,exports){
+},{"../collision/Broadphase":7,"../shapes/Shape":46}],15:[function(require,module,exports){
 module.exports = ConeTwistConstraint;
 
 var Constraint = require('./Constraint');
@@ -2795,7 +2782,7 @@ ConeTwistConstraint.prototype.update = function(){
 };
 
 
-},{"../equations/ConeEquation":22,"../equations/ContactEquation":23,"../equations/RotationalEquation":26,"../math/Vec3":34,"./Constraint":17,"./PointToPointConstraint":21}],17:[function(require,module,exports){
+},{"../equations/ConeEquation":21,"../equations/ContactEquation":22,"../equations/RotationalEquation":25,"../math/Vec3":33,"./Constraint":16,"./PointToPointConstraint":20}],16:[function(require,module,exports){
 module.exports = Constraint;
 
 var Utils = require('../utils/Utils');
@@ -2888,7 +2875,7 @@ Constraint.prototype.disable = function(){
 
 Constraint.idCounter = 0;
 
-},{"../utils/Utils":57}],18:[function(require,module,exports){
+},{"../utils/Utils":56}],17:[function(require,module,exports){
 module.exports = DistanceConstraint;
 
 var Constraint = require('./Constraint');
@@ -2945,7 +2932,7 @@ DistanceConstraint.prototype.update = function(){
     normal.mult(halfDist, eq.ri);
     normal.mult(-halfDist, eq.rj);
 };
-},{"../equations/ContactEquation":23,"./Constraint":17}],19:[function(require,module,exports){
+},{"../equations/ContactEquation":22,"./Constraint":16}],18:[function(require,module,exports){
 module.exports = HingeConstraint;
 
 var Constraint = require('./Constraint');
@@ -3081,7 +3068,7 @@ HingeConstraint.prototype.update = function(){
 };
 
 
-},{"../equations/ContactEquation":23,"../equations/RotationalEquation":26,"../equations/RotationalMotorEquation":27,"../math/Vec3":34,"./Constraint":17,"./PointToPointConstraint":21}],20:[function(require,module,exports){
+},{"../equations/ContactEquation":22,"../equations/RotationalEquation":25,"../equations/RotationalMotorEquation":26,"../math/Vec3":33,"./Constraint":16,"./PointToPointConstraint":20}],19:[function(require,module,exports){
 module.exports = LockConstraint;
 
 var Constraint = require('./Constraint');
@@ -3175,7 +3162,7 @@ LockConstraint.prototype.update = function(){
 };
 
 
-},{"../equations/ContactEquation":23,"../equations/RotationalEquation":26,"../equations/RotationalMotorEquation":27,"../math/Vec3":34,"./Constraint":17,"./PointToPointConstraint":21}],21:[function(require,module,exports){
+},{"../equations/ContactEquation":22,"../equations/RotationalEquation":25,"../equations/RotationalMotorEquation":26,"../math/Vec3":33,"./Constraint":16,"./PointToPointConstraint":20}],20:[function(require,module,exports){
 module.exports = PointToPointConstraint;
 
 var Constraint = require('./Constraint');
@@ -3268,7 +3255,7 @@ PointToPointConstraint.prototype.update = function(){
     z.ri.copy(x.ri);
     z.rj.copy(x.rj);
 };
-},{"../equations/ContactEquation":23,"../math/Vec3":34,"./Constraint":17}],22:[function(require,module,exports){
+},{"../equations/ContactEquation":22,"../math/Vec3":33,"./Constraint":16}],21:[function(require,module,exports){
 module.exports = ConeEquation;
 
 var Vec3 = require('../math/Vec3');
@@ -3347,7 +3334,7 @@ ConeEquation.prototype.computeB = function(h){
 };
 
 
-},{"../math/Mat3":31,"../math/Vec3":34,"./Equation":24}],23:[function(require,module,exports){
+},{"../math/Mat3":30,"../math/Vec3":33,"./Equation":23}],22:[function(require,module,exports){
 module.exports = ContactEquation;
 
 var Equation = require('./Equation');
@@ -3484,7 +3471,7 @@ ContactEquation.prototype.getImpactVelocityAlongNormal = function(){
 };
 
 
-},{"../math/Mat3":31,"../math/Vec3":34,"./Equation":24}],24:[function(require,module,exports){
+},{"../math/Mat3":30,"../math/Vec3":33,"./Equation":23}],23:[function(require,module,exports){
 module.exports = Equation;
 
 var JacobianElement = require('../math/JacobianElement'),
@@ -3748,7 +3735,7 @@ Equation.prototype.computeC = function(){
     return this.computeGiMGt() + this.eps;
 };
 
-},{"../math/JacobianElement":30,"../math/Vec3":34}],25:[function(require,module,exports){
+},{"../math/JacobianElement":29,"../math/Vec3":33}],24:[function(require,module,exports){
 module.exports = FrictionEquation;
 
 var Equation = require('./Equation');
@@ -3809,7 +3796,7 @@ FrictionEquation.prototype.computeB = function(h){
     return B;
 };
 
-},{"../math/Mat3":31,"../math/Vec3":34,"./Equation":24}],26:[function(require,module,exports){
+},{"../math/Mat3":30,"../math/Vec3":33,"./Equation":23}],25:[function(require,module,exports){
 module.exports = RotationalEquation;
 
 var Vec3 = require('../math/Vec3');
@@ -3880,7 +3867,7 @@ RotationalEquation.prototype.computeB = function(h){
 };
 
 
-},{"../math/Mat3":31,"../math/Vec3":34,"./Equation":24}],27:[function(require,module,exports){
+},{"../math/Mat3":30,"../math/Vec3":33,"./Equation":23}],26:[function(require,module,exports){
 module.exports = RotationalMotorEquation;
 
 var Vec3 = require('../math/Vec3');
@@ -3952,7 +3939,7 @@ RotationalMotorEquation.prototype.computeB = function(h){
     return B;
 };
 
-},{"../math/Mat3":31,"../math/Vec3":34,"./Equation":24}],28:[function(require,module,exports){
+},{"../math/Mat3":30,"../math/Vec3":33,"./Equation":23}],27:[function(require,module,exports){
 var Utils = require('../utils/Utils');
 
 module.exports = ContactMaterial;
@@ -4033,7 +4020,7 @@ function ContactMaterial(m1, m2, options){
 
 ContactMaterial.idCounter = 0;
 
-},{"../utils/Utils":57}],29:[function(require,module,exports){
+},{"../utils/Utils":56}],28:[function(require,module,exports){
 module.exports = Material;
 
 /**
@@ -4083,7 +4070,7 @@ function Material(options){
 
 Material.idCounter = 0;
 
-},{}],30:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 module.exports = JacobianElement;
 
 var Vec3 = require('./Vec3');
@@ -4127,7 +4114,7 @@ JacobianElement.prototype.multiplyVectors = function(spatial,rotational){
     return spatial.dot(this.spatial) + rotational.dot(this.rotational);
 };
 
-},{"./Vec3":34}],31:[function(require,module,exports){
+},{"./Vec3":33}],30:[function(require,module,exports){
 module.exports = Mat3;
 
 var Vec3 = require('./Vec3');
@@ -4551,7 +4538,7 @@ Mat3.prototype.transpose = function( target ) {
     return target;
 };
 
-},{"./Vec3":34}],32:[function(require,module,exports){
+},{"./Vec3":33}],31:[function(require,module,exports){
 module.exports = Quaternion;
 
 var Vec3 = require('./Vec3');
@@ -5041,7 +5028,7 @@ Quaternion.prototype.integrate = function(angularVelocity, dt, angularFactor, ta
 
     return target;
 };
-},{"./Vec3":34}],33:[function(require,module,exports){
+},{"./Vec3":33}],32:[function(require,module,exports){
 var Vec3 = require('./Vec3');
 var Quaternion = require('./Quaternion');
 
@@ -5146,7 +5133,7 @@ Transform.vectorToLocalFrame = function(position, quaternion, worldVector, resul
     return result;
 };
 
-},{"./Quaternion":32,"./Vec3":34}],34:[function(require,module,exports){
+},{"./Quaternion":31,"./Vec3":33}],33:[function(require,module,exports){
 module.exports = Vec3;
 
 var Mat3 = require('./Mat3');
@@ -5630,7 +5617,7 @@ Vec3.prototype.isAntiparallelTo = function(v,precision){
 Vec3.prototype.clone = function(){
     return new Vec3(this.x, this.y, this.z);
 };
-},{"./Mat3":31}],35:[function(require,module,exports){
+},{"./Mat3":30}],34:[function(require,module,exports){
 module.exports = Body;
 
 var EventTarget = require('../utils/EventTarget');
@@ -6546,7 +6533,7 @@ Body.prototype.integrate = function(dt, quatNormalize, quatNormalizeFast){
     this.updateInertiaWorld();
 };
 
-},{"../collision/AABB":6,"../material/Material":29,"../math/Mat3":31,"../math/Quaternion":32,"../math/Vec3":34,"../shapes/Box":41,"../shapes/Shape":47,"../utils/EventTarget":53}],36:[function(require,module,exports){
+},{"../collision/AABB":5,"../material/Material":28,"../math/Mat3":30,"../math/Quaternion":31,"../math/Vec3":33,"../shapes/Box":40,"../shapes/Shape":46,"../utils/EventTarget":52}],35:[function(require,module,exports){
 var Body = require('./Body');
 var Vec3 = require('../math/Vec3');
 var Quaternion = require('../math/Quaternion');
@@ -7250,7 +7237,7 @@ function resolveSingleBilateral(body1, pos1, body2, pos2, normal, impulse){
 
     return impulse;
 }
-},{"../collision/Ray":13,"../collision/RaycastResult":14,"../math/Quaternion":32,"../math/Vec3":34,"../objects/WheelInfo":40,"./Body":35}],37:[function(require,module,exports){
+},{"../collision/Ray":12,"../collision/RaycastResult":13,"../math/Quaternion":31,"../math/Vec3":33,"../objects/WheelInfo":39,"./Body":34}],36:[function(require,module,exports){
 var Body = require('./Body');
 var Sphere = require('../shapes/Sphere');
 var Box = require('../shapes/Box');
@@ -7472,7 +7459,7 @@ RigidVehicle.prototype.getWheelSpeed = function(wheelIndex){
     return w.dot(worldAxis);
 };
 
-},{"../constraints/HingeConstraint":19,"../math/Vec3":34,"../shapes/Box":41,"../shapes/Sphere":48,"./Body":35}],38:[function(require,module,exports){
+},{"../constraints/HingeConstraint":18,"../math/Vec3":33,"../shapes/Box":40,"../shapes/Sphere":47,"./Body":34}],37:[function(require,module,exports){
 module.exports = SPHSystem;
 
 var Shape = require('../shapes/Shape');
@@ -7687,7 +7674,7 @@ SPHSystem.prototype.nablaw = function(r){
     return nabla;
 };
 
-},{"../material/Material":29,"../math/Quaternion":32,"../math/Vec3":34,"../objects/Body":35,"../shapes/Particle":45,"../shapes/Shape":47}],39:[function(require,module,exports){
+},{"../material/Material":28,"../math/Quaternion":31,"../math/Vec3":33,"../objects/Body":34,"../shapes/Particle":44,"../shapes/Shape":46}],38:[function(require,module,exports){
 var Vec3 = require('../math/Vec3');
 
 module.exports = Spring;
@@ -7882,7 +7869,7 @@ Spring.prototype.applyForce = function(){
     bodyB.torque.vadd(rj_x_f,bodyB.torque);
 };
 
-},{"../math/Vec3":34}],40:[function(require,module,exports){
+},{"../math/Vec3":33}],39:[function(require,module,exports){
 var Vec3 = require('../math/Vec3');
 var Transform = require('../math/Transform');
 var RaycastResult = require('../collision/RaycastResult');
@@ -8165,7 +8152,7 @@ WheelInfo.prototype.updateWheel = function(chassis){
         this.clippedInvContactDotSuspension = 1.0;
     }
 };
-},{"../collision/RaycastResult":14,"../math/Transform":33,"../math/Vec3":34,"../utils/Utils":57}],41:[function(require,module,exports){
+},{"../collision/RaycastResult":13,"../math/Transform":32,"../math/Vec3":33,"../utils/Utils":56}],40:[function(require,module,exports){
 module.exports = Box;
 
 var Shape = require('./Shape');
@@ -8402,7 +8389,7 @@ Box.prototype.calculateWorldAABB = function(pos,quat,min,max){
     // });
 };
 
-},{"../math/Vec3":34,"./ConvexPolyhedron":42,"./Shape":47}],42:[function(require,module,exports){
+},{"../math/Vec3":33,"./ConvexPolyhedron":41,"./Shape":46}],41:[function(require,module,exports){
 module.exports = ConvexPolyhedron;
 
 var Shape = require('./Shape');
@@ -9330,7 +9317,7 @@ ConvexPolyhedron.project = function(hull, axis, pos, quat, result){
     result[1] = min;
 };
 
-},{"../math/Quaternion":32,"../math/Transform":33,"../math/Vec3":34,"./Shape":47}],43:[function(require,module,exports){
+},{"../math/Quaternion":31,"../math/Transform":32,"../math/Vec3":33,"./Shape":46}],42:[function(require,module,exports){
 module.exports = Cylinder;
 
 var Shape = require('./Shape');
@@ -9412,7 +9399,7 @@ function Cylinder( radiusTop, radiusBottom, height , numSegments ) {
 
 Cylinder.prototype = new ConvexPolyhedron();
 
-},{"../math/Quaternion":32,"../math/Vec3":34,"./ConvexPolyhedron":42,"./Shape":47}],44:[function(require,module,exports){
+},{"../math/Quaternion":31,"../math/Vec3":33,"./ConvexPolyhedron":41,"./Shape":46}],43:[function(require,module,exports){
 var Shape = require('./Shape');
 var ConvexPolyhedron = require('./ConvexPolyhedron');
 var Vec3 = require('../math/Vec3');
@@ -10097,7 +10084,7 @@ Heightfield.prototype.setHeightsFromImage = function(image, scale){
     this.updateMinValue();
     this.update();
 };
-},{"../math/Vec3":34,"../utils/Utils":57,"./ConvexPolyhedron":42,"./Shape":47}],45:[function(require,module,exports){
+},{"../math/Vec3":33,"../utils/Utils":56,"./ConvexPolyhedron":41,"./Shape":46}],44:[function(require,module,exports){
 module.exports = Particle;
 
 var Shape = require('./Shape');
@@ -10144,7 +10131,7 @@ Particle.prototype.calculateWorldAABB = function(pos,quat,min,max){
     max.copy(pos);
 };
 
-},{"../math/Vec3":34,"./Shape":47}],46:[function(require,module,exports){
+},{"../math/Vec3":33,"./Shape":46}],45:[function(require,module,exports){
 module.exports = Plane;
 
 var Shape = require('./Shape');
@@ -10207,7 +10194,7 @@ Plane.prototype.calculateWorldAABB = function(pos, quat, min, max){
 Plane.prototype.updateBoundingSphereRadius = function(){
     this.boundingSphereRadius = Number.MAX_VALUE;
 };
-},{"../math/Vec3":34,"./Shape":47}],47:[function(require,module,exports){
+},{"../math/Vec3":33,"./Shape":46}],46:[function(require,module,exports){
 module.exports = Shape;
 
 var Shape = require('./Shape');
@@ -10311,7 +10298,7 @@ Shape.types = {
 };
 
 
-},{"../material/Material":29,"../math/Quaternion":32,"../math/Vec3":34,"./Shape":47}],48:[function(require,module,exports){
+},{"../material/Material":28,"../math/Quaternion":31,"../math/Vec3":33,"./Shape":46}],47:[function(require,module,exports){
 module.exports = Sphere;
 
 var Shape = require('./Shape');
@@ -10370,7 +10357,7 @@ Sphere.prototype.calculateWorldAABB = function(pos,quat,min,max){
     }
 };
 
-},{"../math/Vec3":34,"./Shape":47}],49:[function(require,module,exports){
+},{"../math/Vec3":33,"./Shape":46}],48:[function(require,module,exports){
 module.exports = Trimesh;
 
 var Shape = require('./Shape');
@@ -10932,7 +10919,7 @@ Trimesh.createTorus = function (radius, tube, radialSegments, tubularSegments, a
     return new Trimesh(vertices, indices);
 };
 
-},{"../collision/AABB":6,"../math/Quaternion":32,"../math/Transform":33,"../math/Vec3":34,"../utils/Octree":54,"./Shape":47}],50:[function(require,module,exports){
+},{"../collision/AABB":5,"../math/Quaternion":31,"../math/Transform":32,"../math/Vec3":33,"../utils/Octree":53,"./Shape":46}],49:[function(require,module,exports){
 module.exports = GSSolver;
 
 var Vec3 = require('../math/Vec3');
@@ -11074,7 +11061,7 @@ GSSolver.prototype.solve = function(dt,world){
     return iter;
 };
 
-},{"../math/Quaternion":32,"../math/Vec3":34,"./Solver":51}],51:[function(require,module,exports){
+},{"../math/Quaternion":31,"../math/Vec3":33,"./Solver":50}],50:[function(require,module,exports){
 module.exports = Solver;
 
 /**
@@ -11135,7 +11122,7 @@ Solver.prototype.removeAllEquations = function(){
 };
 
 
-},{}],52:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 module.exports = SplitSolver;
 
 var Vec3 = require('../math/Vec3');
@@ -11290,7 +11277,7 @@ SplitSolver.prototype.solve = function(dt,world){
 function sortById(a, b){
     return b.id - a.id;
 }
-},{"../math/Quaternion":32,"../math/Vec3":34,"../objects/Body":35,"./Solver":51}],53:[function(require,module,exports){
+},{"../math/Quaternion":31,"../math/Vec3":33,"../objects/Body":34,"./Solver":50}],52:[function(require,module,exports){
 /**
  * Base class for objects that dispatches events.
  * @class EventTarget
@@ -11391,7 +11378,7 @@ EventTarget.prototype = {
     }
 };
 
-},{}],54:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 var AABB = require('../collision/AABB');
 var Vec3 = require('../math/Vec3');
 
@@ -11626,7 +11613,7 @@ OctreeNode.prototype.removeEmptyNodes = function() {
     }
 };
 
-},{"../collision/AABB":6,"../math/Vec3":34}],55:[function(require,module,exports){
+},{"../collision/AABB":5,"../math/Vec3":33}],54:[function(require,module,exports){
 module.exports = Pool;
 
 /**
@@ -11703,7 +11690,7 @@ Pool.prototype.resize = function (size) {
 };
 
 
-},{}],56:[function(require,module,exports){
+},{}],55:[function(require,module,exports){
 module.exports = TupleDictionary;
 
 /**
@@ -11770,7 +11757,7 @@ TupleDictionary.prototype.reset = function() {
     }
 };
 
-},{}],57:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 function Utils(){}
 
 module.exports = Utils;
@@ -11795,7 +11782,7 @@ Utils.defaults = function(options, defaults){
     return options;
 };
 
-},{}],58:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 module.exports = Vec3Pool;
 
 var Vec3 = require('../math/Vec3');
@@ -11821,7 +11808,7 @@ Vec3Pool.prototype.constructObject = function(){
     return new Vec3();
 };
 
-},{"../math/Vec3":34,"./Pool":55}],59:[function(require,module,exports){
+},{"../math/Vec3":33,"./Pool":54}],58:[function(require,module,exports){
 module.exports = Narrowphase;
 
 var AABB = require('../collision/AABB');
@@ -13683,7 +13670,7 @@ Narrowphase.prototype.sphereHeightfield = function (
     }
 };
 
-},{"../collision/AABB":6,"../collision/Ray":13,"../equations/ContactEquation":23,"../equations/FrictionEquation":25,"../math/Quaternion":32,"../math/Transform":33,"../math/Vec3":34,"../objects/Body":35,"../shapes/ConvexPolyhedron":42,"../shapes/Shape":47,"../solver/Solver":51,"../utils/Vec3Pool":58}],60:[function(require,module,exports){
+},{"../collision/AABB":5,"../collision/Ray":12,"../equations/ContactEquation":22,"../equations/FrictionEquation":24,"../math/Quaternion":31,"../math/Transform":32,"../math/Vec3":33,"../objects/Body":34,"../shapes/ConvexPolyhedron":41,"../shapes/Shape":46,"../solver/Solver":50,"../utils/Vec3Pool":57}],59:[function(require,module,exports){
 /* global performance */
 
 module.exports = World;
@@ -14717,7 +14704,7 @@ World.prototype.clearForces = function(){
     }
 };
 
-},{"../collision/AABB":6,"../collision/ArrayCollisionMatrix":7,"../collision/NaiveBroadphase":10,"../collision/OverlapKeeper":12,"../collision/Ray":13,"../collision/RaycastResult":14,"../equations/ContactEquation":23,"../equations/FrictionEquation":25,"../material/ContactMaterial":28,"../material/Material":29,"../math/Quaternion":32,"../math/Vec3":34,"../objects/Body":35,"../shapes/Shape":47,"../solver/GSSolver":50,"../utils/EventTarget":53,"../utils/TupleDictionary":56,"./Narrowphase":59}],61:[function(require,module,exports){
+},{"../collision/AABB":5,"../collision/ArrayCollisionMatrix":6,"../collision/NaiveBroadphase":9,"../collision/OverlapKeeper":11,"../collision/Ray":12,"../collision/RaycastResult":13,"../equations/ContactEquation":22,"../equations/FrictionEquation":24,"../material/ContactMaterial":27,"../material/Material":28,"../math/Quaternion":31,"../math/Vec3":33,"../objects/Body":34,"../shapes/Shape":46,"../solver/GSSolver":49,"../utils/EventTarget":52,"../utils/TupleDictionary":55,"./Narrowphase":58}],60:[function(require,module,exports){
 var CANNON = require('cannon'),
     quickhull = require('./lib/THREE.quickhull');
 
@@ -15076,7 +15063,7 @@ function getMeshes (object) {
   return meshes;
 }
 
-},{"./lib/THREE.quickhull":62,"cannon":5}],62:[function(require,module,exports){
+},{"./lib/THREE.quickhull":61,"cannon":4}],61:[function(require,module,exports){
 /**
 
   QuickHull
@@ -15528,6 +15515,89 @@ module.exports = (function(){
 
 }())
 
+},{}],62:[function(require,module,exports){
+var bundleFn = arguments[3];
+var sources = arguments[4];
+var cache = arguments[5];
+
+var stringify = JSON.stringify;
+
+module.exports = function (fn, options) {
+    var wkey;
+    var cacheKeys = Object.keys(cache);
+
+    for (var i = 0, l = cacheKeys.length; i < l; i++) {
+        var key = cacheKeys[i];
+        var exp = cache[key].exports;
+        // Using babel as a transpiler to use esmodule, the export will always
+        // be an object with the default export as a property of it. To ensure
+        // the existing api and babel esmodule exports are both supported we
+        // check for both
+        if (exp === fn || exp && exp.default === fn) {
+            wkey = key;
+            break;
+        }
+    }
+
+    if (!wkey) {
+        wkey = Math.floor(Math.pow(16, 8) * Math.random()).toString(16);
+        var wcache = {};
+        for (var i = 0, l = cacheKeys.length; i < l; i++) {
+            var key = cacheKeys[i];
+            wcache[key] = key;
+        }
+        sources[wkey] = [
+            Function(['require','module','exports'], '(' + fn + ')(self)'),
+            wcache
+        ];
+    }
+    var skey = Math.floor(Math.pow(16, 8) * Math.random()).toString(16);
+
+    var scache = {}; scache[wkey] = wkey;
+    sources[skey] = [
+        Function(['require'], (
+            // try to call default if defined to also support babel esmodule
+            // exports
+            'var f = require(' + stringify(wkey) + ');' +
+            '(f.default ? f.default : f)(self);'
+        )),
+        scache
+    ];
+
+    var workerSources = {};
+    resolveSources(skey);
+
+    function resolveSources(key) {
+        workerSources[key] = true;
+
+        for (var depPath in sources[key][1]) {
+            var depKey = sources[key][1][depPath];
+            if (!workerSources[depKey]) {
+                resolveSources(depKey);
+            }
+        }
+    }
+
+    var src = '(' + bundleFn + ')({'
+        + Object.keys(workerSources).map(function (key) {
+            return stringify(key) + ':['
+                + sources[key][0]
+                + ',' + stringify(sources[key][1]) + ']'
+            ;
+        }).join(',')
+        + '},{},[' + stringify(skey) + '])'
+    ;
+
+    var URL = window.URL || window.webkitURL || window.mozURL || window.msURL;
+
+    var blob = new Blob([src], { type: 'text/javascript' });
+    if (options && options.bare) { return blob; }
+    var workerUrl = URL.createObjectURL(blob);
+    var worker = new Worker(workerUrl);
+    worker.objectURL = workerUrl;
+    return worker;
+};
+
 },{}],63:[function(require,module,exports){
 var CANNON = require('cannon'),
     mesh2shape = require('three-to-cannon');
@@ -15536,7 +15606,7 @@ require('../../../lib/CANNON-shape2mesh');
 
 module.exports = {
   schema: {
-    shape: {default: 'auto', oneOf: ['auto', 'box', 'cylinder', 'sphere', 'hull', 'none']},
+    shape: {default: 'auto', oneOf: ['auto', 'box', 'cylinder', 'sphere', 'hull', 'mesh', 'none']},
     cylinderAxis: {default: 'y', oneOf: ['x', 'y', 'z']},
     sphereRadius: {default: NaN}
   },
@@ -15632,11 +15702,10 @@ module.exports = {
    * Internal helper to register component with physics system.
    */
   _play: function () {
+    this.syncToPhysics();
     this.system.addBehavior(this, this.system.Phase.SIMULATE);
     this.system.addBody(this.body);
     if (this.wireframe) this.el.sceneEl.object3D.add(this.wireframe);
-
-    this.syncToPhysics();
   },
 
   /**
@@ -15746,6 +15815,7 @@ module.exports = {
         body.position.copy(v);
       }
 
+      if (this.body.updateProperties) this.body.updateProperties();
       if (this.wireframe) this.syncWireframe();
     };
   }()),
@@ -15784,7 +15854,7 @@ module.exports = {
   }())
 };
 
-},{"../../../lib/CANNON-shape2mesh":3,"cannon":5,"three-to-cannon":61}],64:[function(require,module,exports){
+},{"../../../lib/CANNON-shape2mesh":2,"cannon":4,"three-to-cannon":60}],64:[function(require,module,exports){
 var Body = require('./body');
 
 /**
@@ -15792,7 +15862,7 @@ var Body = require('./body');
  *
  * Moves according to physics simulation, and may collide with other objects.
  */
-module.exports = AFRAME.utils.extend({}, Body, {
+var DynamicBody = AFRAME.utils.extend({}, Body, {
   dependencies: ['quaternion', 'velocity'],
 
   schema: AFRAME.utils.extend({}, Body.schema, {
@@ -15806,6 +15876,8 @@ module.exports = AFRAME.utils.extend({}, Body, {
   }
 });
 
+module.exports = AFRAME.registerComponent('dynamic-body', DynamicBody);
+
 },{"./body":63}],65:[function(require,module,exports){
 var Body = require('./body');
 
@@ -15815,16 +15887,18 @@ var Body = require('./body');
  * Solid body with a fixed position. Unaffected by gravity and collisions, but
  * other objects may collide with it.
  */
-module.exports = AFRAME.utils.extend({}, Body, {
+var StaticBody = AFRAME.utils.extend({}, Body, {
   step: function () {
     this.syncToPhysics();
   }
 });
 
+module.exports = AFRAME.registerComponent('static-body', StaticBody);
+
 },{"./body":63}],66:[function(require,module,exports){
 var CANNON = require('cannon');
 
-module.exports = {
+module.exports = AFRAME.registerComponent('constraint', {
   dependencies: ['dynamic-body'],
 
   multiple: true,
@@ -15865,7 +15939,7 @@ module.exports = {
   remove: function () {
     if (!this.constraint) return;
 
-    this.system.world.removeConstraint(this.constraint);
+    this.system.removeConstraint(this.constraint);
     this.constraint = null;
   },
 
@@ -15881,16 +15955,18 @@ module.exports = {
     }
 
     this.constraint = this.createConstraint();
-    this.system.world.addConstraint(this.constraint);
+    this.system.addConstraint(this.constraint);
   },
 
   /**
    * Creates a new constraint, given current component data. The CANNON.js constructors are a bit
-   * different for each constraint type.
+   * different for each constraint type. A `.type` property is added to each constraint, because
+   * `instanceof` checks are not reliable for some types. These types are needed for serialization.
    * @return {CANNON.Constraint}
    */
   createConstraint: function () {
-    var data = this.data,
+    var constraint,
+        data = this.data,
         pivot = new CANNON.Vec3(data.pivot.x, data.pivot.y, data.pivot.z),
         targetPivot = new CANNON.Vec3(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z),
         axis = new CANNON.Vec3(data.axis.x, data.axis.y, data.axis.z),
@@ -15905,6 +15981,7 @@ module.exports = {
           data.target.body,
           {maxForce: data.maxForce}
         );
+        constraint.type = 'LockConstraint';
         break;
 
       case 'distance':
@@ -15914,6 +15991,7 @@ module.exports = {
           data.distance,
           data.maxForce
         );
+        constraint.type = 'DistanceConstraint';
         break;
 
       case 'hinge':
@@ -15926,6 +16004,7 @@ module.exports = {
             axisB: targetAxis,
             maxForce: data.maxForce
           });
+        constraint.type = 'HingeConstraint';
         break;
 
       case 'coneTwist':
@@ -15938,6 +16017,7 @@ module.exports = {
             axisB: targetAxis,
             maxForce: data.maxForce
           });
+        constraint.type = 'ConeTwistConstraint';
         break;
 
       case 'pointToPoint':
@@ -15947,6 +16027,7 @@ module.exports = {
           data.target.body,
           targetPivot,
           data.maxForce);
+        constraint.type = 'PointToPointConstraint';
         break;
 
       default:
@@ -15956,9 +16037,9 @@ module.exports = {
     constraint.collideConnected = data.collideConnected;
     return constraint;
   }
-};
+});
 
-},{"cannon":5}],67:[function(require,module,exports){
+},{"cannon":4}],67:[function(require,module,exports){
 module.exports = {
   'velocity':   require('./velocity'),
   'quaternion': require('./quaternion'),
@@ -15984,7 +16065,7 @@ module.exports = {
  *
  * See: https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
  */
-module.exports = {
+module.exports = AFRAME.registerComponent('quaternion', {
   schema: {type: 'vec4'},
 
   play: function () {
@@ -16002,13 +16083,13 @@ module.exports = {
     var data = this.data;
     this.el.object3D.quaternion.set(data.x, data.y, data.z, data.w);
   }
-};
+});
 
 },{}],69:[function(require,module,exports){
 /**
  * Velocity, in m/s.
  */
-module.exports = {
+module.exports = AFRAME.registerComponent('velocity', {
   schema: {type: 'vec3'},
 
   init: function () {
@@ -16048,7 +16129,7 @@ module.exports = {
       z: position.z + velocity.z * dt / 1000
     });
   }
-};
+});
 
 },{}],70:[function(require,module,exports){
 module.exports = {
@@ -16066,16 +16147,625 @@ module.exports = {
 };
 
 },{}],71:[function(require,module,exports){
+var Driver = require('./driver');
+
+function AmmoDriver () {
+  throw new Error('[AmmoDriver] Driver not implemented.');
+}
+
+AmmoDriver.prototype = new Driver();
+AmmoDriver.prototype.constructor = AmmoDriver;
+
+module.exports = AmmoDriver;
+
+},{"./driver":72}],72:[function(require,module,exports){
+/**
+ * Driver - defines limited API to local and remote physics controllers.
+ */
+
+function Driver () {}
+
+module.exports = Driver;
+
+/******************************************************************************
+ * Lifecycle
+ */
+
+/* @param {object} worldConfig */
+Driver.prototype.init = abstractMethod;
+
+/* @param {number} deltaMS */
+Driver.prototype.step = abstractMethod;
+
+Driver.prototype.destroy = abstractMethod;
+
+/******************************************************************************
+ * Bodies
+ */
+
+/* @param {CANNON.Body} body */
+Driver.prototype.addBody = abstractMethod;
+
+/* @param {CANNON.Body} body */
+Driver.prototype.removeBody = abstractMethod;
+
+/**
+ * @param {CANNON.Body} body
+ * @param {string} methodName
+ * @param {Array} args
+ */
+Driver.prototype.applyBodyMethod = abstractMethod;
+
+/** @param {CANNON.Body} body */
+Driver.prototype.updateBodyProperties = abstractMethod;
+
+/******************************************************************************
+ * Materials
+ */
+
+/** @param {object} materialConfig */
+Driver.prototype.addMaterial = abstractMethod;
+
+/**
+ * @param {string} materialName1
+ * @param {string} materialName2
+ * @param {object} contactMaterialConfig
+ */
+Driver.prototype.addContactMaterial = abstractMethod;
+
+/******************************************************************************
+ * Constraints
+ */
+
+/* @param {CANNON.Constraint} constraint */
+Driver.prototype.addConstraint = abstractMethod;
+
+/* @param {CANNON.Constraint} constraint */
+Driver.prototype.removeConstraint = abstractMethod;
+
+/******************************************************************************
+ * Contacts
+ */
+
+/** @return {Array<object>} */
+Driver.prototype.getContacts = abstractMethod;
+
+/*****************************************************************************/
+
+function abstractMethod () {
+  throw new Error('Method not implemented.');
+}
+
+},{}],73:[function(require,module,exports){
+module.exports = {
+  INIT: 'init',
+  STEP: 'step',
+
+  // Bodies.
+  ADD_BODY: 'add-body',
+  REMOVE_BODY: 'remove-body',
+  APPLY_BODY_METHOD: 'apply-body-method',
+  UPDATE_BODY_PROPERTIES: 'update-body-properties',
+
+  // Materials.
+  ADD_MATERIAL: 'add-material',
+  ADD_CONTACT_MATERIAL: 'add-contact-material',
+
+  // Constraints.
+  ADD_CONSTRAINT: 'add-constraint',
+  REMOVE_CONSTRAINT: 'remove-constraint'
+};
+
+},{}],74:[function(require,module,exports){
 var CANNON = require('cannon'),
-    CONSTANTS = require('../constants'),
+    Driver = require('./driver');
+
+function LocalDriver () {
+  this.world = null;
+  this.materials = {};
+  this.contactMaterial = null;
+}
+
+LocalDriver.prototype = new Driver();
+LocalDriver.prototype.constructor = LocalDriver;
+
+module.exports = LocalDriver;
+
+/******************************************************************************
+ * Lifecycle
+ */
+
+/* @param {object} worldConfig */
+LocalDriver.prototype.init = function (worldConfig) {
+  var world = new CANNON.World();
+  world.quatNormalizeSkip = worldConfig.quatNormalizeSkip;
+  world.quatNormalizeFast = worldConfig.quatNormalizeFast;
+  world.solver.iterations = worldConfig.solverIterations;
+  world.gravity.set(0, worldConfig.gravity, 0);
+  world.broadphase = new CANNON.NaiveBroadphase();
+
+  this.world = world;
+};
+
+/* @param {number} deltaMS */
+LocalDriver.prototype.step = function (deltaMS) {
+  this.world.step(deltaMS);
+};
+
+LocalDriver.prototype.destroy = function () {
+  delete this.world;
+  delete this.contactMaterial;
+  this.materials = {};
+};
+
+/******************************************************************************
+ * Bodies
+ */
+
+/* @param {CANNON.Body} body */
+LocalDriver.prototype.addBody = function (body) {
+  this.world.addBody(body);
+};
+
+/* @param {CANNON.Body} body */
+LocalDriver.prototype.removeBody = function (body) {
+  this.world.removeBody(body);
+};
+
+/**
+ * @param {CANNON.Body} body
+ * @param {string} methodName
+ * @param {Array} args
+ */
+LocalDriver.prototype.applyBodyMethod = function (body, methodName, args) {
+  body['__' + methodName].apply(body, args);
+};
+
+/** @param {CANNON.Body} body */
+LocalDriver.prototype.updateBodyProperties = function () {};
+
+/******************************************************************************
+ * Materials
+ */
+
+/** @param {object} materialConfig */
+LocalDriver.prototype.addMaterial = function (materialConfig) {
+  this.materials[materialConfig.name] = new CANNON.Material(materialConfig);
+};
+
+/**
+ * @param {string} matName1
+ * @param {string} matName2
+ * @param {object} contactMaterialConfig
+ */
+LocalDriver.prototype.addContactMaterial = function (matName1, matName2, contactMaterialConfig) {
+  var mat1 = this.materials[matName1],
+      mat2 = this.materials[matName2];
+  this.contactMaterial = new CANNON.ContactMaterial(mat1, mat2, contactMaterialConfig);
+  this.world.addContactMaterial(this.contactMaterial);
+};
+
+/******************************************************************************
+ * Constraints
+ */
+
+/* @param {CANNON.Constraint} constraint */
+LocalDriver.prototype.addConstraint = function (constraint) {
+  this.world.addConstraint(constraint);
+};
+
+/* @param {CANNON.Constraint} constraint */
+LocalDriver.prototype.removeConstraint = function (constraint) {
+  this.world.removeConstraint(constraint);
+};
+
+/******************************************************************************
+ * Contacts
+ */
+
+/** @return {Array<object>} */
+LocalDriver.prototype.getContacts = function () {
+  return this.world.contacts;
+};
+
+},{"./driver":72,"cannon":4}],75:[function(require,module,exports){
+var Driver = require('./driver');
+
+function NetworkDriver () {
+  throw new Error('[NetworkDriver] Driver not implemented.');
+}
+
+NetworkDriver.prototype = new Driver();
+NetworkDriver.prototype.constructor = NetworkDriver;
+
+module.exports = NetworkDriver;
+
+},{"./driver":72}],76:[function(require,module,exports){
+/**
+ * Stub version of webworkify, for debugging code outside of a webworker.
+ */
+function webworkifyDebug (worker) {
+  var targetA = new EventTarget(),
+      targetB = new EventTarget();
+
+  targetA.setTarget(targetB);
+  targetB.setTarget(targetA);
+
+  worker(targetA);
+  return targetB;
+}
+
+module.exports = webworkifyDebug;
+
+/******************************************************************************
+ * EventTarget
+ */
+
+function EventTarget () {
+  this.listeners = [];
+}
+
+EventTarget.prototype.setTarget = function (target) {
+  this.target = target;
+};
+
+EventTarget.prototype.addEventListener = function (type, fn) {
+  this.listeners.push(fn);
+};
+
+EventTarget.prototype.dispatchEvent = function (type, event) {
+  for (var i = 0; i < this.listeners.length; i++) {
+    this.listeners[i](event);
+  }
+};
+
+EventTarget.prototype.postMessage = function (msg) {
+  this.target.dispatchEvent('message', {data: msg});
+};
+
+},{}],77:[function(require,module,exports){
+/* global performance */
+
+var webworkify = require('webworkify'),
+    webworkifyDebug = require('./webworkify-debug'),
+    Driver = require('./driver'),
+    Event = require('./event'),
+    worker = require('./worker'),
+    protocol = require('../utils/protocol');
+
+var ID = protocol.ID;
+
+/******************************************************************************
+ * Constructor
+ */
+
+function WorkerDriver (options) {
+  this.fps = options.fps;
+  this.engine = options.engine;
+  this.interpolate = options.interpolate;
+  // Approximate number of physics steps to 'pad' rendering.
+  this.interpBufferSize = options.interpolationBufferSize;
+  this.debug = options.debug;
+
+  this.bodies = {};
+  this.contacts = [];
+
+  // https://gafferongames.com/post/snapshot_interpolation/
+  this.frameDelay = this.interpBufferSize * 1000 / this.fps;
+  this.frameBuffer = [];
+
+  this.worker = this.debug
+    ? webworkifyDebug(worker)
+    : webworkify(worker);
+  this.worker.addEventListener('message', this._onMessage.bind(this));
+}
+
+WorkerDriver.prototype = new Driver();
+WorkerDriver.prototype.constructor = WorkerDriver;
+
+module.exports = WorkerDriver;
+
+/******************************************************************************
+ * Lifecycle
+ */
+
+/* @param {object} worldConfig */
+WorkerDriver.prototype.init = function (worldConfig) {
+  this.worker.postMessage({
+    type: Event.INIT,
+    worldConfig: worldConfig,
+    fps: this.fps,
+    engine: this.engine
+  });
+};
+
+/**
+ * Increments the physics world forward one step, if interpolation is enabled.
+ * If disabled, increments are performed as messages arrive.
+ * @param {number} deltaMS
+ */
+WorkerDriver.prototype.step = function () {
+  if (!this.interpolate) return;
+
+  // Get the two oldest frames that haven't expired. Ideally we would use all
+  // available frames to keep things smooth, but lerping is easier and faster.
+  var prevFrame = this.frameBuffer[0];
+  var nextFrame = this.frameBuffer[1];
+  var timestamp = performance.now();
+  while (prevFrame && nextFrame && timestamp - prevFrame.timestamp > this.frameDelay) {
+    this.frameBuffer.shift();
+    prevFrame = this.frameBuffer[0];
+    nextFrame = this.frameBuffer[1];
+  }
+
+  if (!prevFrame || !nextFrame) return;
+
+  var mix = (timestamp - prevFrame.timestamp) / this.frameDelay;
+  mix = (mix - (1 - 1 / this.interpBufferSize)) * this.interpBufferSize;
+
+  for (var id in prevFrame.bodies) {
+    if (prevFrame.bodies.hasOwnProperty(id) && nextFrame.bodies.hasOwnProperty(id)) {
+      protocol.deserializeInterpBodyUpdate(
+        prevFrame.bodies[id],
+        nextFrame.bodies[id],
+        this.bodies[id],
+        mix
+      );
+    }
+  }
+};
+
+WorkerDriver.prototype.destroy = function () {
+  this.worker.terminate();
+  delete this.worker;
+};
+
+/** {Event} event */
+WorkerDriver.prototype._onMessage = function (event) {
+  if (event.data.type === Event.STEP) {
+    var data = event.data,
+        bodies = data.bodies;
+
+    this.contacts = event.data.contacts;
+
+    // If interpolation is enabled, store the frame. If not, update all bodies
+    // immediately.
+    if (this.interpolate) {
+      this.frameBuffer.push({timestamp: performance.now(), bodies: bodies});
+    } else {
+      for (var id in bodies) {
+        if (bodies.hasOwnProperty(id)) {
+          protocol.deserializeBodyUpdate(bodies[id], this.bodies[id]);
+        }
+      }
+    }
+
+  } else {
+    throw new Error('[WorkerDriver] Unexpected message type.');
+  }
+};
+
+/******************************************************************************
+ * Bodies
+ */
+
+/* @param {CANNON.Body} body */
+WorkerDriver.prototype.addBody = function (body) {
+  protocol.assignID('body', body);
+  this.bodies[body[ID]] = body;
+  this.worker.postMessage({type: Event.ADD_BODY, body: protocol.serializeBody(body)});
+};
+
+/* @param {CANNON.Body} body */
+WorkerDriver.prototype.removeBody = function (body) {
+  this.worker.postMessage({type: Event.REMOVE_BODY, bodyID: body[ID]});
+  delete this.bodies[body[ID]];
+};
+
+/**
+ * @param {CANNON.Body} body
+ * @param {string} methodName
+ * @param {Array} args
+ */
+WorkerDriver.prototype.applyBodyMethod = function (body, methodName, args) {
+  switch (methodName) {
+    case 'applyForce':
+    case 'applyImpulse':
+      this.worker.postMessage({
+        type: Event.APPLY_BODY_METHOD,
+        bodyID: body[ID],
+        methodName: methodName,
+        args: [args[0].toArray(), args[1].toArray()]
+      });
+      break;
+    default:
+      throw new Error('Unexpected methodName: %s', methodName);
+  }
+};
+
+/** @param {CANNON.Body} body */
+WorkerDriver.prototype.updateBodyProperties = function (body) {
+  this.worker.postMessage({
+    type: Event.UPDATE_BODY_PROPERTIES,
+    body: protocol.serializeBody(body)
+  });
+};
+
+/******************************************************************************
+ * Materials
+ */
+
+/** @param {object} materialConfig */
+WorkerDriver.prototype.addMaterial = function (materialConfig) {
+  this.worker.postMessage({type: Event.ADD_MATERIAL, materialConfig: materialConfig});
+};
+
+/**
+ * @param {string} matName1
+ * @param {string} matName2
+ * @param {object} contactMaterialConfig
+ */
+WorkerDriver.prototype.addContactMaterial = function (matName1, matName2, contactMaterialConfig) {
+  this.worker.postMessage({
+    type: Event.ADD_CONTACT_MATERIAL,
+    materialName1: matName1,
+    materialName2: matName2,
+    contactMaterialConfig: contactMaterialConfig
+  });
+};
+
+/******************************************************************************
+ * Constraints
+ */
+
+/* @param {CANNON.Constraint} constraint */
+WorkerDriver.prototype.addConstraint = function (constraint) {
+  protocol.assignID('constraint', constraint);
+  this.worker.postMessage({
+    type: Event.ADD_CONSTRAINT,
+    constraint: protocol.serializeConstraint(constraint)
+  });
+};
+
+/* @param {CANNON.Constraint} constraint */
+WorkerDriver.prototype.removeConstraint = function (constraint) {
+  this.worker.postMessage({
+    type: Event.REMOVE_CONSTRAINT,
+    constraintID: constraint[ID]
+  });
+};
+
+/******************************************************************************
+ * Contacts
+ */
+
+/** @return {Array<object>} */
+WorkerDriver.prototype.getContacts = function () {
+  // TODO(donmccurdy): There's some wasted memory allocation here.
+  var bodies = this.bodies;
+  return this.contacts.map(function (message) {
+    return protocol.deserializeContact(message, bodies);
+  });
+};
+
+},{"../utils/protocol":81,"./driver":72,"./event":73,"./webworkify-debug":76,"./worker":78,"webworkify":62}],78:[function(require,module,exports){
+var Event = require('./event'),
+    LocalDriver = require('./local-driver'),
+    AmmoDriver = require('./ammo-driver'),
+    protocol = require('../utils/protocol');
+
+var ID = protocol.ID;
+
+module.exports = function (self) {
+  var driver = null;
+  var bodies = {};
+  var constraints = {};
+  var stepSize;
+
+  self.addEventListener('message', function (event) {
+    var data = event.data;
+
+    switch (data.type) {
+      // Lifecycle.
+      case Event.INIT:
+        driver = data.engine === 'cannon'
+          ? new LocalDriver()
+          : new AmmoDriver();
+        driver.init(data.worldConfig);
+        stepSize = 1 / data.fps;
+        setInterval(step, 1000 / data.fps);
+        break;
+
+      // Bodies.
+      case Event.ADD_BODY:
+        var body = protocol.deserializeBody(data.body);
+        bodies[body[ID]] = body;
+        driver.addBody(body);
+        break;
+      case Event.REMOVE_BODY:
+        driver.removeBody(bodies[data.bodyID]);
+        delete bodies[data.bodyID];
+        break;
+      case Event.APPLY_BODY_METHOD:
+        bodies[data.bodyID][data.methodName](
+          protocol.deserializeVec3(data.args[0]),
+          protocol.deserializeVec3(data.args[1])
+        );
+        break;
+      case Event.UPDATE_BODY_PROPERTIES:
+        protocol.deserializeBodyUpdate(data.body, bodies[data.body.id]);
+        break;
+
+      // Materials.
+      case Event.ADD_MATERIAL:
+        driver.addMaterial(data.materialConfig);
+        break;
+      case Event.ADD_CONTACT_MATERIAL:
+        driver.addContactMaterial(
+          data.materialName1,
+          data.materialName2,
+          data.contactMaterialConfig
+        );
+        break;
+
+      // Constraints.
+      case Event.ADD_CONSTRAINT:
+        var constraint = protocol.deserializeConstraint(data.constraint, bodies);
+        constraints[constraint[ID]] = constraint;
+        driver.addConstraint(constraint);
+        break;
+      case Event.REMOVE_CONSTRAINT:
+        driver.removeConstraint(constraints[data.constraintID]);
+        delete constraints[data.constraintID];
+        break;
+
+      default:
+        throw new Error('[Worker] Unexpected event type: %s', data.type);
+
+    }
+  });
+
+  function step () {
+    driver.step(stepSize);
+
+    var bodyMessages = {};
+    Object.keys(bodies).forEach(function (id) {
+      bodyMessages[id] = protocol.serializeBody(bodies[id]);
+    });
+
+    self.postMessage({
+      type: Event.STEP,
+      bodies: bodyMessages,
+      contacts: driver.getContacts().map(protocol.serializeContact)
+    });
+  }
+};
+
+},{"../utils/protocol":81,"./ammo-driver":71,"./event":73,"./local-driver":74}],79:[function(require,module,exports){
+var CANNON = require('cannon'),
+    CONSTANTS = require('./constants'),
     C_GRAV = CONSTANTS.GRAVITY,
     C_MAT = CONSTANTS.CONTACT_MATERIAL;
+
+var LocalDriver = require('./drivers/local-driver'),
+    WorkerDriver = require('./drivers/worker-driver'),
+    NetworkDriver = require('./drivers/network-driver'),
+    AmmoDriver = require('./drivers/ammo-driver');
 
 /**
  * Physics system.
  */
-module.exports = {
+module.exports = AFRAME.registerSystem('physics', {
   schema: {
+    // CANNON.js driver type
+    driver:                         { default: 'local', oneOf: ['local', 'worker', 'network', 'ammo'] },
+    networkUrl:                     { default: '', if: {driver: 'network'} },
+    workerFps:                      { default: 60, if: {driver: 'worker'} },
+    workerInterpolate:              { default: true, if: {driver: 'worker'} },
+    workerInterpBufferSize:         { default: 2, if: {driver: 'worker'} },
+    workerEngine:                   { default: 'cannon', if: {driver: 'worker'}, oneOf: ['cannon'] },
+    workerDebug:                    { default: false, if: {driver: 'worker'} },
+
     gravity:                        { default: C_GRAV },
     iterations:                     { default: CONSTANTS.ITERATIONS },
     friction:                       { default: C_MAT.friction },
@@ -16117,24 +16807,46 @@ module.exports = {
 
     this.listeners = {};
 
-    this.world = new CANNON.World();
-    this.world.quatNormalizeSkip = 0;
-    this.world.quatNormalizeFast = false;
-    // this.world.solver.setSpookParams(300,10);
-    this.world.solver.iterations = data.iterations;
-    this.world.gravity.set(0, data.gravity, 0);
-    this.world.broadphase = new CANNON.NaiveBroadphase();
+    this.driver = null;
+    switch (data.driver) {
+      case 'local':
+        this.driver = new LocalDriver();
+        break;
 
-    this.material = new CANNON.Material({name: 'defaultMaterial'});
-    this.contactMaterial = new CANNON.ContactMaterial(this.material, this.material, {
-        friction: data.friction,
-        restitution: data.restitution,
-        contactEquationStiffness: data.contactEquationStiffness,
-        contactEquationRelaxation: data.contactEquationRelaxation,
-        frictionEquationStiffness: data.frictionEquationStiffness,
-        frictionEquationRegularization: data.frictionEquationRegularization
+      case 'network':
+        this.driver = new NetworkDriver(data.networkUrl);
+        break;
+
+      case 'worker':
+        this.driver = new WorkerDriver({
+          fps: data.workerFps,
+          engine: data.workerEngine,
+          interpolate: data.workerInterpolate,
+          interpolationBufferSize: data.workerInterpBufferSize,
+          debug: data.workerDebug
+        });
+        break;
+
+      default:
+        throw new Error('[physics] Driver not recognized: "%s".', data.driver);
+    }
+
+    this.driver.init({
+      quatNormalizeSkip: 0,
+      quatNormalizeFast: false,
+      solverIterations: data.iterations,
+      gravity: data.gravity
     });
-    this.world.addContactMaterial(this.contactMaterial);
+
+    this.driver.addMaterial({name: 'defaultMaterial'});
+    this.driver.addContactMaterial('defaultMaterial', 'defaultMaterial', {
+      friction: data.friction,
+      restitution: data.restitution,
+      contactEquationStiffness: data.contactEquationStiffness,
+      contactEquationRelaxation: data.contactEquationRelaxation,
+      frictionEquationStiffness: data.frictionEquationStiffness,
+      frictionEquationRegularization: data.frictionEquationRegularization
+    });
   },
 
   /**
@@ -16148,7 +16860,7 @@ module.exports = {
   tick: function (t, dt) {
     if (!dt) return;
 
-    this.world.step(Math.min(dt / 1000, this.data.maxInterval));
+    this.driver.step(Math.min(dt / 1000, this.data.maxInterval));
 
     var i;
     for (i = 0; i < this.children[this.Phase.SIMULATE].length; i++) {
@@ -16161,23 +16873,66 @@ module.exports = {
   },
 
   /**
-   * Adds a body to the scene, and binds collision events to the element.
+   * Adds a body to the scene, and binds proxied methods to the driver.
    * @param {CANNON.Body} body
    */
   addBody: function (body) {
-    this.listeners[body.id] = function (e) { body.el.emit('collide', e); };
-    body.addEventListener('collide', this.listeners[body.id]);
-    this.world.addBody(body);
+    var driver = this.driver;
+
+    body.__applyImpulse = body.applyImpulse;
+    body.applyImpulse = function () {
+      driver.applyBodyMethod(body, 'applyImpulse', arguments);
+    };
+
+    body.__applyForce = body.applyForce;
+    body.applyForce = function () {
+      driver.applyBodyMethod(body, 'applyForce', arguments);
+    };
+
+    body.updateProperties = function () {
+      driver.updateBodyProperties(body);
+    };
+
+    this.driver.addBody(body);
   },
 
   /**
-   * Removes a body, and its listeners, from the scene.
+   * Removes a body and its proxied methods.
    * @param {CANNON.Body} body
    */
   removeBody: function (body) {
-    body.removeEventListener('collide', this.listeners[body.id]);
-    delete this.listeners[body.id];
-    this.world.removeBody(body);
+    this.driver.removeBody(body);
+
+    body.applyImpulse = body.__applyImpulse;
+    delete body.__applyImpulse;
+
+    body.applyForce = body.__applyForce;
+    delete body.__applyForce;
+
+    delete body.updateProperties;
+  },
+
+  /** @param {CANNON.Constraint} constraint */
+  addConstraint: function (constraint) {
+    if (!constraint.type) {
+      if (constraint instanceof CANNON.LockConstraint) {
+        constraint.type = 'LockConstraint';
+      } else if (constraint instanceof CANNON.DistanceConstraint) {
+        constraint.type = 'DistanceConstraint';
+      } else if (constraint instanceof CANNON.HingeConstraint) {
+        constraint.type = 'HingeConstraint';
+      } else if (constraint instanceof CANNON.ConeTwistConstraint) {
+        constraint.type = 'ConeTwistConstraint';
+      } else if (constraint instanceof CANNON.PointToPointConstraint) {
+        constraint.type = 'PointToPointConstraint';
+      }
+    }
+    this.driver.addConstraint(constraint);
+  },
+
+  /** @param {CANNON.Constraint} constraint */
+  removeConstraint: function (constraint) {
+    this.driver.removeConstraint(constraint);
   },
 
   /**
@@ -16199,29 +16954,402 @@ module.exports = {
     this.children[phase].splice(this.children[phase].indexOf(component), 1);
   },
 
-  /**
-   * Sets an option on the physics system, affecting future simulation steps.
-   * @param {string} opt
-   * @param {mixed} value
-   */
-  update: function (previousData) {
-    var data = this.data;
-
-    if (data.debug !== previousData.debug) {
-      console.warn('[physics] `debug` cannot be changed dynamically.');
-    }
-
-    if (data.maxInterval !== previousData.maxInterval); // noop;
-
-    if (data.gravity !== previousData.gravity) this.world.gravity.set(0, data.gravity, 0);
-
-    this.contactMaterial.friction = data.friction;
-    this.contactMaterial.restitution = data.restitution;
-    this.contactMaterial.contactEquationStiffness = data.contactEquationStiffness;
-    this.contactMaterial.contactEquationRelaxation = data.contactEquationRelaxation;
-    this.contactMaterial.frictionEquationStiffness = data.frictionEquationStiffness;
-    this.contactMaterial.frictionEquationRegularization = data.frictionEquationRegularization;
+  /** @return {Array<object>} */
+  getContacts: function () {
+    return this.driver.getContacts();
   }
+});
+
+},{"./constants":70,"./drivers/ammo-driver":71,"./drivers/local-driver":74,"./drivers/network-driver":75,"./drivers/worker-driver":77,"cannon":4}],80:[function(require,module,exports){
+module.exports.slerp = function ( a, b, t ) {
+  if ( t <= 0 ) return a;
+  if ( t >= 1 ) return b;
+
+  var x = a[0], y = a[1], z = a[2], w = a[3];
+
+  // http://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/slerp/
+
+  var cosHalfTheta = w * b[3] + x * b[0] + y * b[1] + z * b[2];
+
+  if ( cosHalfTheta < 0 ) {
+
+    a = a.slice();
+
+    a[3] = - b[3];
+    a[0] = - b[0];
+    a[1] = - b[1];
+    a[2] = - b[2];
+
+    cosHalfTheta = - cosHalfTheta;
+
+  } else {
+
+    return b;
+
+  }
+
+  if ( cosHalfTheta >= 1.0 ) {
+
+    a[3] = w;
+    a[0] = x;
+    a[1] = y;
+    a[2] = z;
+
+    return this;
+
+  }
+
+  var sinHalfTheta = Math.sqrt( 1.0 - cosHalfTheta * cosHalfTheta );
+
+  if ( Math.abs( sinHalfTheta ) < 0.001 ) {
+
+    a[3] = 0.5 * ( w + a[3] );
+    a[0] = 0.5 * ( x + a[0] );
+    a[1] = 0.5 * ( y + a[1] );
+    a[2] = 0.5 * ( z + a[2] );
+
+    return this;
+
+  }
+
+  var halfTheta = Math.atan2( sinHalfTheta, cosHalfTheta );
+  var ratioA = Math.sin( ( 1 - t ) * halfTheta ) / sinHalfTheta;
+  var ratioB = Math.sin( t * halfTheta ) / sinHalfTheta;
+
+  a[3] = ( w * ratioA + a[3] * ratioB );
+  a[0] = ( x * ratioA + a[0] * ratioB );
+  a[1] = ( y * ratioA + a[1] * ratioB );
+  a[2] = ( z * ratioA + a[2] * ratioB );
+
+  return a;
+
 };
 
-},{"../constants":70,"cannon":5}]},{},[1]);
+},{}],81:[function(require,module,exports){
+var CANNON = require('cannon');
+var mathUtils = require('./math');
+
+/******************************************************************************
+ * IDs
+ */
+
+var ID = '__id';
+module.exports.ID = ID;
+
+var nextID = {};
+module.exports.assignID = function (prefix, object) {
+  if (object[ID]) return;
+  nextID[prefix] = nextID[prefix] || 1;
+  object[ID] = prefix + '_' + nextID[prefix]++;
+};
+
+/******************************************************************************
+ * Bodies
+ */
+
+module.exports.serializeBody = function (body) {
+  var message = {
+    // Shapes.
+    shapes: body.shapes.map(serializeShape),
+    shapeOffsets: body.shapeOffsets.map(serializeVec3),
+    shapeOrientations: body.shapeOrientations.map(serializeQuaternion),
+
+    // Vectors.
+    position: serializeVec3(body.position),
+    quaternion: body.quaternion.toArray(),
+    velocity: serializeVec3(body.velocity),
+    angularVelocity: serializeVec3(body.angularVelocity),
+
+    // Properties.
+    id: body[ID],
+    mass: body.mass,
+    linearDamping: body.linearDamping,
+    angularDamping: body.angularDamping,
+    fixedRotation: body.fixedRotation,
+    allowSleep: body.allowSleep,
+    sleepSpeedLimit: body.sleepSpeedLimit,
+    sleepTimeLimit: body.sleepTimeLimit
+  };
+
+  return message;
+};
+
+module.exports.deserializeBodyUpdate = function (message, body) {
+  body.position.set(message.position[0], message.position[1], message.position[2]);
+  body.quaternion.set(message.quaternion[0], message.quaternion[1], message.quaternion[2], message.quaternion[3]);
+  body.velocity.set(message.velocity[0], message.velocity[1], message.velocity[2]);
+  body.angularVelocity.set(message.angularVelocity[0], message.angularVelocity[1], message.angularVelocity[2]);
+
+  body.linearDamping = message.linearDamping;
+  body.angularDamping = message.angularDamping;
+  body.fixedRotation = message.fixedRotation;
+  body.allowSleep = message.allowSleep;
+  body.sleepSpeedLimit = message.sleepSpeedLimit;
+  body.sleepTimeLimit = message.sleepTimeLimit;
+
+  if (body.mass !== message.mass) {
+    body.mass = message.mass;
+    body.updateMassProperties();
+  }
+
+  return body;
+};
+
+module.exports.deserializeInterpBodyUpdate = function (message1, message2, body, mix) {
+  var weight1 = 1 - mix;
+  var weight2 = mix;
+
+  body.position.set(
+    message1.position[0] * weight1 + message2.position[0] * weight2,
+    message1.position[1] * weight1 + message2.position[1] * weight2,
+    message1.position[2] * weight1 + message2.position[2] * weight2
+  );
+  var quaternion = mathUtils.slerp(message1.quaternion, message2.quaternion, mix);
+  body.quaternion.set(quaternion[0], quaternion[1], quaternion[2], quaternion[3]);
+  body.velocity.set(
+    message1.velocity[0] * weight1 + message2.velocity[0] * weight2,
+    message1.velocity[1] * weight1 + message2.velocity[1] * weight2,
+    message1.velocity[2] * weight1 + message2.velocity[2] * weight2
+  );
+  body.angularVelocity.set(
+    message1.angularVelocity[0] * weight1 + message2.angularVelocity[0] * weight2,
+    message1.angularVelocity[1] * weight1 + message2.angularVelocity[1] * weight2,
+    message1.angularVelocity[2] * weight1 + message2.angularVelocity[2] * weight2
+  );
+
+  body.linearDamping = message2.linearDamping;
+  body.angularDamping = message2.angularDamping;
+  body.fixedRotation = message2.fixedRotation;
+  body.allowSleep = message2.allowSleep;
+  body.sleepSpeedLimit = message2.sleepSpeedLimit;
+  body.sleepTimeLimit = message2.sleepTimeLimit;
+
+  if (body.mass !== message2.mass) {
+    body.mass = message2.mass;
+    body.updateMassProperties();
+  }
+
+  return body;
+};
+
+module.exports.deserializeBody = function (message) {
+  var body = new CANNON.Body({
+    mass: message.mass,
+
+    position: deserializeVec3(message.position),
+    quaternion: deserializeQuaternion(message.quaternion),
+    velocity: deserializeVec3(message.velocity),
+    angularVelocity: deserializeVec3(message.angularVelocity),
+
+    linearDamping: message.linearDamping,
+    angularDamping: message.angularDamping,
+    fixedRotation: message.fixedRotation,
+    allowSleep: message.allowSleep,
+    sleepSpeedLimit: message.sleepSpeedLimit,
+    sleepTimeLimit: message.sleepTimeLimit
+  });
+
+  for (var shapeMsg, i = 0; (shapeMsg = message.shapes[i]); i++) {
+    body.addShape(
+      deserializeShape(shapeMsg),
+      deserializeVec3(message.shapeOffsets[i]),
+      deserializeQuaternion(message.shapeOrientations[i])
+    );
+  }
+
+  body[ID] = message.id;
+
+  return body;
+};
+
+/******************************************************************************
+ * Shapes
+ */
+
+module.exports.serializeShape = serializeShape;
+function serializeShape (shape) {
+  var shapeMsg = {type: shape.type};
+  if (shape.type === CANNON.Shape.types.BOX) {
+    shapeMsg.halfExtents = serializeVec3(shape.halfExtents);
+
+  } else if (shape.type === CANNON.Shape.types.SPHERE) {
+    shapeMsg.radius = shape.radius;
+
+  // Patch schteppe/cannon.js#329.
+  } else if (shape._type === CANNON.Shape.types.CYLINDER) {
+    shapeMsg.type = CANNON.Shape.types.CYLINDER;
+    shapeMsg.radiusTop = shape.radiusTop;
+    shapeMsg.radiusBottom = shape.radiusBottom;
+    shapeMsg.height = shape.height;
+    shapeMsg.numSegments = shape.numSegments;
+
+  } else {
+    // TODO(donmccurdy): Support for other shape types.
+    throw new Error('Unimplemented shape type: %s', shape.type);
+  }
+  return shapeMsg;
+}
+
+module.exports.deserializeShape = deserializeShape;
+function deserializeShape (message) {
+  var shape;
+
+  if (message.type === CANNON.Shape.types.BOX) {
+    shape = new CANNON.Box(deserializeVec3(message.halfExtents));
+
+  } else if (message.type === CANNON.Shape.types.SPHERE) {
+    shape = new CANNON.Sphere(message.radius);
+
+  // Patch schteppe/cannon.js#329.
+  } else if (message.type === CANNON.Shape.types.CYLINDER) {
+    shape = new CANNON.Cylinder(message.radiusTop, message.radiusBottom, message.height, message.numSegments);
+    shape._type = CANNON.Shape.types.CYLINDER;
+
+  } else {
+    // TODO(donmccurdy): Support for other shape types.
+    throw new Error('Unimplemented shape type: %s', message.type);
+  }
+
+  return shape;
+}
+
+/******************************************************************************
+ * Constraints
+ */
+
+module.exports.serializeConstraint = function (constraint) {
+
+  var message = {
+    id: constraint[ID],
+    type: constraint.type,
+    maxForce: constraint.maxForce,
+    bodyA: constraint.bodyA[ID],
+    bodyB: constraint.bodyB[ID]
+  };
+
+  switch (constraint.type) {
+    case 'LockConstraint':
+      break;
+    case 'DistanceConstraint':
+      message.distance = constraint.distance;
+      break;
+    case 'HingeConstraint':
+    case 'ConeTwistConstraint':
+      message.axisA = serializeVec3(constraint.axisA);
+      message.axisB = serializeVec3(constraint.axisB);
+      message.pivotA = serializeVec3(constraint.pivotA);
+      message.pivotB = serializeVec3(constraint.pivotB);
+      break;
+    case 'PointToPointConstraint':
+      message.pivotA = serializeVec3(constraint.pivotA);
+      message.pivotB = serializeVec3(constraint.pivotB);
+      break;
+    default:
+      throw new Error(''
+        + 'Unexpected constraint type: ' + constraint.type + '. '
+        + 'You may need to manually set `constraint.type = "FooConstraint";`.'
+      );
+  }
+
+  return message;
+};
+
+module.exports.deserializeConstraint = function (message, bodies) {
+  var TypedConstraint = CANNON[message.type];
+  var bodyA = bodies[message.bodyA];
+  var bodyB = bodies[message.bodyB];
+
+  var constraint;
+
+  switch (message.type) {
+    case 'LockConstraint':
+      constraint = new CANNON.LockConstraint(bodyA, bodyB, message);
+      break;
+
+    case 'DistanceConstraint':
+      constraint = new CANNON.DistanceConstraint(
+        bodyA,
+        bodyB,
+        message.distance,
+        message.maxForce
+      );
+      break;
+
+    case 'HingeConstraint':
+    case 'ConeTwistConstraint':
+      constraint = new TypedConstraint(bodyA, bodyB, {
+        pivotA: deserializeVec3(message.pivotA),
+        pivotB: deserializeVec3(message.pivotB),
+        axisA: deserializeVec3(message.axisA),
+        axisB: deserializeVec3(message.axisB),
+        maxForce: message.maxForce
+      });
+      break;
+
+    case 'PointToPointConstraint':
+      constraint = new CANNON.PointToPointConstraint(
+        bodyA,
+        deserializeVec3(message.pivotA),
+        bodyB,
+        deserializeVec3(message.pivotB),
+        message.maxForce
+      );
+      break;
+
+    default:
+      throw new Error('Unexpected constraint type: ' + message.type);
+  }
+
+  constraint[ID] = message.id;
+  return constraint;
+};
+
+/******************************************************************************
+ * Contacts
+ */
+
+module.exports.serializeContact = function (contact) {
+  return {
+    bi: contact.bi[ID],
+    bj: contact.bj[ID],
+    ni: serializeVec3(contact.ni),
+    ri: serializeVec3(contact.ri),
+    rj: serializeVec3(contact.rj)
+  };
+};
+
+module.exports.deserializeContact = function (message, bodies) {
+  return {
+    bi: bodies[message.bi],
+    bj: bodies[message.bj],
+    ni: deserializeVec3(message.ni),
+    ri: deserializeVec3(message.ri),
+    rj: deserializeVec3(message.rj)
+  };
+};
+
+/******************************************************************************
+ * Math
+ */
+
+module.exports.serializeVec3 = serializeVec3;
+function serializeVec3 (vec3) {
+  return vec3.toArray();
+}
+
+module.exports.deserializeVec3 = deserializeVec3;
+function deserializeVec3 (message) {
+  return new CANNON.Vec3(message[0], message[1], message[2]);
+}
+
+module.exports.serializeQuaternion = serializeQuaternion;
+function serializeQuaternion (quat) {
+  return quat.toArray();
+}
+
+module.exports.deserializeQuaternion = deserializeQuaternion;
+function deserializeQuaternion (message) {
+  return new CANNON.Quaternion(message[0], message[1], message[2], message[3]);
+}
+
+},{"./math":80,"cannon":4}]},{},[1]);
