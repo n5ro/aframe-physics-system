@@ -30,14 +30,18 @@ module.exports = {
    */
   initBody: function () {
     var shape,
-        el = this.el,
-        data = this.data,
-        pos = el.getAttribute('position');
+      el = this.el,
+      data = this.data;
+
+    var obj = this.el.object3D;
+    var pos = obj.position;
+    var quat = obj.quaternion;
 
     this.body = new CANNON.Body({
       mass: data.mass || 0,
       material: this.system.material,
       position: new CANNON.Vec3(pos.x, pos.y, pos.z),
+      quaternion: new CANNON.Quaternion(quat.x, quat.y, quat.z, quat.w),
       linearDamping: data.linearDamping,
       angularDamping: data.angularDamping
     });
@@ -68,15 +72,6 @@ module.exports = {
         this.createWireframe(this.body, shape);
       }
     }
-
-    // Apply rotation
-    var rot = el.getAttribute('rotation');
-    this.body.quaternion.setFromEuler(
-      THREE.Math.degToRad(rot.x),
-      THREE.Math.degToRad(rot.y),
-      THREE.Math.degToRad(rot.z),
-      'XYZ'
-    ).normalize();
 
     this.el.body = this.body;
     this.body.el = this.el;
