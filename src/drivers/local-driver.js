@@ -65,6 +65,11 @@ LocalDriver.prototype.applyBodyMethod = function (body, methodName, args) {
 /** @param {CANNON.Body} body */
 LocalDriver.prototype.updateBodyProperties = function () {};
 
+/** @param {CANNON.Body} body */
+LocalDriver.prototype.isDynamicBody = function (body) {
+  return body.type === CANNON.Body.DYNAMIC;
+};
+
 /******************************************************************************
  * Materials
  */

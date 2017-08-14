@@ -79,7 +79,9 @@ module.exports = function (self) {
 
     var bodyMessages = {};
     Object.keys(bodies).forEach(function (id) {
-      bodyMessages[id] = protocol.serializeBody(bodies[id]);
+      if (driver.isDynamicBody(bodies[id])) {
+        bodyMessages[id] = protocol.serializeBody(bodies[id]);
+      }
     });
 
     self.postMessage({

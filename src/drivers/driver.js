@@ -38,6 +38,9 @@ Driver.prototype.applyBodyMethod = abstractMethod;
 /** @param {CANNON.Body} body */
 Driver.prototype.updateBodyProperties = abstractMethod;
 
+/** @param {CANNON.Body} body */
+Driver.prototype.isDynamicBody = abstractMethod;
+
 /******************************************************************************
  * Materials
  */
