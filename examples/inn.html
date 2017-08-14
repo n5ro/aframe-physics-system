@@ -1,0 +1,40 @@
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,maximum-scale=1">
+    <title>Examples • Inn</title>
+    <script type="text/javascript" src="https://aframe.io/releases/0.6.1/aframe.min.js"></script>
+    <script src="//cdn.rawgit.com/donmccurdy/aframe-extras/v3.10.0/dist/aframe-extras.loaders.min.js"></script>
+    <script src="https://rawgit.com/fernandojsg/aframe-teleport-controls/master/dist/aframe-teleport-controls.min.js"></script>
+    <script src="https://cdn.rawgit.com/donmccurdy/aframe-extras/v3.9.0/dist/components/sphere-collider.js"></script>
+    <script src="../bundle.js"></script>
+    <script src="components/grab.js"></script>
+    <script src="components/auto-refresh-colliders.js"></script>
+  </head>
+  <body>
+    <a-scene physics="driver: worker; workerFps: 30;" auto-refresh-colliders>
+      <a-entity camera="userHeight: 1.6" look-controls></a-entity>
+
+      <a-entity teleport-controls
+                vive-controls="hand: left"
+                static-body="shape: sphere; sphereRadius: 0.02;"
+                sphere-collider="objects: [dynamic-body];"
+                grab></a-entity>
+      <a-entity teleport-controls
+                vive-controls="hand: right"
+                static-body="shape: sphere; sphereRadius: 0.02;"
+                sphere-collider="objects: [dynamic-body];"
+                grab></a-entity>
+      <a-sky color="#333"></a-sky>
+
+      <a-entity scale="0.01 0.01 0.01"
+                position="1.719 -0.055 -8.829"
+                custom-body
+                gltf-model-next="src: url(../assets/inn_rigged/inn.gltf);">
+      </a-entity>
+
+      <a-plane rotation="90 0 0" width="75" height="75" static-body visible="true"></a-plane>
+    </a-scene>
+  </body>
+</html>
