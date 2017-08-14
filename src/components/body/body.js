@@ -1,5 +1,6 @@
 var CANNON = require('cannon'),
-    mesh2shape = require('three-to-cannon');
+    mesh2shape = require('three-to-cannon'),
+    mathUtils = require('../../utils/math');
 
 require('../../../lib/CANNON-shape2mesh');
 
@@ -204,9 +205,16 @@ module.exports = {
 
       if (el.components.velocity) body.velocity.copy(el.getAttribute('velocity'));
 
+      var position = el.object3D.position;
+      var quaternion = el.object3D.quaternion;
+      if (mathUtils.equalsVectorLike(position, body.position)
+          && mathUtils.equalsVectorLike(quaternion, body.quaternion)) {
+        return;
+      }
+
       if (parentEl.isScene) {
-        body.quaternion.copy(el.object3D.quaternion);
-        body.position.copy(el.object3D.position);
+        body.quaternion.copy(quaternion);
+        body.position.copy(position);
       } else {
         el.object3D.getWorldQuaternion(q);
         body.quaternion.copy(q);

@@ -61,3 +61,18 @@ module.exports.slerp = function ( a, b, t ) {
   return a;
 
 };
+
+/**
+ * Helper for comparing vector-like objects from CANNON or THREE.
+ * @param  {Object} a
+ * @param  {Object} b
+ * @return {boolean}
+ */
+module.exports.equalsVectorLike = function ( a, b ) {
+  return (
+    a.x === b.x
+    && a.y === b.y
+    && a.z === b.z
+    && a.w === b.w
+  );
+};
