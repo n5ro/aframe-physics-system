@@ -3,6 +3,7 @@ var CANNON = require('cannon');
 require('./src/components/math');
 require('./src/components/body/dynamic-body');
 require('./src/components/body/static-body');
+require('./src/components/body/custom-body');
 require('./src/components/constraint');
 require('./src/system');
 
