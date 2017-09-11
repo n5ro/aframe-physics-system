@@ -12,9 +12,8 @@ suite('body', function () {
 
   var body = {type: 'CANNON.Body'},
       physics = {
-        removeBehavior: sinon.spy(),
-        removeBody: sinon.spy(),
-        Phase: {SIMULATE: 0, RENDER: 1}
+        removeComponent: sinon.spy(),
+        removeBody: sinon.spy()
       };
 
   setup(function (done) {
@@ -29,7 +28,7 @@ suite('body', function () {
   });
 
   teardown(function () {
-    physics.removeBehavior.reset();
+    physics.removeComponent.reset();
     physics.removeBody.reset();
   });
 
@@ -64,7 +63,7 @@ suite('body', function () {
       component.system = physics;
       component.body = el.body = body;
       component.pause();
-      expect(physics.removeBehavior).to.have.been.calledWith(component, physics.Phase.SIMULATE);
+      expect(physics.removeComponent).to.have.been.calledWith(component);
       expect(physics.removeBody).to.have.been.calledWith(body);
     });
   });

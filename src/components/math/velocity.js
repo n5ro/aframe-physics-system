@@ -8,23 +8,25 @@ module.exports = AFRAME.registerComponent('velocity', {
     this.system = this.el.sceneEl.systems.physics;
 
     if (this.system) {
-      this.system.addBehavior(this, this.system.Phase.RENDER);
+      this.system.addComponent(this);
     }
   },
 
   remove: function () {
     if (this.system) {
-      this.system.removeBehavior(this, this.system.Phase.RENDER);
+      this.system.removeComponent(this);
     }
   },
 
   tick: function (t, dt) {
     if (!dt) return;
     if (this.system) return;
-    this.step(t, dt);
+    if (this.updateRender) {
+      this.updateRender(t, dt);
+    }
   },
 
-  step: function (t, dt) {
+  updateRender: function (t, dt) {
     if (!dt) return;
 
     var physics = this.el.sceneEl.systems.physics || {data: {maxInterval: 1 / 60}},

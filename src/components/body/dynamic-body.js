@@ -14,9 +14,11 @@ var DynamicBody = AFRAME.utils.extend({}, Body, {
     angularDamping: { default: 0.01 }
   }),
 
-  step: function () {
+  updateAfter: function () {
     this.syncFromPhysics();
-  }
+  },
+
+  updateRender: null
 });
 
 module.exports = AFRAME.registerComponent('dynamic-body', DynamicBody);
