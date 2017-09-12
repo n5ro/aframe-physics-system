@@ -97,7 +97,7 @@ module.exports = {
    */
   _play: function () {
     this.syncToPhysics();
-    this.system.addBehavior(this, this.system.Phase.SIMULATE);
+    this.system.addComponent(this);
     this.system.addBody(this.body);
     if (this.wireframe) this.el.sceneEl.object3D.add(this.wireframe);
   },
@@ -108,7 +108,7 @@ module.exports = {
   pause: function () {
     if (!this.isLoaded) return;
 
-    this.system.removeBehavior(this, this.system.Phase.SIMULATE);
+    this.system.removeComponent(this);
     this.system.removeBody(this.body);
     if (this.wireframe) this.el.sceneEl.object3D.remove(this.wireframe);
   },

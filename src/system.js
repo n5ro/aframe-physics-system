@@ -40,15 +40,6 @@ module.exports = AFRAME.registerSystem('physics', {
   },
 
   /**
-   * Update phases, used to separate physics simulation from updates to A-Frame scene.
-   * @enum {string}
-   */
-  Phase: {
-    SIMULATE: 'sim',
-    RENDER:   'render'
-  },
-
-  /**
    * Initializes the physics system.
    */
   init: function () {
@@ -57,9 +48,9 @@ module.exports = AFRAME.registerSystem('physics', {
     // If true, show wireframes around physics bodies.
     this.debug = data.debug;
 
-    this.children = {};
-    this.children[this.Phase.SIMULATE] = [];
-    this.children[this.Phase.RENDER] = [];
+    this.childrenUpdateBefore = [];
+    this.childrenUpdateAfter = [];
+    this.childrenUpdateRender = [];
 
     this.listeners = {};
 
@@ -116,15 +107,19 @@ module.exports = AFRAME.registerSystem('physics', {
   tick: function (t, dt) {
     if (!dt) return;
 
-    this.driver.step(Math.min(dt / 1000, this.data.maxInterval));
-
     var i;
-    for (i = 0; i < this.children[this.Phase.SIMULATE].length; i++) {
-      this.children[this.Phase.SIMULATE][i].step(t, dt);
+    for (i = 0; i < this.childrenUpdateBefore.length; i++) {
+      this.childrenUpdateBefore[i].updateBefore(t, dt);
     }
 
-    for (i = 0; i < this.children[this.Phase.RENDER].length; i++) {
-      this.children[this.Phase.RENDER][i].step(t, dt);
+    this.driver.step(Math.min(dt / 1000, this.data.maxInterval));
+
+    for (i = 0; i < this.childrenUpdateAfter.length; i++) {
+      this.childrenUpdateAfter[i].updateAfter(t, dt);
+    }
+
+    for (i = 0; i < this.childrenUpdateRender.length; i++) {
+      this.childrenUpdateRender[i].updateRender(t, dt);
     }
   },
 
@@ -198,13 +193,21 @@ module.exports = AFRAME.registerSystem('physics', {
   },
 
   /**
-   * Adds a component instance to the system, to be invoked on each tick during
+   * Adds a component instance to the system and schedules its update methods to be called
    * the given phase.
    * @param {Component} component
    * @param {string} phase
    */
-  addBehavior: function (component, phase) {
-    this.children[phase].push(component);
+  addComponent: function (component) {
+    if (component.updateBefore) {
+      this.childrenUpdateBefore.push(component);
+    }
+    if (component.updateAfter) {
+      this.childrenUpdateAfter.push(component);
+    }
+    if (component.updateRender) {
+      this.childrenUpdateRender.push(component);
+    }
   },
 
   /**
@@ -212,8 +215,16 @@ module.exports = AFRAME.registerSystem('physics', {
    * @param {Component} component
    * @param {string} phase
    */
-  removeBehavior: function (component, phase) {
-    this.children[phase].splice(this.children[phase].indexOf(component), 1);
+  removeComponent: function (component) {
+    if (component.updateBefore) {
+      this.childrenUpdateBefore.splice(this.childrenUpdateBefore.indexOf(component), 1);
+    }
+    if (component.updateAfter) {
+      this.childrenUpdateAfter.splice(this.childrenUpdateAfter.indexOf(component), 1);
+    }
+    if (component.updateRender) {
+      this.childrenUpdateRender.splice(this.childrenUpdateRender.indexOf(component), 1);
+    }
   },
 
   /** @return {Array<object>} */
