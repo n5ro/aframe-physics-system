@@ -149,6 +149,9 @@ module.exports = AFRAME.registerSystem('physics', {
       driver.updateBodyProperties(body);
     };
 
+    this.listeners[body.id] = function (e) { body.el.emit('collide', e); };
+    body.addEventListener('collide', this.listeners[body.id]);
+
     this.driver.addBody(body);
   },
 
@@ -158,6 +161,9 @@ module.exports = AFRAME.registerSystem('physics', {
    */
   removeBody: function (body) {
     this.driver.removeBody(body);
+
+    body.removeEventListener('collide', this.listeners[body.id]);
+    delete this.listeners[body.id];
 
     body.applyImpulse = body.__applyImpulse;
     delete body.__applyImpulse;

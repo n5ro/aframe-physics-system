@@ -164,6 +164,8 @@ el.body.applyImpulse(
 
 ## Collision Events
 
+> **NOTE:** Collision events are currently only supported with the local driver, and will not be fired with `physics="driver: worker"` enabled.
+
 CANNON.js generates events when a collision is detected, which are propagated onto the associated A-Frame entity. Example:
 
 ```javascript
