@@ -7,7 +7,7 @@ var Body = require('./body');
  * other objects may collide with it.
  */
 var StaticBody = AFRAME.utils.extend({}, Body, {
-  updateBefore: function () {
+  beforeStep: function () {
     this.syncToPhysics();
   }
 });

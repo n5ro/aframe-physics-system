@@ -76,7 +76,7 @@ suite('velocity', function () {
       el.setAttribute('velocity', {x: 1, y: 2, z: 3});
       component.tick(100, 0.1);
       expect(el.getAttribute('position')).to.shallowDeepEqual({x: 0, y: 0, z: 0});
-      component.updateRender(100, 0.1 /* overridden by maxInterval */);
+      component.afterStep(100, 0.1 /* overridden by maxInterval */);
       var position = el.getAttribute('position');
       expect(position.x).to.be.closeTo(0.00005, EPS);
       expect(position.y).to.be.closeTo(0.00010, EPS);

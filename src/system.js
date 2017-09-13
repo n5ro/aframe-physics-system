@@ -48,9 +48,7 @@ module.exports = AFRAME.registerSystem('physics', {
     // If true, show wireframes around physics bodies.
     this.debug = data.debug;
 
-    this.childrenUpdateBefore = [];
-    this.childrenUpdateAfter = [];
-    this.childrenUpdateRender = [];
+    this.callbacks = {beforeStep: [], step: [], afterStep: []};
 
     this.listeners = {};
 
@@ -108,18 +106,20 @@ module.exports = AFRAME.registerSystem('physics', {
     if (!dt) return;
 
     var i;
-    for (i = 0; i < this.childrenUpdateBefore.length; i++) {
-      this.childrenUpdateBefore[i].updateBefore(t, dt);
+    var callbacks = this.callbacks;
+
+    for (i = 0; i < this.callbacks.beforeStep.length; i++) {
+      this.callbacks.beforeStep[i].beforeStep(t, dt);
     }
 
     this.driver.step(Math.min(dt / 1000, this.data.maxInterval));
 
-    for (i = 0; i < this.childrenUpdateAfter.length; i++) {
-      this.childrenUpdateAfter[i].updateAfter(t, dt);
+    for (i = 0; i < callbacks.step.length; i++) {
+      callbacks.step[i].step(t, dt);
     }
 
-    for (i = 0; i < this.childrenUpdateRender.length; i++) {
-      this.childrenUpdateRender[i].updateRender(t, dt);
+    for (i = 0; i < callbacks.afterStep.length; i++) {
+      callbacks.afterStep[i].afterStep(t, dt);
     }
   },
 
@@ -199,15 +199,10 @@ module.exports = AFRAME.registerSystem('physics', {
    * @param {string} phase
    */
   addComponent: function (component) {
-    if (component.updateBefore) {
-      this.childrenUpdateBefore.push(component);
-    }
-    if (component.updateAfter) {
-      this.childrenUpdateAfter.push(component);
-    }
-    if (component.updateRender) {
-      this.childrenUpdateRender.push(component);
-    }
+    var callbacks = this.callbacks;
+    if (component.beforeStep) callbacks.beforeStep.push(component);
+    if (component.step)       callbacks.step.push(component);
+    if (component.afterStep)  callbacks.afterStep.push(component);
   },
 
   /**
@@ -216,14 +211,15 @@ module.exports = AFRAME.registerSystem('physics', {
    * @param {string} phase
    */
   removeComponent: function (component) {
-    if (component.updateBefore) {
-      this.childrenUpdateBefore.splice(this.childrenUpdateBefore.indexOf(component), 1);
+    var callbacks = this.callbacks;
+    if (component.beforeStep) {
+      callbacks.beforeStep.splice(callbacks.beforeStep.indexOf(component), 1);
     }
-    if (component.updateAfter) {
-      this.childrenUpdateAfter.splice(this.childrenUpdateAfter.indexOf(component), 1);
+    if (component.step) {
+      callbacks.step.splice(callbacks.step.indexOf(component), 1);
     }
-    if (component.updateRender) {
-      this.childrenUpdateRender.splice(this.childrenUpdateRender.indexOf(component), 1);
+    if (component.afterStep) {
+      callbacks.afterStep.splice(callbacks.afterStep.indexOf(component), 1);
     }
   },
 

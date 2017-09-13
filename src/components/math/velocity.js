@@ -21,12 +21,10 @@ module.exports = AFRAME.registerComponent('velocity', {
   tick: function (t, dt) {
     if (!dt) return;
     if (this.system) return;
-    if (this.updateRender) {
-      this.updateRender(t, dt);
-    }
+    this.afterStep(t, dt);
   },
 
-  updateRender: function (t, dt) {
+  afterStep: function (t, dt) {
     if (!dt) return;
 
     var physics = this.el.sceneEl.systems.physics || {data: {maxInterval: 1 / 60}},
