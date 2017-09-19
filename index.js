@@ -14,3 +14,6 @@ module.exports = {
 
 // Export CANNON.js.
 window.CANNON = window.CANNON || CANNON;
+
+// Export three-to-cannon.
+window.CANNON.mesh2Shape = require('three-to-cannon');
