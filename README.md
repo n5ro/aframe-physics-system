@@ -5,7 +5,7 @@
 
 Components for A-Frame physics integration, built on [CANNON.js](http://schteppe.github.io/cannon.js/).
 
-> **NOTE:** This package is included by default in [A-Frame Extras](https://github.com/donmccurdy/aframe-extras).
+> **NOTE:** This package is included by default in [A-Frame Extras](https://github.com/donmccurdy/aframe-extras), or can be used as a standalone physics system.
 
 ## Contents
 
