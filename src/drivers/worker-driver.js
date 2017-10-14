@@ -114,6 +114,16 @@ WorkerDriver.prototype._onMessage = function (event) {
       }
     }
 
+  } else if (event.data.type === Event.COLLIDE) {
+    if (!this.bodies[event.data.body.id]._listeners || !this.bodies[event.data.body.id]._listeners.collide) return
+
+    for(var listener of this.bodies[event.data.body.id]._listeners.collide) {
+      listener({
+        target: this.bodies[event.data.target.id],
+        body: this.bodies[event.data.body.id],
+        contact: event.data.contact
+      })
+    }
   } else {
     throw new Error('[WorkerDriver] Unexpected message type.');
   }
