@@ -15631,14 +15631,18 @@ module.exports = {
    */
   initBody: function () {
     var shape,
-        el = this.el,
-        data = this.data,
-        pos = el.getAttribute('position');
+      el = this.el,
+      data = this.data;
+
+    var obj = this.el.object3D;
+    var pos = obj.position;
+    var quat = obj.quaternion;
 
     this.body = new CANNON.Body({
       mass: data.mass || 0,
       material: this.system.material,
       position: new CANNON.Vec3(pos.x, pos.y, pos.z),
+      quaternion: new CANNON.Quaternion(quat.x, quat.y, quat.z, quat.w),
       linearDamping: data.linearDamping,
       angularDamping: data.angularDamping
     });
@@ -15670,15 +15674,6 @@ module.exports = {
       }
     }
 
-    // Apply rotation
-    var rot = el.getAttribute('rotation');
-    this.body.quaternion.setFromEuler(
-      THREE.Math.degToRad(rot.x),
-      THREE.Math.degToRad(rot.y),
-      THREE.Math.degToRad(rot.z),
-      'XYZ'
-    ).normalize();
-
     this.el.body = this.body;
     this.body.el = this.el;
     this.isLoaded = true;
@@ -15703,7 +15698,7 @@ module.exports = {
    */
   _play: function () {
     this.syncToPhysics();
-    this.system.addBehavior(this, this.system.Phase.SIMULATE);
+    this.system.addComponent(this);
     this.system.addBody(this.body);
     if (this.wireframe) this.el.sceneEl.object3D.add(this.wireframe);
   },
@@ -15714,7 +15709,7 @@ module.exports = {
   pause: function () {
     if (!this.isLoaded) return;
 
-    this.system.removeBehavior(this, this.system.Phase.SIMULATE);
+    this.system.removeComponent(this);
     this.system.removeBody(this.body);
     if (this.wireframe) this.el.sceneEl.object3D.remove(this.wireframe);
   },
@@ -15873,7 +15868,9 @@ var DynamicBody = AFRAME.utils.extend({}, Body, {
 
   step: function () {
     this.syncFromPhysics();
-  }
+  },
+
+  afterStep: null
 });
 
 module.exports = AFRAME.registerComponent('dynamic-body', DynamicBody);
@@ -15888,7 +15885,7 @@ var Body = require('./body');
  * other objects may collide with it.
  */
 var StaticBody = AFRAME.utils.extend({}, Body, {
-  step: function () {
+  beforeStep: function () {
     this.syncToPhysics();
   }
 });
@@ -16096,23 +16093,23 @@ module.exports = AFRAME.registerComponent('velocity', {
     this.system = this.el.sceneEl.systems.physics;
 
     if (this.system) {
-      this.system.addBehavior(this, this.system.Phase.RENDER);
+      this.system.addComponent(this);
     }
   },
 
   remove: function () {
     if (this.system) {
-      this.system.removeBehavior(this, this.system.Phase.RENDER);
+      this.system.removeComponent(this);
     }
   },
 
   tick: function (t, dt) {
     if (!dt) return;
     if (this.system) return;
-    this.step(t, dt);
+    this.afterStep(t, dt);
   },
 
-  step: function (t, dt) {
+  afterStep: function (t, dt) {
     if (!dt) return;
 
     var physics = this.el.sceneEl.systems.physics || {data: {maxInterval: 1 / 60}},
@@ -16784,15 +16781,6 @@ module.exports = AFRAME.registerSystem('physics', {
   },
 
   /**
-   * Update phases, used to separate physics simulation from updates to A-Frame scene.
-   * @enum {string}
-   */
-  Phase: {
-    SIMULATE: 'sim',
-    RENDER:   'render'
-  },
-
-  /**
    * Initializes the physics system.
    */
   init: function () {
@@ -16801,9 +16789,7 @@ module.exports = AFRAME.registerSystem('physics', {
     // If true, show wireframes around physics bodies.
     this.debug = data.debug;
 
-    this.children = {};
-    this.children[this.Phase.SIMULATE] = [];
-    this.children[this.Phase.RENDER] = [];
+    this.callbacks = {beforeStep: [], step: [], afterStep: []};
 
     this.listeners = {};
 
@@ -16860,15 +16846,21 @@ module.exports = AFRAME.registerSystem('physics', {
   tick: function (t, dt) {
     if (!dt) return;
 
-    this.driver.step(Math.min(dt / 1000, this.data.maxInterval));
-
     var i;
-    for (i = 0; i < this.children[this.Phase.SIMULATE].length; i++) {
-      this.children[this.Phase.SIMULATE][i].step(t, dt);
+    var callbacks = this.callbacks;
+
+    for (i = 0; i < this.callbacks.beforeStep.length; i++) {
+      this.callbacks.beforeStep[i].beforeStep(t, dt);
     }
 
-    for (i = 0; i < this.children[this.Phase.RENDER].length; i++) {
-      this.children[this.Phase.RENDER][i].step(t, dt);
+    this.driver.step(Math.min(dt / 1000, this.data.maxInterval));
+
+    for (i = 0; i < callbacks.step.length; i++) {
+      callbacks.step[i].step(t, dt);
+    }
+
+    for (i = 0; i < callbacks.afterStep.length; i++) {
+      callbacks.afterStep[i].afterStep(t, dt);
     }
   },
 
@@ -16893,6 +16885,9 @@ module.exports = AFRAME.registerSystem('physics', {
       driver.updateBodyProperties(body);
     };
 
+    this.listeners[body.id] = function (e) { body.el.emit('collide', e); };
+    body.addEventListener('collide', this.listeners[body.id]);
+
     this.driver.addBody(body);
   },
 
@@ -16902,6 +16897,9 @@ module.exports = AFRAME.registerSystem('physics', {
    */
   removeBody: function (body) {
     this.driver.removeBody(body);
+
+    body.removeEventListener('collide', this.listeners[body.id]);
+    delete this.listeners[body.id];
 
     body.applyImpulse = body.__applyImpulse;
     delete body.__applyImpulse;
@@ -16936,13 +16934,16 @@ module.exports = AFRAME.registerSystem('physics', {
   },
 
   /**
-   * Adds a component instance to the system, to be invoked on each tick during
+   * Adds a component instance to the system and schedules its update methods to be called
    * the given phase.
    * @param {Component} component
    * @param {string} phase
    */
-  addBehavior: function (component, phase) {
-    this.children[phase].push(component);
+  addComponent: function (component) {
+    var callbacks = this.callbacks;
+    if (component.beforeStep) callbacks.beforeStep.push(component);
+    if (component.step)       callbacks.step.push(component);
+    if (component.afterStep)  callbacks.afterStep.push(component);
   },
 
   /**
@@ -16950,8 +16951,17 @@ module.exports = AFRAME.registerSystem('physics', {
    * @param {Component} component
    * @param {string} phase
    */
-  removeBehavior: function (component, phase) {
-    this.children[phase].splice(this.children[phase].indexOf(component), 1);
+  removeComponent: function (component) {
+    var callbacks = this.callbacks;
+    if (component.beforeStep) {
+      callbacks.beforeStep.splice(callbacks.beforeStep.indexOf(component), 1);
+    }
+    if (component.step) {
+      callbacks.step.splice(callbacks.step.indexOf(component), 1);
+    }
+    if (component.afterStep) {
+      callbacks.afterStep.splice(callbacks.afterStep.indexOf(component), 1);
+    }
   },
 
   /** @return {Array<object>} */
