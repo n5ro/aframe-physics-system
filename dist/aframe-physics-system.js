@@ -15662,7 +15662,7 @@ module.exports = {
       shape = mesh2shape(this.el.object3D, options);
 
       if (!shape) {
-        this.el.addEventListener('model-loaded', this.initBody.bind(this));
+        el.addEventListener('object3dset', this.initBody.bind(this));
         return;
       }
 
@@ -15675,7 +15675,7 @@ module.exports = {
     }
 
     this.el.body = this.body;
-    this.body.el = this.el;
+    this.body.el = el;
     this.isLoaded = true;
 
     // If component wasn't initialized when play() was called, finish up.
