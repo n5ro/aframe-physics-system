@@ -1,0 +1,88 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,maximum-scale=1">
+    <title>Examples > Interfaces</title>
+    <script src="https://aframe.io/releases/0.4.0/aframe.js"></script>
+    <script src="https://cdn.rawgit.com/donmccurdy/aframe-extras/v3.2.1/dist/aframe-extras.js"></script>
+    <script src="../dist/aframe-physics-system.js"></script>
+    <script src="../src/components/interfaces/aframe-physics-collider.js"></script>
+    <script src="../src/components/interfaces/aframe-physics-collision-filter.js"></script>
+    <script src="../src/components/interfaces/aframe-physics-sleepy.js"></script>
+    <script>
+      /*'tracked-controls' is not added until after the controllers are found
+         now (Aframe 0.4.0), so this little component allows a delayed addition 
+         of the the physics component to avoid errors */
+      AFRAME.registerComponent('event-state', {
+        schema: { 
+          event: { default: 'model-loaded' }, 
+          state: { default: 'loaded' }
+        },
+        init: function () {
+          this.setStateB = this.setState.bind(this);
+        },
+        play: function() {
+          this.el.addEventListener(this.data.event, this.setStateB);
+        },
+        setState: function (evt) {
+          this.el.addState(this.data.state);
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <a-scene physics="debug: true; gravity: 0">
+      <a-assets>
+        <img id="red" src="textures/red.png">
+        <img id="blue" src="textures/blue.png">
+        <img id="green" src="textures/green.png">
+        <a-mixin id = "controller" grab event-state></a-mixin>
+        <a-mixin id = "controller-loaded" 
+                 static-body="shape: sphere; sphereRadius: 0.02;" 
+                 physics-collider
+                 collision-filter = "collidesWith: default, red, green, blue;">
+        </a-mixin>
+        <a-mixin id="cube" geometry="width: 0.5; height: 0.5; depth: 0.5" dynamic-body></a-mixin>
+        <a-mixin id="cube-collided" material="opacity: 0.7; transparent: true"></a-mixin>
+      </a-assets>
+      
+      <!-- Player -->
+      <a-entity mixin="controller" vive-controls="hand: left"></a-entity>
+      <a-entity mixin="controller" vive-controls="hand: right"></a-entity>
+
+      <a-box mixin="cube" sleepy position="0 1 -1" src="#red"
+             collision-filter="group: red; collidesWith: default, red, blue">
+      </a-box>
+      <a-box mixin="cube" sleepy position="0 1.6 -1"  src="#red"
+             collision-filter="group: red; collidesWith: default, red, blue">
+      </a-box>
+      
+      <a-box mixin="cube" position="-1 1 -1" src="#green"
+             collision-filter="group: green; collidesWith: default, green">
+      </a-box>
+      <a-box mixin="cube" position="-1 1.6 -1" src="#green"
+             collision-filter="group: green; collidesWith: default, green">
+      </a-box>
+      
+      <a-box mixin="cube" position="1 1 -1" src="#blue"
+             sleepy="angularDamping: 0; speedLimit: 1" 
+             collision-filter="group: blue; collidesWith: default, red">
+      </a-box>
+      <a-box mixin="cube" position="1 1.6 -1" src="#blue"
+             sleepy="angularDamping: 0; speedLimit: 1" 
+             collision-filter="group: blue; collidesWith: default, red">
+      </a-box>
+      <!-- Terrain -->
+      <a-grid static-body 
+              collision-filter="group: default; collidesWith: red, green, blue">
+      </a-grid>
+
+      <!-- Lighting -->
+      <a-entity light="type: point; color: #f4f4f4; intensity: 0.2; distance: 0" position="8 10 18"></a-entity>
+      <a-entity light="type: point; color: #f4f4f4; intensity: 0.6; distance: 0" position="-8 10 -18"></a-entity>
+      <a-entity light="type: ambient; color: #f4f4f4; intensity: 0.4;" position="-8 10 -18"></a-entity>
+    </a-scene>
+  </body>
+</html>
