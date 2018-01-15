@@ -14723,7 +14723,7 @@ var Type = {
  * @param  {THREE.Object3D} object
  * @return {CANNON.Shape}
  */
-module.exports = CANNON.mesh2shape = function (object, options) {
+var mesh2shape = function (object, options) {
   options = options || {};
 
   var geometry;
@@ -14773,7 +14773,9 @@ module.exports = CANNON.mesh2shape = function (object, options) {
   }
 };
 
-CANNON.mesh2shape.Type = Type;
+mesh2shape.Type = Type;
+
+module.exports = CANNON.mesh2shape = mesh2shape;
 
 /******************************************************************************
  * Shape construction
@@ -15010,7 +15012,14 @@ function getGeometry (object) {
     var position = new THREE.Vector3(),
         quaternion = new THREE.Quaternion(),
         scale = new THREE.Vector3();
-    tmp = meshes[0].geometry.clone();
+    if (meshes[0].geometry.isBufferGeometry) {
+      if (meshes[0].geometry.attributes.position
+          && meshes[0].geometry.attributes.position.itemSize > 2) {
+        tmp.fromBufferGeometry(meshes[0].geometry);
+      }
+    } else {
+      tmp = meshes[0].geometry.clone();
+    }
     tmp.metadata = meshes[0].geometry.metadata;
     meshes[0].updateMatrixWorld();
     meshes[0].matrixWorld.decompose(position, quaternion, scale);
@@ -15020,9 +15029,14 @@ function getGeometry (object) {
   // Recursively merge geometry, preserving local transforms.
   while ((mesh = meshes.pop())) {
     mesh.updateMatrixWorld();
-    if (mesh.geometry instanceof THREE.BufferGeometry) {
-      tmp.fromBufferGeometry(mesh.geometry);
-      combined.merge(tmp, mesh.matrixWorld);
+    if (mesh.geometry.isBufferGeometry) {
+      if (mesh.geometry.attributes.position
+          && mesh.geometry.attributes.position.itemSize > 2) {
+        var tmpGeom = new THREE.Geometry();
+        tmpGeom.fromBufferGeometry(mesh.geometry);
+        combined.merge(tmpGeom, mesh.matrixWorld);
+        tmpGeom.dispose();
+      }
     } else {
       combined.merge(mesh.geometry, mesh.matrixWorld);
     }
