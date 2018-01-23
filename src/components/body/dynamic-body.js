@@ -15,10 +15,22 @@ var DynamicBody = AFRAME.utils.extend({}, Body, {
   }),
 
   step: function () {
-    this.syncFromPhysics();
+    if (this.el.body.mass !== 0)
+      this.syncFromPhysics();
   },
 
-  afterStep: null
+  beforeStep: function() {
+    if (this.el.body.mass === 0)
+      this.syncToPhysics();
+  },
+
+  afterStep: null,
+
+  updateMass: function(mass) {
+    this.body.mass = mass;
+    this.body.type = CANNON.Body.DYNAMIC;
+    this.body.updateMassProperties();
+  }
 });
 
 module.exports = AFRAME.registerComponent('dynamic-body', DynamicBody);
