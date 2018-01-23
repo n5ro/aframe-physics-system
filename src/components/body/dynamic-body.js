@@ -11,7 +11,8 @@ var DynamicBody = AFRAME.utils.extend({}, Body, {
   schema: AFRAME.utils.extend({}, Body.schema, {
     mass:           { default: 5 },
     linearDamping:  { default: 0.01 },
-    angularDamping: { default: 0.01 }
+    angularDamping: { default: 0.01 },
+    bodyType: {default: 1}
   }),
 
   step: function () {
@@ -28,7 +29,6 @@ var DynamicBody = AFRAME.utils.extend({}, Body, {
 
   updateMass: function(mass) {
     this.body.mass = mass;
-    this.body.type = CANNON.Body.DYNAMIC;
     this.body.updateMassProperties();
   }
 });

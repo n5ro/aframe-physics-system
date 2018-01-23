@@ -43,7 +43,8 @@ module.exports = {
       position: new CANNON.Vec3(pos.x, pos.y, pos.z),
       quaternion: new CANNON.Quaternion(quat.x, quat.y, quat.z, quat.w),
       linearDamping: data.linearDamping,
-      angularDamping: data.angularDamping
+      angularDamping: data.angularDamping,
+      type: data.bodyType
     });
 
     // Matrix World must be updated at root level, if scale is to be applied – updateMatrixWorld()
