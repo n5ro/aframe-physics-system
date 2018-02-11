@@ -3,11 +3,17 @@ var CANNON = require('cannon'),
 
 require('../../../lib/CANNON-shape2mesh');
 
-module.exports = {
+var Body = {
+  dependencies: ['velocity'],
+
   schema: {
+    mass: {default: 5, if: {type: 'dynamic'}},
+    linearDamping:  { default: 0.01, if: {type: 'dynamic'}},
+    angularDamping: { default: 0.01,  if: {type: 'dynamic'}},
     shape: {default: 'auto', oneOf: ['auto', 'box', 'cylinder', 'sphere', 'hull', 'mesh', 'none']},
     cylinderAxis: {default: 'y', oneOf: ['x', 'y', 'z']},
-    sphereRadius: {default: NaN}
+    sphereRadius: {default: NaN},
+    type: {default: 'dynamic', oneOf: ['static', 'dynamic']}
   },
 
   /**
@@ -38,7 +44,7 @@ module.exports = {
     var quat = obj.quaternion;
 
     this.body = new CANNON.Body({
-      mass: data.mass || 0,
+      mass: data.type === 'static' ? 0 : data.mass || 0,
       material: this.system.material,
       position: new CANNON.Vec3(pos.x, pos.y, pos.z),
       quaternion: new CANNON.Quaternion(quat.x, quat.y, quat.z, quat.w),
@@ -106,22 +112,63 @@ module.exports = {
    * Unregisters the component with the physics system.
    */
   pause: function () {
-    if (!this.isLoaded) return;
+    if (this.isLoaded) this._pause();
+  },
 
+  _pause: function () {
     this.system.removeComponent(this);
-    this.system.removeBody(this.body);
+    if (this.body) this.system.removeBody(this.body);
     if (this.wireframe) this.el.sceneEl.object3D.remove(this.wireframe);
+  },
+
+  /**
+   * Updates the CANNON.Body instance, where possible.
+   */
+  update: function (prevData) {
+    var data = this.data;
+
+    if (data.type !== prevData.type) {
+      if (data.type === 'dynamic' && data.mass === 0) {
+        this.el.setAttribute(this.name, {mass: 5});
+      }
+      if (data.type === 'static' && data.mass !== 0) {
+        this.el.setAttribute(this.name, {mass: 0});
+      }
+      return;
+    }
+
+    if (!this.body) return;
+
+    this.body.mass = data.mass || 0;
+    if (data.type === 'dynamic') {
+      this.body.linearDamping = data.linearDamping;
+      this.body.angularDamping = data.angularDamping;
+    }
+    if (data.mass !== prevData.mass) {
+      this.body.updateMassProperties();
+    }
   },
 
   /**
    * Removes the component and all physics and scene side effects.
    */
   remove: function () {
-    this.pause();
     delete this.body.el;
     delete this.body;
     delete this.el.body;
     delete this.wireframe;
+  },
+
+  beforeStep: function () {
+    if (this.data.type === 'static') {
+      this.syncToPhysics();
+    }
+  },
+
+  step: function () {
+    if (this.data.type === 'dynamic') {
+      this.syncFromPhysics();
+    }
   },
 
   /**
@@ -229,21 +276,24 @@ module.exports = {
       if (!body) return;
 
       if (parentEl.isScene) {
-        el.setAttribute('quaternion', body.quaternion);
-        el.setAttribute('position', body.position);
+        el.object3D.quaternion.copy(body.quaternion);
+        el.object3D.position.copy(body.position);
       } else {
         // TODO - Nested rotation doesn't seem to be working as expected.
         q1.copy(body.quaternion);
         parentEl.object3D.getWorldQuaternion(q2);
         q1.multiply(q2.inverse());
-        el.setAttribute('quaternion', {x: q1.x, y: q1.y, z: q1.z, w: q1.w});
+        el.object3D.quaternion.copy(q1);
 
         v.copy(body.position);
         parentEl.object3D.worldToLocal(v);
-        el.setAttribute('position', {x: v.x, y: v.y, z: v.z});
+        el.object3D.position.copy(v);
       }
 
       if (this.wireframe) this.syncWireframe();
     };
   }())
 };
+
+module.exports.definition = Body;
+module.exports.Component = AFRAME.registerComponent('body', Body);
