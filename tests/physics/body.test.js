@@ -1,6 +1,6 @@
 var entityFactory = require('../helpers').entityFactory;
 
-var Body = require('../../src/components/body/body'),
+var Body = require('../../src/components/body/body').definition,
     CustomBody = function () {};
 
 AFRAME.utils.extend(CustomBody.prototype, Body);
