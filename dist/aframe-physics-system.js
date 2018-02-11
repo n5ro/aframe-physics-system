@@ -2,6 +2,7 @@
 var CANNON = require('cannon');
 
 require('./src/components/math');
+require('./src/components/body/body');
 require('./src/components/body/dynamic-body');
 require('./src/components/body/static-body');
 require('./src/components/constraint');
@@ -16,7 +17,7 @@ module.exports = {
 // Export CANNON.js.
 window.CANNON = window.CANNON || CANNON;
 
-},{"./src/components/body/dynamic-body":64,"./src/components/body/static-body":65,"./src/components/constraint":66,"./src/components/math":67,"./src/system":79,"cannon":4}],2:[function(require,module,exports){
+},{"./src/components/body/body":63,"./src/components/body/dynamic-body":64,"./src/components/body/static-body":65,"./src/components/constraint":66,"./src/components/math":67,"./src/system":78,"cannon":4}],2:[function(require,module,exports){
 /**
  * CANNON.shape2mesh
  *
@@ -15618,11 +15619,17 @@ var CANNON = require('cannon'),
 
 require('../../../lib/CANNON-shape2mesh');
 
-module.exports = {
+var Body = {
+  dependencies: ['velocity'],
+
   schema: {
+    mass: {default: 5, if: {type: 'dynamic'}},
+    linearDamping:  { default: 0.01, if: {type: 'dynamic'}},
+    angularDamping: { default: 0.01,  if: {type: 'dynamic'}},
     shape: {default: 'auto', oneOf: ['auto', 'box', 'cylinder', 'sphere', 'hull', 'mesh', 'none']},
     cylinderAxis: {default: 'y', oneOf: ['x', 'y', 'z']},
-    sphereRadius: {default: NaN}
+    sphereRadius: {default: NaN},
+    type: {default: 'dynamic', oneOf: ['static', 'dynamic']}
   },
 
   /**
@@ -15653,7 +15660,7 @@ module.exports = {
     var quat = obj.quaternion;
 
     this.body = new CANNON.Body({
-      mass: data.mass || 0,
+      mass: data.type === 'static' ? 0 : data.mass || 0,
       material: this.system.material,
       position: new CANNON.Vec3(pos.x, pos.y, pos.z),
       quaternion: new CANNON.Quaternion(quat.x, quat.y, quat.z, quat.w),
@@ -15721,22 +15728,63 @@ module.exports = {
    * Unregisters the component with the physics system.
    */
   pause: function () {
-    if (!this.isLoaded) return;
+    if (this.isLoaded) this._pause();
+  },
 
+  _pause: function () {
     this.system.removeComponent(this);
-    this.system.removeBody(this.body);
+    if (this.body) this.system.removeBody(this.body);
     if (this.wireframe) this.el.sceneEl.object3D.remove(this.wireframe);
+  },
+
+  /**
+   * Updates the CANNON.Body instance, where possible.
+   */
+  update: function (prevData) {
+    var data = this.data;
+
+    if (data.type !== prevData.type) {
+      if (data.type === 'dynamic' && data.mass === 0) {
+        this.el.setAttribute(this.name, {mass: 5});
+      }
+      if (data.type === 'static' && data.mass !== 0) {
+        this.el.setAttribute(this.name, {mass: 0});
+      }
+      return;
+    }
+
+    if (!this.body) return;
+
+    this.body.mass = data.mass || 0;
+    if (data.type === 'dynamic') {
+      this.body.linearDamping = data.linearDamping;
+      this.body.angularDamping = data.angularDamping;
+    }
+    if (data.mass !== prevData.mass) {
+      this.body.updateMassProperties();
+    }
   },
 
   /**
    * Removes the component and all physics and scene side effects.
    */
   remove: function () {
-    this.pause();
     delete this.body.el;
     delete this.body;
     delete this.el.body;
     delete this.wireframe;
+  },
+
+  beforeStep: function () {
+    if (this.data.type === 'static') {
+      this.syncToPhysics();
+    }
+  },
+
+  step: function () {
+    if (this.data.type === 'dynamic') {
+      this.syncFromPhysics();
+    }
   },
 
   /**
@@ -15844,24 +15892,27 @@ module.exports = {
       if (!body) return;
 
       if (parentEl.isScene) {
-        el.setAttribute('quaternion', body.quaternion);
-        el.setAttribute('position', body.position);
+        el.object3D.quaternion.copy(body.quaternion);
+        el.object3D.position.copy(body.position);
       } else {
         // TODO - Nested rotation doesn't seem to be working as expected.
         q1.copy(body.quaternion);
         parentEl.object3D.getWorldQuaternion(q2);
         q1.multiply(q2.inverse());
-        el.setAttribute('quaternion', {x: q1.x, y: q1.y, z: q1.z, w: q1.w});
+        el.object3D.quaternion.copy(q1);
 
         v.copy(body.position);
         parentEl.object3D.worldToLocal(v);
-        el.setAttribute('position', {x: v.x, y: v.y, z: v.z});
+        el.object3D.position.copy(v);
       }
 
       if (this.wireframe) this.syncWireframe();
     };
   }())
 };
+
+module.exports.definition = Body;
+module.exports.Component = AFRAME.registerComponent('body', Body);
 
 },{"../../../lib/CANNON-shape2mesh":2,"cannon":4,"three-to-cannon":60}],64:[function(require,module,exports){
 var Body = require('./body');
@@ -15871,21 +15922,7 @@ var Body = require('./body');
  *
  * Moves according to physics simulation, and may collide with other objects.
  */
-var DynamicBody = AFRAME.utils.extend({}, Body, {
-  dependencies: ['quaternion', 'velocity'],
-
-  schema: AFRAME.utils.extend({}, Body.schema, {
-    mass:           { default: 5 },
-    linearDamping:  { default: 0.01 },
-    angularDamping: { default: 0.01 }
-  }),
-
-  step: function () {
-    this.syncFromPhysics();
-  },
-
-  afterStep: null
-});
+var DynamicBody = AFRAME.utils.extend({}, Body.definition);
 
 module.exports = AFRAME.registerComponent('dynamic-body', DynamicBody);
 
@@ -15898,10 +15935,10 @@ var Body = require('./body');
  * Solid body with a fixed position. Unaffected by gravity and collisions, but
  * other objects may collide with it.
  */
-var StaticBody = AFRAME.utils.extend({}, Body, {
-  beforeStep: function () {
-    this.syncToPhysics();
-  }
+var StaticBody = AFRAME.utils.extend({}, Body.definition);
+
+StaticBody.schema = AFRAME.utils.extend({}, Body.definition.schema, {
+  type: {default: 'static', oneOf: ['static', 'dynamic']}
 });
 
 module.exports = AFRAME.registerComponent('static-body', StaticBody);
@@ -16053,7 +16090,6 @@ module.exports = AFRAME.registerComponent('constraint', {
 },{"cannon":4}],67:[function(require,module,exports){
 module.exports = {
   'velocity':   require('./velocity'),
-  'quaternion': require('./quaternion'),
 
   registerAll: function (AFRAME) {
     if (this._registered) return;
@@ -16061,42 +16097,12 @@ module.exports = {
     AFRAME = AFRAME || window.AFRAME;
 
     if (!AFRAME.components['velocity'])    AFRAME.registerComponent('velocity',   this.velocity);
-    if (!AFRAME.components['quaternion'])  AFRAME.registerComponent('quaternion', this.quaternion);
 
     this._registered = true;
   }
 };
 
-},{"./quaternion":68,"./velocity":69}],68:[function(require,module,exports){
-/**
- * Quaternion.
- *
- * Represents orientation of object in three dimensions. Similar to `rotation`
- * component, but avoids problems of gimbal lock.
- *
- * See: https://en.wikipedia.org/wiki/Quaternions_and_spatial_rotation
- */
-module.exports = AFRAME.registerComponent('quaternion', {
-  schema: {type: 'vec4'},
-
-  play: function () {
-    var el = this.el,
-        q = el.object3D.quaternion;
-    if (el.hasAttribute('rotation')) {
-      el.components.rotation.update();
-      el.setAttribute('quaternion', {x: q.x, y: q.y, z: q.z, w: q.w});
-      el.removeAttribute('rotation');
-      this.update();
-    }
-  },
-
-  update: function () {
-    var data = this.data;
-    this.el.object3D.quaternion.set(data.x, data.y, data.z, data.w);
-  }
-});
-
-},{}],69:[function(require,module,exports){
+},{"./velocity":68}],68:[function(require,module,exports){
 /**
  * Velocity, in m/s.
  */
@@ -16142,7 +16148,7 @@ module.exports = AFRAME.registerComponent('velocity', {
   }
 });
 
-},{}],70:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 module.exports = {
   GRAVITY: -9.8,
   MAX_INTERVAL: 4 / 60,
@@ -16157,7 +16163,7 @@ module.exports = {
   }
 };
 
-},{}],71:[function(require,module,exports){
+},{}],70:[function(require,module,exports){
 var Driver = require('./driver');
 
 function AmmoDriver () {
@@ -16169,7 +16175,7 @@ AmmoDriver.prototype.constructor = AmmoDriver;
 
 module.exports = AmmoDriver;
 
-},{"./driver":72}],72:[function(require,module,exports){
+},{"./driver":71}],71:[function(require,module,exports){
 /**
  * Driver - defines limited API to local and remote physics controllers.
  */
@@ -16247,7 +16253,7 @@ function abstractMethod () {
   throw new Error('Method not implemented.');
 }
 
-},{}],73:[function(require,module,exports){
+},{}],72:[function(require,module,exports){
 module.exports = {
   INIT: 'init',
   STEP: 'step',
@@ -16267,7 +16273,7 @@ module.exports = {
   REMOVE_CONSTRAINT: 'remove-constraint'
 };
 
-},{}],74:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
 var CANNON = require('cannon'),
     Driver = require('./driver');
 
@@ -16379,7 +16385,7 @@ LocalDriver.prototype.getContacts = function () {
   return this.world.contacts;
 };
 
-},{"./driver":72,"cannon":4}],75:[function(require,module,exports){
+},{"./driver":71,"cannon":4}],74:[function(require,module,exports){
 var Driver = require('./driver');
 
 function NetworkDriver () {
@@ -16391,7 +16397,7 @@ NetworkDriver.prototype.constructor = NetworkDriver;
 
 module.exports = NetworkDriver;
 
-},{"./driver":72}],76:[function(require,module,exports){
+},{"./driver":71}],75:[function(require,module,exports){
 /**
  * Stub version of webworkify, for debugging code outside of a webworker.
  */
@@ -16434,7 +16440,7 @@ EventTarget.prototype.postMessage = function (msg) {
   this.target.dispatchEvent('message', {data: msg});
 };
 
-},{}],77:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 /* global performance */
 
 var webworkify = require('webworkify'),
@@ -16659,7 +16665,7 @@ WorkerDriver.prototype.getContacts = function () {
   });
 };
 
-},{"../utils/protocol":81,"./driver":72,"./event":73,"./webworkify-debug":76,"./worker":78,"webworkify":62}],78:[function(require,module,exports){
+},{"../utils/protocol":80,"./driver":71,"./event":72,"./webworkify-debug":75,"./worker":77,"webworkify":62}],77:[function(require,module,exports){
 var Event = require('./event'),
     LocalDriver = require('./local-driver'),
     AmmoDriver = require('./ammo-driver'),
@@ -16752,7 +16758,7 @@ module.exports = function (self) {
   }
 };
 
-},{"../utils/protocol":81,"./ammo-driver":71,"./event":73,"./local-driver":74}],79:[function(require,module,exports){
+},{"../utils/protocol":80,"./ammo-driver":70,"./event":72,"./local-driver":73}],78:[function(require,module,exports){
 var CANNON = require('cannon'),
     CONSTANTS = require('./constants'),
     C_GRAV = CONSTANTS.GRAVITY,
@@ -16984,7 +16990,7 @@ module.exports = AFRAME.registerSystem('physics', {
   }
 });
 
-},{"./constants":70,"./drivers/ammo-driver":71,"./drivers/local-driver":74,"./drivers/network-driver":75,"./drivers/worker-driver":77,"cannon":4}],80:[function(require,module,exports){
+},{"./constants":69,"./drivers/ammo-driver":70,"./drivers/local-driver":73,"./drivers/network-driver":74,"./drivers/worker-driver":76,"cannon":4}],79:[function(require,module,exports){
 module.exports.slerp = function ( a, b, t ) {
   if ( t <= 0 ) return a;
   if ( t >= 1 ) return b;
@@ -17049,7 +17055,7 @@ module.exports.slerp = function ( a, b, t ) {
 
 };
 
-},{}],81:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 var CANNON = require('cannon');
 var mathUtils = require('./math');
 
@@ -17376,4 +17382,4 @@ function deserializeQuaternion (message) {
   return new CANNON.Quaternion(message[0], message[1], message[2], message[3]);
 }
 
-},{"./math":80,"cannon":4}]},{},[1]);
+},{"./math":79,"cannon":4}]},{},[1]);
