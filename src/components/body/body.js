@@ -49,7 +49,8 @@ var Body = {
       position: new CANNON.Vec3(pos.x, pos.y, pos.z),
       quaternion: new CANNON.Quaternion(quat.x, quat.y, quat.z, quat.w),
       linearDamping: data.linearDamping,
-      angularDamping: data.angularDamping
+      angularDamping: data.angularDamping,
+      type: data.type === 'dynamic' ? 1 : 2,
     });
 
     // Matrix World must be updated at root level, if scale is to be applied – updateMatrixWorld()
@@ -127,16 +128,6 @@ var Body = {
   update: function (prevData) {
     var data = this.data;
 
-    if (data.type !== prevData.type) {
-      if (data.type === 'dynamic' && data.mass === 0) {
-        this.el.setAttribute(this.name, {mass: 5});
-      }
-      if (data.type === 'static' && data.mass !== 0) {
-        this.el.setAttribute(this.name, {mass: 0});
-      }
-      return;
-    }
-
     if (!this.body) return;
 
     this.body.mass = data.mass || 0;
@@ -160,13 +151,13 @@ var Body = {
   },
 
   beforeStep: function () {
-    if (this.data.type === 'static') {
+    if (this.body.mass === 0) {
       this.syncToPhysics();
     }
   },
 
   step: function () {
-    if (this.data.type === 'dynamic') {
+    if (this.body.mass !== 0) {
       this.syncFromPhysics();
     }
   },
