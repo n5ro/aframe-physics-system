@@ -259,6 +259,7 @@ var Body = {
     var v = new THREE.Vector3(),
         q1 = new THREE.Quaternion(),
         q2 = new THREE.Quaternion();
+        e = new THREE.Euler();
     return function () {
       var el = this.el,
           parentEl = el.parentEl,
@@ -267,18 +268,22 @@ var Body = {
       if (!body) return;
 
       if (parentEl.isScene) {
-        el.object3D.quaternion.copy(body.quaternion);
-        el.object3D.position.copy(body.position);
+        q1.copy(body.quaternion);
+        e.setFromQuaternion(q1, 'YXZ');
+        el.setAttribute('rotation', { x: e.x * THREE.Math.RAD2DEG, 
+                                      y: e.y * THREE.Math.RAD2DEG, 
+                                      z: e.z * THREE.Math.RAD2DEG });
+        el.setAttribute('position', body.position);
       } else {
         // TODO - Nested rotation doesn't seem to be working as expected.
         q1.copy(body.quaternion);
         parentEl.object3D.getWorldQuaternion(q2);
         q1.multiply(q2.inverse());
-        el.object3D.quaternion.copy(q1);
+        el.setAttribute('rotation', {x: q1.x, y: q1.y, z: q1.z, w: q1.w});
 
         v.copy(body.position);
         parentEl.object3D.worldToLocal(v);
-        el.object3D.position.copy(v);
+        el.setAttribute('position', {x: v.x, y: v.y, z: v.z});
       }
 
       if (this.wireframe) this.syncWireframe();
