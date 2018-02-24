@@ -128,6 +128,10 @@ var Body = {
   update: function (prevData) {
     var data = this.data;
 
+    if (data.type !== prevData.type) {
+      console.warn("CANNON.Body type cannot be changed after instantiation");
+    }
+
     if (!this.body) return;
 
     this.body.mass = data.mass || 0;
