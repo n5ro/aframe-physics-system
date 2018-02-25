@@ -131,7 +131,7 @@ var Body = {
     var data = this.data;
 
     if (data.type !== prevData.type) {
-      console.warn("CANNON.Body type cannot be changed after instantiation");
+      console.warn('CANNON.Body type cannot be changed after instantiation');
     }
 
     this.body.mass = data.mass || 0;
@@ -142,6 +142,7 @@ var Body = {
     if (data.mass !== prevData.mass) {
       this.body.updateMassProperties();
     }
+    this.body.updateProperties();
   },
 
   /**
