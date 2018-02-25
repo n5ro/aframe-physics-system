@@ -169,6 +169,17 @@ WorkerDriver.prototype.updateBodyProperties = function (body) {
  * Materials
  */
 
+/**
+ * @param  {string} name
+ * @return {CANNON.Material}
+ */
+WorkerDriver.prototype.getMaterial = function (name) {
+  // No access to materials here. Eventually we might return the name or ID, if
+  // multiple materials were selected, but for now there's only one and it's safe
+  // to assume the worker is already using it.
+  return undefined;
+};
+
 /** @param {object} materialConfig */
 WorkerDriver.prototype.addMaterial = function (materialConfig) {
   this.worker.postMessage({type: Event.ADD_MATERIAL, materialConfig: materialConfig});

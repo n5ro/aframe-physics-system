@@ -28,6 +28,7 @@ module.exports = function (self) {
       // Bodies.
       case Event.ADD_BODY:
         var body = protocol.deserializeBody(data.body);
+        body.material = driver.getMaterial( 'defaultMaterial' );
         bodies[body[ID]] = body;
         driver.addBody(body);
         break;

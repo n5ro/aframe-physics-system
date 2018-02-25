@@ -226,5 +226,9 @@ module.exports = AFRAME.registerSystem('physics', {
   /** @return {Array<object>} */
   getContacts: function () {
     return this.driver.getContacts();
+  },
+
+  getMaterial: function (name) {
+    return this.driver.getMaterial(name);
   }
 });

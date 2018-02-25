@@ -69,6 +69,14 @@ LocalDriver.prototype.updateBodyProperties = function () {};
  * Materials
  */
 
+/**
+ * @param {string} name
+ * @return {CANNON.Material}
+ */
+LocalDriver.prototype.getMaterial = function (name) {
+  return this.materials[name];
+};
+
 /** @param {object} materialConfig */
 LocalDriver.prototype.addMaterial = function (materialConfig) {
   this.materials[materialConfig.name] = new CANNON.Material(materialConfig);

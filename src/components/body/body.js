@@ -45,7 +45,7 @@ var Body = {
 
     this.body = new CANNON.Body({
       mass: data.type === 'static' ? 0 : data.mass || 0,
-      material: this.system.material,
+      material: this.system.getMaterial('defaultMaterial'),
       position: new CANNON.Vec3(pos.x, pos.y, pos.z),
       quaternion: new CANNON.Quaternion(quat.x, quat.y, quat.z, quat.w),
       linearDamping: data.linearDamping,
