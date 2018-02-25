@@ -15661,11 +15661,12 @@ var Body = {
 
     this.body = new CANNON.Body({
       mass: data.type === 'static' ? 0 : data.mass || 0,
-      material: this.system.material,
+      material: this.system.getMaterial('defaultMaterial'),
       position: new CANNON.Vec3(pos.x, pos.y, pos.z),
       quaternion: new CANNON.Quaternion(quat.x, quat.y, quat.z, quat.w),
       linearDamping: data.linearDamping,
-      angularDamping: data.angularDamping
+      angularDamping: data.angularDamping,
+      type: data.type === 'dynamic' ? CANNON.Body.DYNAMIC : CANNON.Body.STATIC,
     });
 
     // Matrix World must be updated at root level, if scale is to be applied – updateMatrixWorld()
@@ -15741,19 +15742,13 @@ var Body = {
    * Updates the CANNON.Body instance, where possible.
    */
   update: function (prevData) {
+    if (!this.body) return;
+
     var data = this.data;
 
     if (data.type !== prevData.type) {
-      if (data.type === 'dynamic' && data.mass === 0) {
-        this.el.setAttribute(this.name, {mass: 5});
-      }
-      if (data.type === 'static' && data.mass !== 0) {
-        this.el.setAttribute(this.name, {mass: 0});
-      }
-      return;
+      console.warn('CANNON.Body type cannot be changed after instantiation');
     }
-
-    if (!this.body) return;
 
     this.body.mass = data.mass || 0;
     if (data.type === 'dynamic') {
@@ -15763,6 +15758,7 @@ var Body = {
     if (data.mass !== prevData.mass) {
       this.body.updateMassProperties();
     }
+    this.body.updateProperties();
   },
 
   /**
@@ -15776,13 +15772,13 @@ var Body = {
   },
 
   beforeStep: function () {
-    if (this.data.type === 'static') {
+    if (this.body.mass === 0) {
       this.syncToPhysics();
     }
   },
 
   step: function () {
-    if (this.data.type === 'dynamic') {
+    if (this.body.mass !== 0) {
       this.syncFromPhysics();
     }
   },
@@ -15947,7 +15943,6 @@ module.exports = AFRAME.registerComponent('static-body', StaticBody);
 var CANNON = require('cannon');
 
 module.exports = AFRAME.registerComponent('constraint', {
-  dependencies: ['dynamic-body'],
 
   multiple: true,
 
@@ -16345,6 +16340,14 @@ LocalDriver.prototype.updateBodyProperties = function () {};
  * Materials
  */
 
+/**
+ * @param {string} name
+ * @return {CANNON.Material}
+ */
+LocalDriver.prototype.getMaterial = function (name) {
+  return this.materials[name];
+};
+
 /** @param {object} materialConfig */
 LocalDriver.prototype.addMaterial = function (materialConfig) {
   this.materials[materialConfig.name] = new CANNON.Material(materialConfig);
@@ -16612,6 +16615,17 @@ WorkerDriver.prototype.updateBodyProperties = function (body) {
  * Materials
  */
 
+/**
+ * @param  {string} name
+ * @return {CANNON.Material}
+ */
+WorkerDriver.prototype.getMaterial = function (name) {
+  // No access to materials here. Eventually we might return the name or ID, if
+  // multiple materials were selected, but for now there's only one and it's safe
+  // to assume the worker is already using it.
+  return undefined;
+};
+
 /** @param {object} materialConfig */
 WorkerDriver.prototype.addMaterial = function (materialConfig) {
   this.worker.postMessage({type: Event.ADD_MATERIAL, materialConfig: materialConfig});
@@ -16696,6 +16710,7 @@ module.exports = function (self) {
       // Bodies.
       case Event.ADD_BODY:
         var body = protocol.deserializeBody(data.body);
+        body.material = driver.getMaterial( 'defaultMaterial' );
         bodies[body[ID]] = body;
         driver.addBody(body);
         break;
@@ -16987,6 +17002,10 @@ module.exports = AFRAME.registerSystem('physics', {
   /** @return {Array<object>} */
   getContacts: function () {
     return this.driver.getContacts();
+  },
+
+  getMaterial: function (name) {
+    return this.driver.getMaterial(name);
   }
 });
 
