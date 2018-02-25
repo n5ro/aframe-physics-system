@@ -50,7 +50,7 @@ var Body = {
       quaternion: new CANNON.Quaternion(quat.x, quat.y, quat.z, quat.w),
       linearDamping: data.linearDamping,
       angularDamping: data.angularDamping,
-      type: data.type === 'dynamic' ? 1 : 2,
+      type: data.type === 'dynamic' ? CANNON.Body.DYNAMIC : CANNON.Body.STATIC,
     });
 
     // Matrix World must be updated at root level, if scale is to be applied – updateMatrixWorld()
@@ -126,13 +126,13 @@ var Body = {
    * Updates the CANNON.Body instance, where possible.
    */
   update: function (prevData) {
+    if (!this.body) return;
+
     var data = this.data;
 
     if (data.type !== prevData.type) {
       console.warn("CANNON.Body type cannot be changed after instantiation");
     }
-
-    if (!this.body) return;
 
     this.body.mass = data.mass || 0;
     if (data.type === 'dynamic') {
