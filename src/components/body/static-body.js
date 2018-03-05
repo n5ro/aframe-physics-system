@@ -9,7 +9,8 @@ var Body = require('./body');
 var StaticBody = AFRAME.utils.extend({}, Body.definition);
 
 StaticBody.schema = AFRAME.utils.extend({}, Body.definition.schema, {
-  type: {default: 'static', oneOf: ['static', 'dynamic']}
+  type: {default: 'static', oneOf: ['static', 'dynamic']},
+  mass: {default: 0}
 });
 
 module.exports = AFRAME.registerComponent('static-body', StaticBody);

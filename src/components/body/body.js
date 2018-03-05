@@ -130,7 +130,7 @@ var Body = {
 
     var data = this.data;
 
-    if (data.type !== prevData.type) {
+    if (prevData.type != undefined && data.type !== prevData.type) {
       console.warn('CANNON.Body type cannot be changed after instantiation');
     }
 
