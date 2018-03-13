@@ -15746,7 +15746,7 @@ var Body = {
 
     var data = this.data;
 
-    if (data.type !== prevData.type) {
+    if (prevData.type != undefined && data.type !== prevData.type) {
       console.warn('CANNON.Body type cannot be changed after instantiation');
     }
 
@@ -15758,7 +15758,7 @@ var Body = {
     if (data.mass !== prevData.mass) {
       this.body.updateMassProperties();
     }
-    this.body.updateProperties();
+    if (this.body.updateProperties) this.body.updateProperties();
   },
 
   /**
@@ -15934,7 +15934,8 @@ var Body = require('./body');
 var StaticBody = AFRAME.utils.extend({}, Body.definition);
 
 StaticBody.schema = AFRAME.utils.extend({}, Body.definition.schema, {
-  type: {default: 'static', oneOf: ['static', 'dynamic']}
+  type: {default: 'static', oneOf: ['static', 'dynamic']},
+  mass: {default: 0}
 });
 
 module.exports = AFRAME.registerComponent('static-body', StaticBody);
