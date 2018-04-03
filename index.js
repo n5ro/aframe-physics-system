@@ -4,6 +4,10 @@ require('./src/components/math');
 require('./src/components/body/body');
 require('./src/components/body/dynamic-body');
 require('./src/components/body/static-body');
+require('./src/components/shape/shape')
+require('./src/components/shape/box-shape')
+require('./src/components/shape/sphere-shape')
+require('./src/components/shape/cylinder-shape')
 require('./src/components/constraint');
 require('./src/system');
 

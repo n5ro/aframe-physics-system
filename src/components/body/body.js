@@ -10,8 +10,7 @@ var Body = {
     mass: {default: 5, if: {type: 'dynamic'}},
     linearDamping:  { default: 0.01, if: {type: 'dynamic'}},
     angularDamping: { default: 0.01,  if: {type: 'dynamic'}},
-    shape: {default: 'auto', oneOf: ['auto', 'box', 'cylinder', 'sphere', 'hull', 'mesh', 'none', 'compound']},
-    compoundShapes: {default: []},
+    shape: {default: 'auto', oneOf: ['auto', 'box', 'cylinder', 'sphere', 'hull', 'mesh', 'none']},
     cylinderAxis: {default: 'y', oneOf: ['x', 'y', 'z']},
     sphereRadius: {default: NaN},
     type: {default: 'dynamic', oneOf: ['static', 'dynamic']}
@@ -59,94 +58,117 @@ var Body = {
     // Reference: https://github.com/mrdoob/three.js/blob/master/src/core/Object3D.js#L511-L541
     // Potential fix: https://github.com/mrdoob/three.js/pull/7019
     this.el.object3D.updateMatrixWorld(true);
+
     if(data.shape !== 'none') {
-      if (data.shape === 'compound') {
-        for(var i = 0; i < this.data.compoundShapes.length; i++) {
-          var shapeData = this.data.compoundShapes[i];
-          var type = shapeData.shape;
-          var scale = this.el.object3D.scale;
-          var shape, offset, quaternion;
+      var options = data.shape === 'auto' ? undefined : AFRAME.utils.extend({}, this.data, {
+        type: mesh2shape.Type[data.shape.toUpperCase()]
+      });
 
-          switch(type) {
-            case 'sphere':
-              shape = new CANNON.Sphere(shapeData.radius * scale.x);
-              break;
-            case 'box':
-              var halfExtents = new CANNON.Vec3(
-                shapeData.halfExtents.x * scale.x, 
-                shapeData.halfExtents.y * scale.y, 
-                shapeData.halfExtents.z * scale.z
-              );
-              shape = new CANNON.Box(halfExtents);
-              break;
-            case 'cylinder':
-              shape = new CANNON.Cylinder(
-                shapeData.radiusTop * scale.x, 
-                shapeData.radiusBottom * scale.x, 
-                shapeData.height * scale.x, 
-                shapeData.numSegments
-              );
-              break;
-            default:
-                console.error(type + ' shape not supported');
-              return;
-          }
+      shape = mesh2shape(this.el.object3D, options);
 
-          if (shapeData.hasOwnProperty('offset')) {
-            offset = new CANNON.Vec3(
-              shapeData.offset.x * scale.x, 
-              shapeData.offset.y * scale.y, 
-              shapeData.offset.z * scale.z
-            );
-          }
-
-          if (shapeData.hasOwnProperty('quaternion')) {
-            quaternion = new CANNON.Quaternion(
-              shapeData.quaternion.x, 
-              shapeData.quaternion.y, 
-              shapeData.quaternion.z, 
-              shapeData.quaternion.w
-            );
-          }
-
-          if (shape && offset && quaternion) {
-            this.body.addShape(shape, offset, quaternion);
-          } else if (shape && offset) {
-            this.body.addShape(shape, offset);
-          } else {
-            this.body.addShape(shape);
-          }
-        }
-      } else {
-        var options = data.shape === 'auto' ? undefined : AFRAME.utils.extend({}, this.data, {
-          type: mesh2shape.Type[data.shape.toUpperCase()]
-        });
-
-        shape = mesh2shape(this.el.object3D, options);
-
-        if (!shape) {
-          el.addEventListener('object3dset', this.initBody.bind(this));
-          return;
-        }
-        this.body.addShape(shape, shape.offset, shape.orientation);
+      if (!shape) {
+        el.addEventListener('object3dset', this.initBody.bind(this));
+        return;
       }
+      this.body.addShape(shape, shape.offset, shape.orientation);
 
       // Show wireframe
       if (this.system.debug) {
-        this.createWireframe(this.body);
+        this.shouldUpdateWireframe = true;
       }
+
+
+      this.isLoaded = true;
+
+      // If component wasn't initialized when play() was called, finish up.
+
     }
 
     this.el.body = this.body;
     this.body.el = el;
-    this.isLoaded = true;
 
-    // If component wasn't initialized when play() was called, finish up.
     if (this.isPlaying) {
       this._play();
     }
 
-    this.el.emit('body-loaded', {body: this.el.body});
+    if (this.isLoaded) {
+      this.el.emit('body-loaded', {body: this.el.body});
+    }
+  },
+
+  addShape(shapeData) {
+    var type = shapeData.shape;
+    var scale = this.el.object3D.scale;
+    var shape, offset, quaternion;
+
+    switch(type) {
+      case 'sphere':
+        shape = new CANNON.Sphere(shapeData.radius * scale.x);
+        break;
+      case 'box':
+        var halfExtents = new CANNON.Vec3(
+          shapeData.halfExtents.x * scale.x, 
+          shapeData.halfExtents.y * scale.y, 
+          shapeData.halfExtents.z * scale.z
+        );
+        shape = new CANNON.Box(halfExtents);
+        break;
+      case 'cylinder':
+        shape = new CANNON.Cylinder(
+          shapeData.radiusTop * scale.x, 
+          shapeData.radiusBottom * scale.x, 
+          shapeData.height * scale.x, 
+          shapeData.numSegments
+        );
+        break;
+      default:
+          console.warn(type + ' shape not supported');
+        return;
+    }
+
+    if (shapeData.hasOwnProperty('offset')) {
+      offset = new CANNON.Vec3(
+        shapeData.offset.x * scale.x, 
+        shapeData.offset.y * scale.y, 
+        shapeData.offset.z * scale.z
+      );
+    }
+
+    if (shapeData.hasOwnProperty('orientation')) {
+      quaternion = new CANNON.Quaternion(
+        shapeData.orientation.x, 
+        shapeData.orientation.y, 
+        shapeData.orientation.z, 
+        shapeData.orientation.w
+      );
+    }
+
+    this.body.addShape(shape, offset, quaternion);
+
+    if (this.system.debug) {
+      this.shouldUpdateWireframe = true;
+    }
+
+    this.shouldUpdateBody = true;
+  },
+
+  tick: function () {
+    if (this.shouldUpdateBody) {
+      this.isLoaded = true;
+ 
+      if (this.isPlaying) {
+        this._pause();
+      }
+      this._play();
+
+      this.el.emit('body-loaded', {body: this.el.body});
+      this.shouldUpdateBody = false;
+    }
+
+    if (this.shouldUpdateWireframe) {
+      this.createWireframe(this.body);
+      this.shouldUpdateWireframe = false;
+    }
   },
 
   /**
@@ -231,11 +253,16 @@ var Body = {
    * @param  {CANNON.Shape} shape
    */
   createWireframe: function (body) {
+    if (this.wireframe) {
+      this.el.sceneEl.object3D.remove(this.wireframe);
+      delete this.wireframe;
+    }
     this.wireframe = new THREE.Object3D();
+    this.el.sceneEl.object3D.add(this.wireframe);
+
     var offset, orientation, mesh;
     for (var i = 0; i < this.body.shapes.length; i++)
     {
-      // console.log("body", this.el, this.body)
       offset = this.body.shapeOffsets[i],
       orientation = this.body.shapeOrientations[i],
       mesh = CANNON.shape2mesh(this.body).children[i];
