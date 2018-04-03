@@ -77,16 +77,13 @@ var Body = {
         this.shouldUpdateWireframe = true;
       }
 
-
       this.isLoaded = true;
-
-      // If component wasn't initialized when play() was called, finish up.
-
     }
 
     this.el.body = this.body;
     this.body.el = el;
 
+    // If component wasn't initialized when play() was called, finish up.
     if (this.isPlaying) {
       this._play();
     }
@@ -155,10 +152,7 @@ var Body = {
   tick: function () {
     if (this.shouldUpdateBody) {
       this.isLoaded = true;
- 
-      if (this.isPlaying) {
-        this._pause();
-      }
+
       this._play();
 
       this.el.emit('body-loaded', {body: this.el.body});
