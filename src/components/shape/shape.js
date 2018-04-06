@@ -10,7 +10,7 @@ var Shape = {
     radiusTop: {type: 'number', default: 1},
     radiusBottom: {type: 'number', default: 1},
     height: {type: 'number', default: 1},
-    numSegments: {type: 'int', default: 6}
+    numSegments: {type: 'int', default: 8}
   },
 
   multiple: true,
