@@ -94,6 +94,11 @@ var Body = {
   },
 
   addShape(shapeData) {
+    if (this.data.shape !== 'none') {
+      console.warn('shape can only be added if shape property is none');
+      return;
+    }
+
     var type = shapeData.shape;
     var scale = this.el.object3D.scale;
     var shape, offset, quaternion;
@@ -114,7 +119,7 @@ var Body = {
         shape = new CANNON.Cylinder(
           shapeData.radiusTop * scale.x, 
           shapeData.radiusBottom * scale.x, 
-          shapeData.height * scale.x, 
+          shapeData.height * scale.y, 
           shapeData.numSegments
         );
         break;
