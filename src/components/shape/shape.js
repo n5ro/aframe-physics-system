@@ -35,11 +35,11 @@ var Shape = {
   },
 
   _findType: function(el) {
-    if (el.components.hasOwnProperty('body')) {
+    if (el.hasAttribute('body')) {
       return 'body';
-    } else if (el.components.hasOwnProperty('dynamic-body')) {
+    } else if (el.hasAttribute('dynamic-body')) {
       return 'dynamic-body';
-    } else if (el.components.hasOwnProperty('static-body')) {
+    } else if (el.hasAttribute('static-body')) {
       return'static-body';
     }
     return null;

@@ -93,14 +93,15 @@ var Body = {
     }
   },
 
-  addShape(shapeData) {
+  addShape: function(shapeData) {
     if (this.data.shape !== 'none') {
       console.warn('shape can only be added if shape property is none');
       return;
     }
 
     var type = shapeData.shape;
-    var scale = this.el.object3D.scale;
+    var scale = new THREE.Vector3();
+    this.el.object3D.getWorldScale(scale);
     var shape, offset, quaternion;
 
     switch(type) {
@@ -137,12 +138,8 @@ var Body = {
     }
 
     if (shapeData.hasOwnProperty('orientation')) {
-      quaternion = new CANNON.Quaternion(
-        shapeData.orientation.x, 
-        shapeData.orientation.y, 
-        shapeData.orientation.z, 
-        shapeData.orientation.w
-      );
+      quaternion = new CANNON.Quaternion();
+      quaternion.copy(shapeData.orientation);
     }
 
     this.body.addShape(shape, offset, quaternion);
@@ -263,7 +260,7 @@ var Body = {
     for (var i = 0; i < this.body.shapes.length; i++)
     {
       offset = this.body.shapeOffsets[i],
-      orientation = this.body.shapeOrientations[i],
+      orientation = this.body.shapeOrientations[i].clone(),
       mesh = CANNON.shape2mesh(this.body).children[i];
 
       var wireframe = new THREE.LineSegments(
@@ -278,12 +275,7 @@ var Body = {
       if (orientation) {
         orientation.inverse(orientation);
 
-        wireframe.quaternion.set(
-          orientation.x,
-          orientation.y,
-          orientation.z,
-          orientation.w
-        );
+        wireframe.quaternion.copy(orientation);
       }
 
       this.wireframe.add(wireframe);
