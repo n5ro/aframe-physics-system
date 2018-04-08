@@ -256,11 +256,12 @@ var Body = {
     this.wireframe = new THREE.Object3D();
     this.el.sceneEl.object3D.add(this.wireframe);
 
-    var offset, orientation, mesh;
+    var offset, mesh;
+    var orientation = new Quaternion();
     for (var i = 0; i < this.body.shapes.length; i++)
     {
       offset = this.body.shapeOffsets[i],
-      orientation = this.body.shapeOrientations[i].clone(),
+      orientation.copy(this.body.shapeOrientations[i]),
       mesh = CANNON.shape2mesh(this.body).children[i];
 
       var wireframe = new THREE.LineSegments(
@@ -274,11 +275,10 @@ var Body = {
 
       if (orientation) {
         orientation.inverse(orientation);
-
         wireframe.quaternion.copy(orientation);
       }
 
-      this.wireframe.add(wireframe);
+      this.wireframe.add(wirefframe);
     }
     
     this.syncWireframe();
