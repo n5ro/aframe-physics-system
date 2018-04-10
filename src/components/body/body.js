@@ -93,56 +93,18 @@ var Body = {
     }
   },
 
-  addShape: function(shapeData) {
+  addShape: function(shape, offset = null, orientation = null) {
     if (this.data.shape !== 'none') {
       console.warn('shape can only be added if shape property is none');
       return;
     }
 
-    var type = shapeData.shape;
-    var scale = new THREE.Vector3();
-    this.el.object3D.getWorldScale(scale);
-    var shape, offset, quaternion;
-
-    switch(type) {
-      case 'sphere':
-        shape = new CANNON.Sphere(shapeData.radius * scale.x);
-        break;
-      case 'box':
-        var halfExtents = new CANNON.Vec3(
-          shapeData.halfExtents.x * scale.x, 
-          shapeData.halfExtents.y * scale.y, 
-          shapeData.halfExtents.z * scale.z
-        );
-        shape = new CANNON.Box(halfExtents);
-        break;
-      case 'cylinder':
-        shape = new CANNON.Cylinder(
-          shapeData.radiusTop * scale.x, 
-          shapeData.radiusBottom * scale.x, 
-          shapeData.height * scale.y, 
-          shapeData.numSegments
-        );
-        break;
-      default:
-          console.warn(type + ' shape not supported');
-        return;
+    if (!shape) {
+      console.warn('shape cannot be null');
+      return;
     }
 
-    if (shapeData.hasOwnProperty('offset')) {
-      offset = new CANNON.Vec3(
-        shapeData.offset.x * scale.x, 
-        shapeData.offset.y * scale.y, 
-        shapeData.offset.z * scale.z
-      );
-    }
-
-    if (shapeData.hasOwnProperty('orientation')) {
-      quaternion = new CANNON.Quaternion();
-      quaternion.copy(shapeData.orientation);
-    }
-
-    this.body.addShape(shape, offset, quaternion);
+    this.body.addShape(shape, offset, orientation);
 
     if (this.system.debug) {
       this.shouldUpdateWireframe = true;
@@ -257,7 +219,7 @@ var Body = {
     this.el.sceneEl.object3D.add(this.wireframe);
 
     var offset, mesh;
-    var orientation = new Quaternion();
+    var orientation = new THREE.Quaternion();
     for (var i = 0; i < this.body.shapes.length; i++)
     {
       offset = this.body.shapeOffsets[i],
@@ -278,7 +240,7 @@ var Body = {
         wireframe.quaternion.copy(orientation);
       }
 
-      this.wireframe.add(wirefframe);
+      this.wireframe.add(wireframe);
     }
     
     this.syncWireframe();
