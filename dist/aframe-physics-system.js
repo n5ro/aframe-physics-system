@@ -14892,7 +14892,7 @@ function createCylinderShape (geometry) {
   shape.numSegments = params.radialSegments;
 
   shape.orientation = new CANNON.Quaternion();
-  shape.orientation.setFromEuler(THREE.Math.degToRad(-90), 0, 0, 'XYZ').normalize();
+  shape.orientation.setFromEuler(THREE.Math.degToRad(90), 0, 0, 'XYZ').normalize();
   return shape;
 }
 
@@ -16272,7 +16272,7 @@ var Shape = {
 
         //rotate by 90 degrees similar to mesh2shape:createCylinderShape
         var quat = new CANNON.Quaternion();
-        quat.setFromEuler(-90 * THREE.Math.DEG2RAD, 0, 0, 'XYZ').normalize();
+        quat.setFromEuler(90 * THREE.Math.DEG2RAD, 0, 0, 'XYZ').normalize();
         orientation.mult(quat, orientation);
         break;
       default:
