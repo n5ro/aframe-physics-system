@@ -14,7 +14,7 @@ Components for A-Frame physics integration, built on [CANNON.js](http://schteppe
   + [`shape`](#shape)
   + [`constraint`](#constraint)
 + [Using the CANNON.js API](#using-the-cannonjs-api)
-+ [Collision Events](#collision-events)
++ [Events](#events)
 + [System Configuration](#system-configuration)
 
 ## Installation
@@ -193,7 +193,14 @@ el.body.applyImpulse(
 );
 ```
 
-## Collision Events
+## Events
+
+| event | description |
+|-------|-------------|
+| `body-loaded` | Fired when physics body (`el.body`) has been created. |
+| `collide` | Fired when two objects collide. Touching objects may fire `collide` events frequently. Unavailable with `driver: worker`. |
+
+### Collisions
 
 > **NOTE:** Collision events are currently only supported with the local driver, and will not be fired with `physics="driver: worker"` enabled.
 
