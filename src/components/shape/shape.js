@@ -3,10 +3,16 @@ var CANNON = require('cannon');
 var Shape = {
   schema: {
     shape: {default: 'box', oneOf: ['box', 'sphere', 'cylinder']},
-    radius: {type: 'number', default: 1, if: {shape: ['sphere']}},
     offset: {type: 'vec3', default: {x: 0, y: 0, z: 0}},
+    orientation: {type: 'vec4', default: {x: 0, y: 0, z: 0, w: 1}},
+
+    // sphere
+    radius: {type: 'number', default: 1, if: {shape: ['sphere']}},
+
+    // box
     halfExtents: {type: 'vec3', default: {x: 1, y: 1, z: 1}, if: {shape: ['box']}},
-    orientation: {type: 'vec4', default: {x: 0, y: 0, z: 0, w: 1}, if: {shape: ['box', 'cylinder']}},
+    
+    // cylinder
     radiusTop: {type: 'number', default: 1, if: {shape: ['cylinder']}},
     radiusBottom: {type: 'number', default: 1, if: {shape: ['cylinder']}},
     height: {type: 'number', default: 1, if: {shape: ['cylinder']}},

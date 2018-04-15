@@ -64,7 +64,7 @@ var Body = {
         type: mesh2shape.Type[data.shape.toUpperCase()]
       });
 
-      shape = mesh2shape(this.el.object3D, options);
+      var shape = mesh2shape(this.el.object3D, options);
 
       if (!shape) {
         el.addEventListener('object3dset', this.initBody.bind(this));
@@ -93,7 +93,7 @@ var Body = {
     }
   },
 
-  addShape: function(shape, offset = null, orientation = null) {
+  addShape: function(shape, offset, orientation) {
     if (this.data.shape !== 'none') {
       console.warn('shape can only be added if shape property is none');
       return;
