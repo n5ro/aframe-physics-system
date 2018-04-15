@@ -5,6 +5,7 @@ require('./src/components/math');
 require('./src/components/body/body');
 require('./src/components/body/dynamic-body');
 require('./src/components/body/static-body');
+require('./src/components/shape/shape')
 require('./src/components/constraint');
 require('./src/system');
 
@@ -17,7 +18,7 @@ module.exports = {
 // Export CANNON.js.
 window.CANNON = window.CANNON || CANNON;
 
-},{"./src/components/body/body":63,"./src/components/body/dynamic-body":64,"./src/components/body/static-body":65,"./src/components/constraint":66,"./src/components/math":67,"./src/system":78,"cannon":4}],2:[function(require,module,exports){
+},{"./src/components/body/body":63,"./src/components/body/dynamic-body":64,"./src/components/body/static-body":65,"./src/components/constraint":66,"./src/components/math":67,"./src/components/shape/shape":69,"./src/system":79,"cannon":4}],2:[function(require,module,exports){
 /**
  * CANNON.shape2mesh
  *
@@ -15651,9 +15652,8 @@ var Body = {
    * component.
    */
   initBody: function () {
-    var shape,
-      el = this.el,
-      data = this.data;
+    var el = this.el,
+        data = this.data;
 
     var obj = this.el.object3D;
     var pos = obj.position;
@@ -15681,31 +15681,69 @@ var Body = {
         type: mesh2shape.Type[data.shape.toUpperCase()]
       });
 
-      shape = mesh2shape(this.el.object3D, options);
+      var shape = mesh2shape(this.el.object3D, options);
 
       if (!shape) {
         el.addEventListener('object3dset', this.initBody.bind(this));
         return;
       }
-
       this.body.addShape(shape, shape.offset, shape.orientation);
 
       // Show wireframe
       if (this.system.debug) {
-        this.createWireframe(this.body, shape);
+        this.shouldUpdateWireframe = true;
       }
+
+      this.isLoaded = true;
     }
 
     this.el.body = this.body;
     this.body.el = el;
-    this.isLoaded = true;
 
     // If component wasn't initialized when play() was called, finish up.
     if (this.isPlaying) {
       this._play();
     }
 
-    this.el.emit('body-loaded', {body: this.el.body});
+    if (this.isLoaded) {
+      this.el.emit('body-loaded', {body: this.el.body});
+    }
+  },
+
+  addShape: function(shape, offset, orientation) {
+    if (this.data.shape !== 'none') {
+      console.warn('shape can only be added if shape property is none');
+      return;
+    }
+
+    if (!shape) {
+      console.warn('shape cannot be null');
+      return;
+    }
+
+    this.body.addShape(shape, offset, orientation);
+
+    if (this.system.debug) {
+      this.shouldUpdateWireframe = true;
+    }
+
+    this.shouldUpdateBody = true;
+  },
+
+  tick: function () {
+    if (this.shouldUpdateBody) {
+      this.isLoaded = true;
+
+      this._play();
+
+      this.el.emit('body-loaded', {body: this.el.body});
+      this.shouldUpdateBody = false;
+    }
+
+    if (this.shouldUpdateWireframe) {
+      this.createWireframe(this.body);
+      this.shouldUpdateWireframe = false;
+    }
   },
 
   /**
@@ -15789,30 +15827,39 @@ var Body = {
    * @param  {CANNON.Body} body
    * @param  {CANNON.Shape} shape
    */
-  createWireframe: function (body, shape) {
-    var offset = shape.offset,
-        orientation = shape.orientation,
-        mesh = CANNON.shape2mesh(body).children[0];
-
-    this.wireframe = new THREE.LineSegments(
-      new THREE.EdgesGeometry(mesh.geometry),
-      new THREE.LineBasicMaterial({color: 0xff0000})
-    );
-
-    if (offset) {
-      this.wireframe.offset = offset.clone();
+  createWireframe: function (body) {
+    if (this.wireframe) {
+      this.el.sceneEl.object3D.remove(this.wireframe);
+      delete this.wireframe;
     }
+    this.wireframe = new THREE.Object3D();
+    this.el.sceneEl.object3D.add(this.wireframe);
 
-    if (orientation) {
-      orientation.inverse(orientation);
-      this.wireframe.orientation = new THREE.Quaternion(
-        orientation.x,
-        orientation.y,
-        orientation.z,
-        orientation.w
+    var offset, mesh;
+    var orientation = new THREE.Quaternion();
+    for (var i = 0; i < this.body.shapes.length; i++)
+    {
+      offset = this.body.shapeOffsets[i],
+      orientation.copy(this.body.shapeOrientations[i]),
+      mesh = CANNON.shape2mesh(this.body).children[i];
+
+      var wireframe = new THREE.LineSegments(
+        new THREE.EdgesGeometry(mesh.geometry),
+        new THREE.LineBasicMaterial({color: 0xff0000})
       );
-    }
 
+      if (offset) {
+        wireframe.position.copy(offset);
+      }
+
+      if (orientation) {
+        orientation.inverse(orientation);
+        wireframe.quaternion.copy(orientation);
+      }
+
+      this.wireframe.add(wireframe);
+    }
+    
     this.syncWireframe();
   },
 
@@ -16145,6 +16192,119 @@ module.exports = AFRAME.registerComponent('velocity', {
 });
 
 },{}],69:[function(require,module,exports){
+var CANNON = require('cannon');
+
+var Shape = {
+  schema: {
+    shape: {default: 'box', oneOf: ['box', 'sphere', 'cylinder']},
+    offset: {type: 'vec3', default: {x: 0, y: 0, z: 0}},
+    orientation: {type: 'vec4', default: {x: 0, y: 0, z: 0, w: 1}},
+
+    // sphere
+    radius: {type: 'number', default: 1, if: {shape: ['sphere']}},
+
+    // box
+    halfExtents: {type: 'vec3', default: {x: 1, y: 1, z: 1}, if: {shape: ['box']}},
+    
+    // cylinder
+    radiusTop: {type: 'number', default: 1, if: {shape: ['cylinder']}},
+    radiusBottom: {type: 'number', default: 1, if: {shape: ['cylinder']}},
+    height: {type: 'number', default: 1, if: {shape: ['cylinder']}},
+    numSegments: {type: 'int', default: 8, if: {shape: ['cylinder']}}
+  },
+
+  multiple: true,
+
+  init: function() {
+    if (this.el.sceneEl.hasLoaded) {
+      this.initShape();
+    } else {
+      this.el.sceneEl.addEventListener('loaded', this.initShape.bind(this));
+    }
+  },
+
+  initShape: function() {
+    this.bodyEl = this.el;
+    var bodyType = this._findType(this.bodyEl);
+    var data = this.data;
+
+    while (!bodyType && this.bodyEl.parentNode) {
+      this.bodyEl = this.bodyEl.parentNode;
+      bodyType = this._findType(this.bodyEl);
+    }
+
+    var scale = new THREE.Vector3();
+    this.bodyEl.object3D.getWorldScale(scale);
+    var shape, offset, orientation;
+
+    if (data.hasOwnProperty('offset')) {
+      offset = new CANNON.Vec3(
+        data.offset.x * scale.x, 
+        data.offset.y * scale.y, 
+        data.offset.z * scale.z
+      );
+    }
+
+    if (data.hasOwnProperty('orientation')) {
+      orientation = new CANNON.Quaternion();
+      orientation.copy(data.orientation);
+    }
+
+    switch(data.shape) {
+      case 'sphere':
+        shape = new CANNON.Sphere(data.radius * scale.x);
+        break;
+      case 'box':
+        var halfExtents = new CANNON.Vec3(
+          data.halfExtents.x * scale.x, 
+          data.halfExtents.y * scale.y, 
+          data.halfExtents.z * scale.z
+        );
+        shape = new CANNON.Box(halfExtents);
+        break;
+      case 'cylinder':
+        shape = new CANNON.Cylinder(
+          data.radiusTop * scale.x, 
+          data.radiusBottom * scale.x, 
+          data.height * scale.y, 
+          data.numSegments
+        );
+
+        //rotate by 90 degrees similar to mesh2shape:createCylinderShape
+        var quat = new CANNON.Quaternion();
+        quat.setFromEuler(-90 * THREE.Math.DEG2RAD, 0, 0, 'XYZ').normalize();
+        orientation.mult(quat, orientation);
+        break;
+      default:
+          console.warn(data.shape + ' shape not supported');
+        return;
+    }
+
+    this.bodyEl.components[bodyType].addShape(shape, offset, orientation);
+  },
+
+  _findType: function(el) {
+    if (el.hasAttribute('body')) {
+      return 'body';
+    } else if (el.hasAttribute('dynamic-body')) {
+      return 'dynamic-body';
+    } else if (el.hasAttribute('static-body')) {
+      return'static-body';
+    }
+    return null;
+  },
+
+  remove: function() {
+    if (this.bodyEl.parentNode) {
+      console.warn('removing shape component not currently supported');
+    }
+  }
+};
+
+module.exports.definition = Shape;
+module.exports.Component = AFRAME.registerComponent('shape', Shape);
+
+},{"cannon":4}],70:[function(require,module,exports){
 module.exports = {
   GRAVITY: -9.8,
   MAX_INTERVAL: 4 / 60,
@@ -16159,7 +16319,7 @@ module.exports = {
   }
 };
 
-},{}],70:[function(require,module,exports){
+},{}],71:[function(require,module,exports){
 var Driver = require('./driver');
 
 function AmmoDriver () {
@@ -16171,7 +16331,7 @@ AmmoDriver.prototype.constructor = AmmoDriver;
 
 module.exports = AmmoDriver;
 
-},{"./driver":71}],71:[function(require,module,exports){
+},{"./driver":72}],72:[function(require,module,exports){
 /**
  * Driver - defines limited API to local and remote physics controllers.
  */
@@ -16249,7 +16409,7 @@ function abstractMethod () {
   throw new Error('Method not implemented.');
 }
 
-},{}],72:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
 module.exports = {
   INIT: 'init',
   STEP: 'step',
@@ -16269,7 +16429,7 @@ module.exports = {
   REMOVE_CONSTRAINT: 'remove-constraint'
 };
 
-},{}],73:[function(require,module,exports){
+},{}],74:[function(require,module,exports){
 var CANNON = require('cannon'),
     Driver = require('./driver');
 
@@ -16389,7 +16549,7 @@ LocalDriver.prototype.getContacts = function () {
   return this.world.contacts;
 };
 
-},{"./driver":71,"cannon":4}],74:[function(require,module,exports){
+},{"./driver":72,"cannon":4}],75:[function(require,module,exports){
 var Driver = require('./driver');
 
 function NetworkDriver () {
@@ -16401,7 +16561,7 @@ NetworkDriver.prototype.constructor = NetworkDriver;
 
 module.exports = NetworkDriver;
 
-},{"./driver":71}],75:[function(require,module,exports){
+},{"./driver":72}],76:[function(require,module,exports){
 /**
  * Stub version of webworkify, for debugging code outside of a webworker.
  */
@@ -16444,7 +16604,7 @@ EventTarget.prototype.postMessage = function (msg) {
   this.target.dispatchEvent('message', {data: msg});
 };
 
-},{}],76:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 /* global performance */
 
 var webworkify = require('webworkify'),
@@ -16680,7 +16840,7 @@ WorkerDriver.prototype.getContacts = function () {
   });
 };
 
-},{"../utils/protocol":80,"./driver":71,"./event":72,"./webworkify-debug":75,"./worker":77,"webworkify":62}],77:[function(require,module,exports){
+},{"../utils/protocol":81,"./driver":72,"./event":73,"./webworkify-debug":76,"./worker":78,"webworkify":62}],78:[function(require,module,exports){
 var Event = require('./event'),
     LocalDriver = require('./local-driver'),
     AmmoDriver = require('./ammo-driver'),
@@ -16774,7 +16934,7 @@ module.exports = function (self) {
   }
 };
 
-},{"../utils/protocol":80,"./ammo-driver":70,"./event":72,"./local-driver":73}],78:[function(require,module,exports){
+},{"../utils/protocol":81,"./ammo-driver":71,"./event":73,"./local-driver":74}],79:[function(require,module,exports){
 var CANNON = require('cannon'),
     CONSTANTS = require('./constants'),
     C_GRAV = CONSTANTS.GRAVITY,
@@ -17010,7 +17170,7 @@ module.exports = AFRAME.registerSystem('physics', {
   }
 });
 
-},{"./constants":69,"./drivers/ammo-driver":70,"./drivers/local-driver":73,"./drivers/network-driver":74,"./drivers/worker-driver":76,"cannon":4}],79:[function(require,module,exports){
+},{"./constants":70,"./drivers/ammo-driver":71,"./drivers/local-driver":74,"./drivers/network-driver":75,"./drivers/worker-driver":77,"cannon":4}],80:[function(require,module,exports){
 module.exports.slerp = function ( a, b, t ) {
   if ( t <= 0 ) return a;
   if ( t >= 1 ) return b;
@@ -17075,7 +17235,7 @@ module.exports.slerp = function ( a, b, t ) {
 
 };
 
-},{}],80:[function(require,module,exports){
+},{}],81:[function(require,module,exports){
 var CANNON = require('cannon');
 var mathUtils = require('./math');
 
@@ -17402,4 +17562,4 @@ function deserializeQuaternion (message) {
   return new CANNON.Quaternion(message[0], message[1], message[2], message[3]);
 }
 
-},{"./math":79,"cannon":4}]},{},[1]);
+},{"./math":80,"cannon":4}]},{},[1]);
