@@ -5,14 +5,13 @@
 
 Components for A-Frame physics integration, built on [CANNON.js](http://schteppe.github.io/cannon.js/).
 
-> **NOTE:** This package is included by default in [A-Frame Extras](https://github.com/donmccurdy/aframe-extras), or can be used as a standalone physics system.
-
 ## Contents
 
 + [Installation](#installation)
 + [Basics](#basics)
 + [Components](#components)
   + [`dynamic-body` and `static-body`](#dynamic-body-and-static-body)
+  + [`shape`](#shape)
   + [`constraint`](#constraint)
 + [Using the CANNON.js API](#using-the-cannonjs-api)
 + [Collision Events](#collision-events)
@@ -97,6 +96,7 @@ The `dynamic-body` and `static-body` components may be added to any `<a-entity/>
 
 Body components will attempt to find an appropriate CANNON.js shape to fit your model. When defining an object you may choose a shape or leave the default, `auto`. Select a shape carefully, as there are performance implications with different choices:
 
+* **None** (`none`) – Does not add collision geometry. Use this when adding collision shapes manually, through the `shape` component or custom JavaScript.
 * **Auto** (`auto`) – Chooses automatically from the available shapes.
 * **Box** (`box`) – Great performance, compared to Hull or Trimesh shapes, and may be fitted to custom models.
 * **Cylinder** (`cylinder`) – See `box`. Adds `cylinderAxis` option.
@@ -104,8 +104,6 @@ Body components will attempt to find an appropriate CANNON.js shape to fit your 
 * **Convex** (`hull`) – Wraps a model like shrink-wrap. Convex shapes are more performant and better supported than Trimesh, but may still have some performance impact when used as dynamic objects.
 * **Primitives** – Plane/Cylinder/Sphere. Used automatically with the corresponding A-Frame primitives.
 * **Trimesh** (`mesh`) – *Deprecated.* Trimeshes adapt to fit custom geometry (e.g. a `.OBJ` or `.DAE` file), but have very minimal support. Arbitrary trimesh shapes are difficult to model in any JS physics engine, will "fall through" certain other shapes, and have serious performance limitations.
-* **Compound** – *In progress.* Compound shapes require a bit of work to set up, but allow you to use multiple primitives to define a physics shape around custom models. These will generally perform better, and behave more accurately, than Trimesh or Convex shapes. For example, a stool might be modeled as a cylinder-shaped seat, on four long cylindrical legs.
-* **None** (`none`) – Does not add collision geometry.
 
 For more details, see the CANNON.js [collision matrix](https://github.com/schteppe/cannon.js#features).
 
@@ -118,6 +116,37 @@ Example using a bounding box for a custom model:
 <!-- Cylinder -->
 <a-entity obj-model="obj: url(...)" dynamic-body="shape: cylinder; cylinderAxis: y; mass: 5"></a-entity>
 ```
+
+### `shape`
+
+Compound shapes require a bit of work to set up, but allow you to use multiple primitives to define a physics shape around custom models. These will generally perform better, and behave more accurately, than `mesh` or `hull` shapes. For example, a chair might be modeled as a cylinder-shaped seat, on four long cylindrical legs.
+
+Example:
+
+```html
+<a-entity gltf-model="src: mug.glb"
+          body="type: dynamic; mass: 5; shape: none;"
+          shape__main="shape: cylinder;
+                       height: 0.36;
+                       radiusTop: 0.24;
+                       radiusBottom: 0.24;"
+          shape__handle="shape: box;
+                         halfExtents: 0.15 0.18 0.04;
+                         offset: 0.4 0 0;">
+</a-entity>
+```
+
+| Property    | Shapes     | Default   | Description |
+|-------------|------------|-----------|-------------|
+|shape        | —          | `box`     | `box`, `sphere`, or `cylinder` |
+|offset       | —          | `0 0 0`   | Position of shape relative to body. |
+|orientation  | —          | `0 0 0 1` | Rotation of shape relative to body. |
+|radius       | `sphere`   | `1`       | Sphere radius. |
+|halfExtents  | `box`      |  `1 1 1`  | Box half-extents. Use `0.5 0.5 0.5` for a 1x1x1 box. |
+|radiusTop    | `cylinder` | `1`       | Cylinder upper radius. |
+|radiusBottom | `cylinder` | `1`       | Cylinder lower radius. |
+|height       | `cylinder` | `1`       | Cylinder height. |
+|numSegments  | `cylinder` | `8`       | Cylinder subdivisions. |
 
 ### `constraint`
 
