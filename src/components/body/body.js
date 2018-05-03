@@ -236,7 +236,6 @@ var Body = {
       }
 
       if (orientation) {
-        orientation.inverse(orientation);
         wireframe.quaternion.copy(orientation);
       }
 

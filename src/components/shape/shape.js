@@ -10,7 +10,7 @@ var Shape = {
     radius: {type: 'number', default: 1, if: {shape: ['sphere']}},
 
     // box
-    halfExtents: {type: 'vec3', default: {x: 1, y: 1, z: 1}, if: {shape: ['box']}},
+    halfExtents: {type: 'vec3', default: {x: 0.5, y: 0.5, z: 0.5}, if: {shape: ['box']}},
     
     // cylinder
     radiusTop: {type: 'number', default: 1, if: {shape: ['cylinder']}},
