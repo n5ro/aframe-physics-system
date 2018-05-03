@@ -34,9 +34,14 @@ var Shape = {
     var bodyType = this._findType(this.bodyEl);
     var data = this.data;
 
-    while (!bodyType && this.bodyEl.parentNode) {
+    while (!bodyType && this.bodyEl.parentNode != this.el.sceneEl) {
       this.bodyEl = this.bodyEl.parentNode;
       bodyType = this._findType(this.bodyEl);
+    }
+
+    if (!bodyType) {
+      console.warn('body not found');
+      return;
     }
 
     var scale = new THREE.Vector3();
@@ -86,7 +91,14 @@ var Shape = {
         return;
     }
 
-    this.bodyEl.components[bodyType].addShape(shape, offset, orientation);
+    var bodyComponent = this.bodyEl.components[bodyType];
+    if (this.bodyEl.body) {
+      bodyComponent.addShape(shape, offset, orientation);
+    } else {
+      this.bodyEl.addEventListener('body-loaded', function() {
+        bodyComponent.addShape(shape, offset, orientation);
+      }, {once: true});
+    }
   },
 
   _findType: function(el) {

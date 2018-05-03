@@ -104,6 +104,10 @@ var Body = {
       return;
     }
 
+    if (!this.body) {
+      console.warn('body is not loaded');
+      return;
+    }
     this.body.addShape(shape, offset, orientation);
 
     if (this.system.debug) {
