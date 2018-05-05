@@ -80,6 +80,7 @@ LocalDriver.prototype.getMaterial = function (name) {
 /** @param {object} materialConfig */
 LocalDriver.prototype.addMaterial = function (materialConfig) {
   this.materials[materialConfig.name] = new CANNON.Material(materialConfig);
+  this.materials[materialConfig.name].name = materialConfig.name;
 };
 
 /**

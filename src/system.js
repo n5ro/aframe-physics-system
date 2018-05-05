@@ -84,9 +84,18 @@ module.exports = AFRAME.registerSystem('physics', {
     });
 
     this.driver.addMaterial({name: 'defaultMaterial'});
+    this.driver.addMaterial({name: 'staticMaterial'});
     this.driver.addContactMaterial('defaultMaterial', 'defaultMaterial', {
       friction: data.friction,
       restitution: data.restitution,
+      contactEquationStiffness: data.contactEquationStiffness,
+      contactEquationRelaxation: data.contactEquationRelaxation,
+      frictionEquationStiffness: data.frictionEquationStiffness,
+      frictionEquationRegularization: data.frictionEquationRegularization
+    });
+    this.driver.addContactMaterial('staticMaterial', 'defaultMaterial', {
+      friction: 1.0,
+      restitution: 0.0,
       contactEquationStiffness: data.contactEquationStiffness,
       contactEquationRelaxation: data.contactEquationRelaxation,
       frictionEquationStiffness: data.frictionEquationStiffness,
