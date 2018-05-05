@@ -16512,6 +16512,7 @@ LocalDriver.prototype.getMaterial = function (name) {
 /** @param {object} materialConfig */
 LocalDriver.prototype.addMaterial = function (materialConfig) {
   this.materials[materialConfig.name] = new CANNON.Material(materialConfig);
+  this.materials[materialConfig.name].name = materialConfig.name;
 };
 
 /**
@@ -17021,9 +17022,18 @@ module.exports = AFRAME.registerSystem('physics', {
     });
 
     this.driver.addMaterial({name: 'defaultMaterial'});
+    this.driver.addMaterial({name: 'staticMaterial'});
     this.driver.addContactMaterial('defaultMaterial', 'defaultMaterial', {
       friction: data.friction,
       restitution: data.restitution,
+      contactEquationStiffness: data.contactEquationStiffness,
+      contactEquationRelaxation: data.contactEquationRelaxation,
+      frictionEquationStiffness: data.frictionEquationStiffness,
+      frictionEquationRegularization: data.frictionEquationRegularization
+    });
+    this.driver.addContactMaterial('staticMaterial', 'defaultMaterial', {
+      friction: 1.0,
+      restitution: 0.0,
       contactEquationStiffness: data.contactEquationStiffness,
       contactEquationRelaxation: data.contactEquationRelaxation,
       frictionEquationStiffness: data.frictionEquationStiffness,
