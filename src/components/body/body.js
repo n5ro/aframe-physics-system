@@ -105,7 +105,7 @@ var Body = {
     }
 
     if (!this.body) {
-      console.warn('body is not loaded');
+      console.warn('shape cannot be added before body is loaded');
       return;
     }
     this.body.addShape(shape, offset, orientation);
