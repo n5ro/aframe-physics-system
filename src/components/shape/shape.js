@@ -91,12 +91,11 @@ var Shape = {
         return;
     }
 
-    var bodyComponent = this.bodyEl.components[bodyType];
     if (this.bodyEl.body) {
-      bodyComponent.addShape(shape, offset, orientation);
+      this.bodyEl.components[bodyType].addShape(shape, offset, orientation);
     } else {
       this.bodyEl.addEventListener('body-loaded', function() {
-        bodyComponent.addShape(shape, offset, orientation);
+        this.bodyEl.components[bodyType].addShape(shape, offset, orientation);
       }, {once: true});
     }
   },
