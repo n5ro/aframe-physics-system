@@ -171,8 +171,8 @@ var Body = {
 
     var data = this.data;
 
-    if (prevData.type != undefined && data.type !== prevData.type) {
-      console.warn('CANNON.Body type cannot be changed after instantiation');
+    if (prevData.type != undefined && data.type != prevData.type) {
+      this.body.type = data.type === 'dynamic' ? CANNON.Body.DYNAMIC : CANNON.Body.STATIC;
     }
 
     this.body.mass = data.mass || 0;
