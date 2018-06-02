@@ -190,8 +190,10 @@ var Body = {
    * Removes the component and all physics and scene side effects.
    */
   remove: function () {
-    delete this.body.el;
-    delete this.body;
+    if (this.body) {
+      delete this.body.el;
+      delete this.body;
+    }
     delete this.el.body;
     delete this.wireframe;
   },
@@ -245,7 +247,7 @@ var Body = {
 
       this.wireframe.add(wireframe);
     }
-    
+
     this.syncWireframe();
   },
 
