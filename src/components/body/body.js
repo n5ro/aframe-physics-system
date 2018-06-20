@@ -185,6 +185,7 @@ var Body = {
     this.body.updateBoundingRadius();
     this.body.aabbNeedsUpdate = true;
     this.prevUsedScale.copy(scale);
+    this.shouldUpdateWireframe = this.system.debug;
   },
 
   /**
