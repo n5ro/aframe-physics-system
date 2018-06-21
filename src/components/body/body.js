@@ -3,21 +3,6 @@ var CANNON = require('cannon'),
 
 require('../../../lib/CANNON-shape2mesh');
 
-function almostEquals(u,v, eps){
-  return Math.abs(u.x-v.x) < eps && Math.abs(u.y-v.y) < eps && Math.abs(u.z-v.z) < eps;
-};
-
-function debounce(fn, delay){
-  let timer = null;
-  return function(){
-    const args = arguments;
-    clearTimeout(timer);
-    timer = setTimeout(()=>{
-      fn.apply(this, args);
-    }, delay);
-  };
-}
-
 var Body = {
   dependencies: ['velocity'],
 
@@ -28,8 +13,7 @@ var Body = {
     shape: {default: 'auto', oneOf: ['auto', 'box', 'cylinder', 'sphere', 'hull', 'mesh', 'none']},
     cylinderAxis: {default: 'y', oneOf: ['x', 'y', 'z']},
     sphereRadius: {default: NaN},
-    type: {default: 'dynamic', oneOf: ['static', 'dynamic']},
-    monitorScale: {default: 'false'}
+    type: {default: 'dynamic', oneOf: ['static', 'dynamic']}
   },
 
   /**
@@ -45,11 +29,8 @@ var Body = {
       this.el.sceneEl.addEventListener('loaded', this.initBody.bind(this));
     }
 
-    this.prevScale = this.el.object3D.scale.clone();
-    this.prevUsedScale = this.el.object3D.scale.clone();
-    this.shapeWarned = false;
-    this.scaleBy = new CANNON.Vec3(1,1,1);
-    this.scaleBody = debounce(this.scaleBody.bind(this), 500);
+    this.didIssueResizeWarning = false;
+    this.worldScale = new THREE.Vector3();
   },
 
   /**
@@ -153,38 +134,48 @@ var Body = {
       this.createWireframe(this.body);
       this.shouldUpdateWireframe = false;
     }
-
-    if (this.data.monitorScale){
-      const scale = this.el.object3D.scale;
-      if (!almostEquals(scale,this.prevScale, 0.001)){
-        this.scaleBody(scale);
-      }
-      this.prevScale.copy(scale);
-    }
   },
 
-  scaleBody: function(scale, foo){
-    this.scaleBy.set(scale.x/this.prevUsedScale.x, scale.y/this.prevUsedScale.y, scale.z/this.prevUsedScale.z);
-    for (let i=0; i<this.body.shapes.length; i++){
-      const shape = this.body.shapes[i];
-      if (shape.halfExtents){
-        shape.halfExtents.set(shape.halfExtents.x*this.scaleBy.x,
-                              shape.halfExtents.y*this.scaleBy.y,
-                              shape.halfExtents.y*this.scaleBy.y);
-        shape.updateConvexPolyhedronRepresentation();
-      } else if (shape.radius){
-        shape.radius *= this.scaleBy.x; // TODO: Support the case where you want to squish an object on one axis, but keep its spherical collider.
-        shape.updateBoundingSphereRadius();
-      } else if (!this.shapeWarned){
-        console.warn("unable to stretch physics body: unsupported shape", this.body, shape);
-        this.shapeWarned = true;
+  updateCannonScale: function(){
+    this.el.object3D.getWorldScale(this.worldScale);
+    const scale = this.worldScale;
+    const cannonBody = this.body;
+
+    for (var i=0; i<cannonBody.shapes.length; i++){
+      const cannonShape = cannonBody.shapes[i];
+      const shape = cannonShape.component;
+      if (!shape) continue;
+      const shapeType = shape.data.shape;
+      switch (shapeType){
+      case "sphere":
+        cannonShape.radius = shape.data.radius * scale.x;
+        cannonShape.updateBoundingSphereRadius();
+        break;
+      case "box":
+        const cannonHalfExtents = cannonShape.halfExtents;
+        const halfExtents = shape.data.halfExtents;
+        cannonHalfExtents.set(
+          halfExtents.x * scale.x,
+          halfExtents.y * scale.y,
+          halfExtents.z * scale.z
+        );
+        cannonShape.updateConvexPolyhedronRepresentation();
+        break;
+      case "cylinder":
+        // TODO
+      default:
+        if (!this.didIssueResizeWarning){
+          this.didIssueResizeWarning = true;
+          console.warn("Cannot resize shape of type: ", shapeType);
+        }
+        break;
       }
-      const offset = this.body.shapeOffsets[i];
-      offset.set(offset.x*this.scaleBy.x, offset.y*this.scaleBy.y, offset.z*this.scaleBy.z);
+      const cannonOffset = cannonBody.shapeOffsets[i];
+      const offset = shape.data.offset;
+      cannonOffset.set(offset.x*scale.x, offset.y*scale.y, offset.z*scale.z);
     }
-    this.body.updateBoundingRadius();
-    this.body.aabbNeedsUpdate = true;
-    this.prevUsedScale.copy(scale);
+    cannonBody.updateBoundingRadius();
+    cannonBody.aabbNeedsUpdate = true;
     this.shouldUpdateWireframe = this.system.debug;
   },
 
