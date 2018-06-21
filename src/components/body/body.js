@@ -147,28 +147,29 @@ var Body = {
       if (!shape) continue;
       const shapeType = shape.data.shape;
       switch (shapeType){
-         case "sphere":
-           cannonShape.radius = shape.data.radius * scale.x;
-           cannonShape.updateBoundingSphereRadius();
-           break;
-         case "box":
-           const cannonHalfExtents = cannonShape.halfExtents;
-           const halfExtents = shape.data.halfExtents;
-           cannonHalfExtents.set(
-             halfExtents.x * scale.x,
-             halfExtents.y * scale.y,
-             halfExtents.z * scale.z
-           );
-           cannonShape.updateConvexPolyhedronRepresentation();
-           break;
-         case "cylinder":
-           // TODO
-         default:
-           if (!this.didIssueResizeWarning){
-             this.didIssueResizeWarning = true;
-             console.warn("Cannot resize shape of type: ", shapeType);
-           }
-           break;
+        case "sphere":
+          cannonShape.radius = shape.data.radius * scale.x;
+          cannonShape.updateBoundingSphereRadius();
+          break;
+        case "box":
+          const cannonHalfExtents = cannonShape.halfExtents;
+          const halfExtents = shape.data.halfExtents;
+          cannonHalfExtents.set(
+            halfExtents.x * scale.x,
+            halfExtents.y * scale.y,
+            halfExtents.z * scale.z
+          );
+          cannonShape.updateConvexPolyhedronRepresentation();
+          break;
+        case "cylinder":
+          cannonShape.resize(shape.data.radiusTop * scale.x, shape.data.radiusBottom*scale.x, shape.data.height*scale.y);
+          break;
+        default:
+          if (!this.didIssueResizeWarning){
+            this.didIssueResizeWarning = true;
+            console.warn("Cannot resize shape of type: ", shapeType);
+          }
+          break;
       }
       const cannonOffset = cannonBody.shapeOffsets[i];
       const offset = shape.data.offset;
