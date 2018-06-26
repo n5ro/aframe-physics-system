@@ -161,9 +161,10 @@ var Body = {
           );
           cannonShape.updateConvexPolyhedronRepresentation();
           break;
-        case "cylinder":
-          cannonShape.resize(shape.data.radiusTop * scale.x, shape.data.radiusBottom*scale.x, shape.data.height*scale.y);
-          break;
+        //case "cylinder":
+          // https://github.com/MozillaReality/cannon.js/commit/b401ccbec3b9996e31d6ad060028065a432fcff7
+          // cannonShape.resize(shape.data.radiusTop * scale.x, shape.data.radiusBottom*scale.x, shape.data.height*scale.y);
+          // break;
         default:
           if (!this.didIssueResizeWarning){
             this.didIssueResizeWarning = true;
