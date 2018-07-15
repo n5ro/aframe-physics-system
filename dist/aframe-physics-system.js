@@ -180,60 +180,27 @@ module.exports = CANNON.shape2mesh;
 
 },{"cannon":4}],3:[function(require,module,exports){
 module.exports={
-  "_args": [
-    [
-      {
-        "raw": "github:donmccurdy/cannon.js#v0.6.2-dev1",
-        "scope": null,
-        "escapedName": null,
-        "name": null,
-        "rawSpec": "github:donmccurdy/cannon.js#v0.6.2-dev1",
-        "spec": "github:donmccurdy/cannon.js#v0.6.2-dev1",
-        "type": "hosted",
-        "hosted": {
-          "type": "github",
-          "ssh": "git@github.com:donmccurdy/cannon.js.git#v0.6.2-dev1",
-          "sshUrl": "git+ssh://git@github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
-          "httpsUrl": "git+https://github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
-          "gitUrl": "git://github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
-          "shortcut": "github:donmccurdy/cannon.js#v0.6.2-dev1",
-          "directUrl": "https://raw.githubusercontent.com/donmccurdy/cannon.js/v0.6.2-dev1/package.json"
-        }
-      },
-      "/Users/donmccurdy/Documents/Projects/aframe-physics-system"
-    ]
-  ],
-  "_from": "donmccurdy/cannon.js#v0.6.2-dev1",
+  "_from": "github:donmccurdy/cannon.js#v0.6.2-dev1",
   "_id": "cannon@0.6.2",
-  "_inCache": true,
+  "_inBundle": false,
+  "_integrity": "sha1-kuhwtr7Hd8jqU3mcndOx2tmf0RU=",
   "_location": "/cannon",
   "_phantomChildren": {},
   "_requested": {
-    "raw": "github:donmccurdy/cannon.js#v0.6.2-dev1",
-    "scope": null,
-    "escapedName": null,
-    "name": null,
+    "type": "git",
+    "raw": "cannon@github:donmccurdy/cannon.js#v0.6.2-dev1",
+    "name": "cannon",
+    "escapedName": "cannon",
     "rawSpec": "github:donmccurdy/cannon.js#v0.6.2-dev1",
-    "spec": "github:donmccurdy/cannon.js#v0.6.2-dev1",
-    "type": "hosted",
-    "hosted": {
-      "type": "github",
-      "ssh": "git@github.com:donmccurdy/cannon.js.git#v0.6.2-dev1",
-      "sshUrl": "git+ssh://git@github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
-      "httpsUrl": "git+https://github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
-      "gitUrl": "git://github.com/donmccurdy/cannon.js.git#v0.6.2-dev1",
-      "shortcut": "github:donmccurdy/cannon.js#v0.6.2-dev1",
-      "directUrl": "https://raw.githubusercontent.com/donmccurdy/cannon.js/v0.6.2-dev1/package.json"
-    }
+    "saveSpec": "github:donmccurdy/cannon.js#v0.6.2-dev1",
+    "fetchSpec": null,
+    "gitCommittish": "v0.6.2-dev1"
   },
   "_requiredBy": [
-    "#USER",
     "/"
   ],
-  "_resolved": "git://github.com/donmccurdy/cannon.js.git#022e8ba53fa83abf0ad8a0e4fd08623123838a17",
-  "_shasum": "a5e7db2d2abf1a0a2624842568e5a86acc9d1114",
-  "_shrinkwrap": null,
-  "_spec": "github:donmccurdy/cannon.js#v0.6.2-dev1",
+  "_resolved": "github:donmccurdy/cannon.js#022e8ba53fa83abf0ad8a0e4fd08623123838a17",
+  "_spec": "cannon@github:donmccurdy/cannon.js#v0.6.2-dev1",
   "_where": "/Users/donmccurdy/Documents/Projects/aframe-physics-system",
   "author": {
     "name": "Stefan Hedman",
@@ -243,7 +210,9 @@ module.exports={
   "bugs": {
     "url": "https://github.com/schteppe/cannon.js/issues"
   },
+  "bundleDependencies": false,
   "dependencies": {},
+  "deprecated": false,
   "description": "A lightweight 3D physics engine written in JavaScript.",
   "devDependencies": {
     "browserify": "*",
@@ -261,7 +230,6 @@ module.exports={
   "engines": {
     "node": "*"
   },
-  "gitHead": "022e8ba53fa83abf0ad8a0e4fd08623123838a17",
   "homepage": "https://github.com/schteppe/cannon.js",
   "keywords": [
     "cannon.js",
@@ -277,9 +245,6 @@ module.exports={
   ],
   "main": "./src/Cannon.js",
   "name": "cannon",
-  "optionalDependencies": {},
-  "readme": "# cannon.js\n\n### Lightweight 3D physics for the web\nInspired by [three.js](https://github.com/mrdoob/three.js) and [ammo.js](https://github.com/kripken/ammo.js), and driven by the fact that the web lacks a physics engine, here comes cannon.js.\nThe rigid body physics engine includes simple collision detection, various body shapes, contacts, friction and constraints.\n\n[Demos](http://schteppe.github.com/cannon.js) - [Documentation](http://schteppe.github.com/cannon.js/docs) - [Rendering hints](https://github.com/schteppe/cannon.js/tree/master/examples) - [NPM package](https://npmjs.org/package/cannon) - [CDN](https://cdnjs.com/libraries/cannon.js)\n\n### Browser install\n\nJust include [cannon.js](https://github.com/schteppe/cannon.js/releases/download/v0.6.2/cannon.js) or [cannon.min.js](https://github.com/schteppe/cannon.js/releases/download/v0.6.2/cannon.min.js) in your html and you're done:\n\n```html\n<script src=\"cannon.min.js\"></script>\n```\n\n### Node.js install\n\nInstall the cannon package via NPM:\n\n```bash\nnpm install --save cannon\n```\n\nAlternatively, point to the Github repo directly to get the very latest version:\n\n```bash\nnpm install --save schteppe/cannon.js\n```\n\n### Example\n\nThe sample code below creates a sphere on a plane, steps the simulation, and prints the sphere simulation to the console. Note that Cannon.js uses [SI units](http://en.wikipedia.org/wiki/International_System_of_Units) (metre, kilogram, second, etc.).\n\n```javascript\n// Setup our world\nvar world = new CANNON.World();\nworld.gravity.set(0, 0, -9.82); // m/s²\n\n// Create a sphere\nvar radius = 1; // m\nvar sphereBody = new CANNON.Body({\n   mass: 5, // kg\n   position: new CANNON.Vec3(0, 0, 10), // m\n   shape: new CANNON.Sphere(radius)\n});\nworld.addBody(sphereBody);\n\n// Create a plane\nvar groundBody = new CANNON.Body({\n    mass: 0 // mass == 0 makes the body static\n});\nvar groundShape = new CANNON.Plane();\ngroundBody.addShape(groundShape);\nworld.addBody(groundBody);\n\nvar fixedTimeStep = 1.0 / 60.0; // seconds\nvar maxSubSteps = 3;\n\n// Start the simulation loop\nvar lastTime;\n(function simloop(time){\n  requestAnimationFrame(simloop);\n  if(lastTime !== undefined){\n     var dt = (time - lastTime) / 1000;\n     world.step(fixedTimeStep, dt, maxSubSteps);\n  }\n  console.log(\"Sphere z position: \" + sphereBody.position.z);\n  lastTime = time;\n})();\n```\n\nIf you want to know how to use cannon.js with a rendering engine, for example Three.js, see the [Examples](examples).\n\n### Features\n* Rigid body dynamics\n* Discrete collision detection\n* Contacts, friction and restitution\n* Constraints\n   * PointToPoint (a.k.a. ball/socket joint)\n   * Distance\n   * Hinge (with optional motor)\n   * Lock\n   * ConeTwist\n* Gauss-Seidel constraint solver and an island split algorithm\n* Collision filters\n* Body sleeping\n* Experimental SPH / fluid support\n* Various shapes and collision algorithms (see table below)\n\n|             | [Sphere](http://schteppe.github.io/cannon.js/docs/classes/Sphere.html) | [Plane](http://schteppe.github.io/cannon.js/docs/classes/Plane.html) | [Box](http://schteppe.github.io/cannon.js/docs/classes/Box.html) | [Convex](http://schteppe.github.io/cannon.js/docs/classes/ConvexPolyhedron.html) | [Particle](http://schteppe.github.io/cannon.js/docs/classes/Particle.html) | [Heightfield](http://schteppe.github.io/cannon.js/docs/classes/Heightfield.html) | [Trimesh](http://schteppe.github.io/cannon.js/docs/classes/Trimesh.html) |\n| :-----------|:------:|:-----:|:---:|:------:|:--------:|:-----------:|:-------:|\n| Sphere      | Yes    | Yes   | Yes | Yes    | Yes      | Yes         | Yes     |\n| Plane       | -      | -     | Yes | Yes    | Yes      | -           | Yes     |\n| Box         | -      | -     | Yes | Yes    | Yes      | Yes         | (todo)  |\n| Cylinder    | -      | -     | Yes | Yes    | Yes      | Yes         | (todo)  |\n| Convex      | -      | -     | -   | Yes    | Yes      | Yes         | (todo)  |\n| Particle    | -      | -     | -   | -      | -        | (todo)      | (todo)  |\n| Heightfield | -      | -     | -   | -      | -        | -           | (todo)  |\n| Trimesh     | -      | -     | -   | -      | -        | -           | -       |\n\n### Todo\nThe simpler todos are marked with ```@todo``` in the code. Github Issues can and should also be used for todos.\n\n### Help\nCreate an [issue](https://github.com/schteppe/cannon.js/issues) if you need help.\n",
-  "readmeFilename": "README.markdown",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/schteppe/cannon.js.git"
@@ -15721,6 +15686,10 @@ var Body = {
       return;
     }
 
+    if (!this.body) {
+      console.warn('shape cannot be added before body is loaded');
+      return;
+    }
     this.body.addShape(shape, offset, orientation);
 
     if (this.system.debug) {
@@ -15784,8 +15753,8 @@ var Body = {
 
     var data = this.data;
 
-    if (prevData.type != undefined && data.type !== prevData.type) {
-      console.warn('CANNON.Body type cannot be changed after instantiation');
+    if (prevData.type != undefined && data.type != prevData.type) {
+      this.body.type = data.type === 'dynamic' ? CANNON.Body.DYNAMIC : CANNON.Body.STATIC;
     }
 
     this.body.mass = data.mass || 0;
@@ -15803,8 +15772,10 @@ var Body = {
    * Removes the component and all physics and scene side effects.
    */
   remove: function () {
-    delete this.body.el;
-    delete this.body;
+    if (this.body) {
+      delete this.body.el;
+      delete this.body;
+    }
     delete this.el.body;
     delete this.wireframe;
   },
@@ -15853,13 +15824,12 @@ var Body = {
       }
 
       if (orientation) {
-        orientation.inverse(orientation);
         wireframe.quaternion.copy(orientation);
       }
 
       this.wireframe.add(wireframe);
     }
-    
+
     this.syncWireframe();
   },
 
@@ -15933,6 +15903,7 @@ var Body = {
           body = this.body;
 
       if (!body) return;
+      if (!parentEl) return;
 
       if (parentEl.isScene) {
         el.object3D.quaternion.copy(body.quaternion);
@@ -16204,7 +16175,7 @@ var Shape = {
     radius: {type: 'number', default: 1, if: {shape: ['sphere']}},
 
     // box
-    halfExtents: {type: 'vec3', default: {x: 1, y: 1, z: 1}, if: {shape: ['box']}},
+    halfExtents: {type: 'vec3', default: {x: 0.5, y: 0.5, z: 0.5}, if: {shape: ['box']}},
     
     // cylinder
     radiusTop: {type: 'number', default: 1, if: {shape: ['cylinder']}},
@@ -16228,9 +16199,14 @@ var Shape = {
     var bodyType = this._findType(this.bodyEl);
     var data = this.data;
 
-    while (!bodyType && this.bodyEl.parentNode) {
+    while (!bodyType && this.bodyEl.parentNode != this.el.sceneEl) {
       this.bodyEl = this.bodyEl.parentNode;
       bodyType = this._findType(this.bodyEl);
+    }
+
+    if (!bodyType) {
+      console.warn('body not found');
+      return;
     }
 
     var scale = new THREE.Vector3();
@@ -16280,7 +16256,13 @@ var Shape = {
         return;
     }
 
-    this.bodyEl.components[bodyType].addShape(shape, offset, orientation);
+    if (this.bodyEl.body) {
+      this.bodyEl.components[bodyType].addShape(shape, offset, orientation);
+    } else {
+      this.bodyEl.addEventListener('body-loaded', function() {
+        this.bodyEl.components[bodyType].addShape(shape, offset, orientation);
+      }, {once: true});
+    }
   },
 
   _findType: function(el) {
