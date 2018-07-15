@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Examples • TTL</title>
+    <meta name="description" content="Hello, WebVR! - A-Frame">
+    <script src="https://aframe.io/releases/0.7.0/aframe.min.js"></script>
+    <script src="bundle.js"></script>
+    <script>
+    AFRAME.registerComponent('ttl', {
+      schema: {
+        time: {type: 'number', default: 100}
+      },
+      init: function(){
+        this.ticks = 0;
+        this.lifetime = this.data.time;
+      },
+      tick: function(){
+        this.lifetime--;
+        if(this.lifetime === 0){
+
+          // TTL has expired remove the entity
+          this.el.sceneEl.removeChild(this.el);
+        }
+      }
+    });
+    </script>
+  </head>
+  <body>
+    <a-scene physics="debug: true">
+      <a-mixin id="test" ttl dynamic-body></a-mixin>
+      <a-box position="-1 3.5 -3" rotation="0 45 0" color="#4CC3D9" shadow mixin="test"></a-box>
+      <a-sphere position="0 3.75 -5" radius="1.25" color="#EF2D5E" shadow dynamic-body></a-sphere>
+      <a-cylinder position="1 4.0 -3" radius="0.5" height="1.5" color="#FFC65D" shadow dynamic-body></a-cylinder>
+      <a-plane position="0 0 -4" rotation="-90 0 0" width="4" height="4" color="#7BC8A4" shadow static-body></a-plane>
+      <a-sky color="#ECECEC"></a-sky>
+    </a-scene>
+  </body>
+</html>
+

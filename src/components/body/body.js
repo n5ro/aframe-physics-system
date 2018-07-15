@@ -321,6 +321,7 @@ var Body = {
           body = this.body;
 
       if (!body) return;
+      if (!parentEl) return;
 
       if (parentEl.isScene) {
         el.object3D.quaternion.copy(body.quaternion);
