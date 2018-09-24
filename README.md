@@ -1,8 +1,8 @@
 # Physics for A-Frame VR
 
 [![Latest NPM release](https://img.shields.io/npm/v/aframe-physics-system.svg)](https://www.npmjs.com/package/aframe-physics-system)
-[![Build Status](https://travis-ci.org/donmccurdy/aframe-physics-system.svg?branch=master)](https://travis-ci.org/donmccurdy/aframe-physics-system)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/donmccurdy/aframe-physics-system/master/LICENSE)
+[![Build Status](https://travis-ci.org/donmccurdy/aframe-physics-system.svg?branch=master)](https://travis-ci.org/donmccurdy/aframe-physics-system)
 
 Components for A-Frame physics integration, built on [CANNON.js](http://schteppe.github.io/cannon.js/).
 
