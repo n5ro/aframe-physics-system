@@ -31,6 +31,11 @@ module.exports = AFRAME.registerComponent("spring", {
   update: function(oldData, newData) {
     var el = this.el,
     data = this.data;
+
+    if (!data.target) {
+      console.warn("Spring: invalid target specified.");
+      return; 
+    }
     
     // wait until the CANNON bodies is created and attached
     if (!el.body || !data.target.body) {
@@ -51,10 +56,7 @@ module.exports = AFRAME.registerComponent("spring", {
     } 
     var data = this.data,
     spring = this.spring
-    if (!data.target) {
-      console.warn("Spring: invalid target specified. No changes made.");
-      return;
-    }
+
     // Cycle through the schema and check if an attribute has changed.
     // if so, apply it to the spring
     Object.keys(data).forEach(function(attr) {
@@ -70,10 +72,7 @@ module.exports = AFRAME.registerComponent("spring", {
   },
 
   createSpring: function() {
-    // no need to create a new spring
-    if (this.spring) return
-    var data = this.data
-    if (!this.dataIsValid(data)) return;
+    if (this.spring) return // no need to create a new spring
     this.spring = new CANNON.Spring(this.el.body);
     // Compute the force after each step
     this.world.addEventListener("postStep", this.updateSpringForce.bind(this, {}));
@@ -81,15 +80,7 @@ module.exports = AFRAME.registerComponent("spring", {
 
   // If the spring is valid, update the force each tick the physics are calculated
   updateSpringForce: function() {
-    if (this.spring) {
-       this.spring.applyForce()
-    }
-  },
-
-  // as for now only check if there is another body to attach
-  dataIsValid: function(data) {
-    if (!data.target) return false
-    return true
+    return this.spring ? this.spring.applyForce() : void 0
   },
 
   // resume updating the force when component upon calling play()
