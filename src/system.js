@@ -58,6 +58,10 @@ module.exports = AFRAME.registerSystem('physics', {
         this.driver = new LocalDriver();
         break;
 
+      case 'ammo':
+        this.driver = new AmmoDriver();
+        break;
+
       case 'network':
         this.driver = new NetworkDriver(data.networkUrl);
         break;
@@ -83,24 +87,26 @@ module.exports = AFRAME.registerSystem('physics', {
       gravity: data.gravity
     });
 
-    this.driver.addMaterial({name: 'defaultMaterial'});
-    this.driver.addMaterial({name: 'staticMaterial'});
-    this.driver.addContactMaterial('defaultMaterial', 'defaultMaterial', {
-      friction: data.friction,
-      restitution: data.restitution,
-      contactEquationStiffness: data.contactEquationStiffness,
-      contactEquationRelaxation: data.contactEquationRelaxation,
-      frictionEquationStiffness: data.frictionEquationStiffness,
-      frictionEquationRegularization: data.frictionEquationRegularization
-    });
-    this.driver.addContactMaterial('staticMaterial', 'defaultMaterial', {
-      friction: 1.0,
-      restitution: 0.0,
-      contactEquationStiffness: data.contactEquationStiffness,
-      contactEquationRelaxation: data.contactEquationRelaxation,
-      frictionEquationStiffness: data.frictionEquationStiffness,
-      frictionEquationRegularization: data.frictionEquationRegularization
-    });
+    if (data.driver !== 'ammo') {
+      this.driver.addMaterial({name: 'defaultMaterial'});
+      this.driver.addMaterial({name: 'staticMaterial'});
+      this.driver.addContactMaterial('defaultMaterial', 'defaultMaterial', {
+        friction: data.friction,
+        restitution: data.restitution,
+        contactEquationStiffness: data.contactEquationStiffness,
+        contactEquationRelaxation: data.contactEquationRelaxation,
+        frictionEquationStiffness: data.frictionEquationStiffness,
+        frictionEquationRegularization: data.frictionEquationRegularization
+      });
+      this.driver.addContactMaterial('staticMaterial', 'defaultMaterial', {
+        friction: 1.0,
+        restitution: 0.0,
+        contactEquationStiffness: data.contactEquationStiffness,
+        contactEquationRelaxation: data.contactEquationRelaxation,
+        frictionEquationStiffness: data.frictionEquationStiffness,
+        frictionEquationRegularization: data.frictionEquationRegularization
+      });
+    }
   },
 
   /**
@@ -139,22 +145,24 @@ module.exports = AFRAME.registerSystem('physics', {
   addBody: function (body) {
     var driver = this.driver;
 
-    body.__applyImpulse = body.applyImpulse;
-    body.applyImpulse = function () {
-      driver.applyBodyMethod(body, 'applyImpulse', arguments);
-    };
+    if (driver === 'local') {
+      body.__applyImpulse = body.applyImpulse;
+      body.applyImpulse = function () {
+        driver.applyBodyMethod(body, 'applyImpulse', arguments);
+      };
 
-    body.__applyForce = body.applyForce;
-    body.applyForce = function () {
-      driver.applyBodyMethod(body, 'applyForce', arguments);
-    };
+      body.__applyForce = body.applyForce;
+      body.applyForce = function () {
+        driver.applyBodyMethod(body, 'applyForce', arguments);
+      };
 
-    body.updateProperties = function () {
-      driver.updateBodyProperties(body);
-    };
+      body.updateProperties = function () {
+        driver.updateBodyProperties(body);
+      };
 
-    this.listeners[body.id] = function (e) { body.el.emit('collide', e); };
-    body.addEventListener('collide', this.listeners[body.id]);
+      this.listeners[body.id] = function (e) { body.el.emit('collide', e); };
+      body.addEventListener('collide', this.listeners[body.id]);
+    }
 
     this.driver.addBody(body);
   },
@@ -166,16 +174,18 @@ module.exports = AFRAME.registerSystem('physics', {
   removeBody: function (body) {
     this.driver.removeBody(body);
 
-    body.removeEventListener('collide', this.listeners[body.id]);
-    delete this.listeners[body.id];
+    if (driver === 'local') {
+      body.removeEventListener('collide', this.listeners[body.id]);
+      delete this.listeners[body.id];
 
-    body.applyImpulse = body.__applyImpulse;
-    delete body.__applyImpulse;
+      body.applyImpulse = body.__applyImpulse;
+      delete body.__applyImpulse;
 
-    body.applyForce = body.__applyForce;
-    delete body.__applyForce;
+      body.applyForce = body.__applyForce;
+      delete body.__applyForce;
 
-    delete body.updateProperties;
+      delete body.updateProperties;
+    }
   },
 
   /** @param {CANNON.Constraint} constraint */

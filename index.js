@@ -1,6 +1,7 @@
 var CANNON = require('cannon');
 
 require('./src/components/math');
+require('./src/components/body/ammo-body');
 require('./src/components/body/body');
 require('./src/components/body/dynamic-body');
 require('./src/components/body/static-body');
