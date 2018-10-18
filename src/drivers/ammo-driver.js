@@ -25,7 +25,7 @@ Ammo().then(function(Ammo) {
     this.broadphase = new Ammo.btDbvtBroadphase();
     this.solver = new Ammo.btSequentialImpulseConstraintSolver();
     this.physicsWorld = new Ammo.btDiscreteDynamicsWorld( this.dispatcher, this.broadphase, this.solver, this.collisionConfiguration);
-    this.physicsWorld.setGravity( new Ammo.btVector3( 0, worldConfig.gravity || -9.8, 0 ) );
+    this.physicsWorld.setGravity( new Ammo.btVector3( 0, worldConfig.hasOwnProperty('gravity') ? worldConfig.gravity : -9.8, 0 ) );
   };
 
   // LocalDriver.prototype.getMaterial = function (name) {

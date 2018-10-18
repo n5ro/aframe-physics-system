@@ -25,7 +25,7 @@ var Body = {
       default: DISABLE_DEACTIVATION, 
       oneOf: [ACTIVE_TAG, ISLAND_SLEEPING, WANTS_DEACTIVATION, DISABLE_DEACTIVATION, DISABLE_SIMULATION]
     },
-    shape: {default: 'box', oneOf: ['box', 'cylinder', 'sphere', 'hull', 'mesh', 'none']},
+    shape: {default: 'hull', oneOf: ['box', 'cylinder', 'sphere', 'hull', 'mesh']},
     cylinderAxis: {default: 'y', oneOf: ['x', 'y', 'z']},
     sphereRadius: {default: NaN},
     type: {default: 'dynamic', oneOf: ['static', 'dynamic', 'kinematic']}
@@ -45,6 +45,16 @@ var Body = {
     }
   },
 
+  _getMeshRoot: function (obj) {
+    //TODO: is there a better way to do this?
+    if (obj.children.length > 0 && obj.children[0].type === 'Scene') {
+      obj = obj.children[0].children[0];
+    } else if (obj.children.length > 0 && obj.children[0].type === 'Object3D') {
+      obj = obj.children[0];
+    }
+    return obj;
+  },
+
   /**
    * Parses an element's geometry and component metadata to create a CANNON.Body instance for the
    * component.
@@ -54,8 +64,116 @@ var Body = {
         data = this.data;
 
     var obj = this.el.object3D;
-    var pos = obj.position;
+    var pos = new THREE.Vector3();
+    pos.copy(obj.position);
     var quat = obj.quaternion;
+
+    if (this.system.debug) {
+      this.debugDrawer = this.system.driver.getDebugDrawer(this.el.sceneEl.object3D, {drawOnTop: false, debugDrawMode: 1});
+      this.debugDrawer.enable();
+    }
+        
+    switch (this.data.shape) {
+      case 'box':
+        //TODO: better way of doing this?
+        var box = new THREE.Box3();
+        var clone = obj.clone();
+        clone.quaternion.set(0, 0, 0, 1);
+        clone.updateMatrixWorld();
+
+        box.setFromObject(clone);
+
+        if (!isFinite(box.min.lengthSq())) return null;
+
+        var halfExtents = new Ammo.btVector3( 
+          (box.max.x - box.min.x) / 2, 
+          (box.max.y - box.min.y) / 2, 
+          (box.max.z - box.min.z) / 2
+        );
+        this.physicsShape = new Ammo.btBoxShape( halfExtents );
+
+        Ammo.destroy(halfExtents);
+        break;
+
+      case 'sphere':
+        break;
+      case 'cylinder':
+        break;
+      case 'capsule':
+        break;
+
+      case 'hull':
+        var scale = new Ammo.btVector3(obj.scale.x, obj.scale.y, obj.scale.z);
+        var vec3 = new Ammo.btVector3(); 
+        var originalHull = new Ammo.btConvexHullShape();
+        originalHull.setMargin(data.margin);
+
+        obj = this._getMeshRoot(obj);
+
+        for (var i = 0; i < obj.children.length; i++) {
+          var mesh = obj.children[i];
+          if (mesh.type === 'Mesh') {
+            var geometry = mesh.geometry;
+            var positions = geometry.attributes.position.array;
+            for (var i = 0; i < positions.length; i+=3) {
+              vec3.setValue( positions[i], positions[i+1], positions[i+2] );
+              originalHull.addPoint(vec3, i == positions.length - 3);
+            }
+          }
+
+          this.physicsShape = originalHull;
+          if (originalHull.getNumVertices() >= 100) { //Bullet documentation says don't use convexHulls with 100 verts or more
+            this.shapeHull = new Ammo.btShapeHull(originalHull);
+            this.shapeHull.buildHull(data.margin);
+            Ammo.destroy(originalHull);
+            this.physicsShape = new Ammo.btConvexHullShape(this.shapeHull.getVertexPointer().ptr, this.shapeHull.numVertices());
+          }
+          this.physicsShape.setLocalScaling(scale);
+
+          if (this.system.debug) {
+            this.physicsShape.initializePolyhedralFeatures(0);
+          }
+        }
+
+        Ammo.destroy(scale);
+        Ammo.destroy(vec3);
+        break;
+      case 'mesh':
+        if (this.data.type !== 'static') {
+          console.warn('non-static mesh colliders are not currently supported');
+          break;
+        }
+
+        var scale = new Ammo.btVector3(obj.scale.x, obj.scale.y, obj.scale.z);
+        var a = new Ammo.btVector3(); 
+        var b = new Ammo.btVector3(); 
+        var c = new Ammo.btVector3(); 
+        var triMesh = new Ammo.btTriangleMesh(true, false);
+
+        obj = this._getMeshRoot(obj);
+
+        for (var i = 0; i < obj.children.length; i++) {
+          var mesh = obj.children[i];
+          if(mesh.type == "Mesh") {
+            mesh.updateMatrix();
+            var geometry = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry;
+            geometry.applyMatrix( mesh.matrix );
+            var positions = geometry.attributes.position.array;
+            for (var j = 0; j < positions.length; j+=9) {
+              a.setValue(positions[j], positions[j+1], positions[j+2]);
+              b.setValue(positions[j+3], positions[j+4], positions[j+5]);
+              c.setValue(positions[j+6], positions[j+7], positions[j+8]);
+              triMesh.addTriangle(a, b, c, j == positions.length - 9);
+            }
+          }
+        }
+        this.physicsShape = new Ammo.btBvhTriangleMeshShape(triMesh, true, true);
+        break;
+
+      default:
+        console.warn(this.data.shape + ' is not currently supported');
+        break;
+    }
 
     this.msTransform = new Ammo.btTransform();
     this.msTransform.setIdentity();
@@ -66,38 +184,11 @@ var Body = {
     this.motionState = new Ammo.btDefaultMotionState( this.msTransform );
     this.localInertia = new Ammo.btVector3( 0, 0, 0 );
 
-    this.debugDrawer = this.system.driver.getDebugDrawer(this.el.sceneEl.object3D);
-    this.debugDrawer.enable();
-
-    switch (this.data.shape) {
-      case 'box':
-        var box = new THREE.Box3();
-
-        var clone = obj.clone();
-        clone.quaternion.set(0, 0, 0, 1);
-        clone.updateMatrixWorld();
-
-        box.setFromObject(clone);
-
-        if (!isFinite(box.min.lengthSq())) return null;
-
-        this.halfExtents = new Ammo.btVector3( 
-          (box.max.x - box.min.x) / 2, 
-          (box.max.y - box.min.y) / 2, 
-          (box.max.z - box.min.z) / 2
-        );
-        this.physicsShape = new Ammo.btBoxShape( this.halfExtents );
-        break;
-
-      default:
-        console.warning(this.data.shape + ' is currently unsupported');
-        break;
-    }
-
     this.physicsShape.setMargin( this.data.margin );
 
-    if (this.data.mass > 0)
+    if (this.data.mass > 0) {
       this.physicsShape.calculateLocalInertia( this.data.mass, this.localInertia );
+    }
 
     this.rbInfo = new Ammo.btRigidBodyConstructionInfo(this.data.mass, this.motionState, this.physicsShape, this.localInertia);
     this.body = new Ammo.btRigidBody(this.rbInfo);
@@ -186,6 +277,7 @@ var Body = {
     }
 
     //TODO: delete these
+    //this.shapeHull
     // this.msTransform = new Ammo.btTransform();
     // this.msTransform.setIdentity();
     // this.vector3 = new Ammo.btVector3(pos.x, pos.y, pos.z);
@@ -233,6 +325,7 @@ var Body = {
         this.motionState.setWorldTransform(this.msTransform);
         body.setWorldTransform(this.msTransform);
       } else {
+        //TODO: 
         // el.object3D.getWorldQuaternion(q);
         // body.quaternion.copy(q);
         // el.object3D.getWorldPosition(v);
