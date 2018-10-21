@@ -12,10 +12,10 @@ module.exports = AFRAME.registerComponent("spring", {
     restLength: {default: 1, min: 0},
 
     // how much will the spring suppress the force
-    stiffness: {default: 100, min: 0, max: 0},
+    stiffness: {default: 100, min: 0},
 
     // the stretch factor of the spring
-    damping: {default: 1, min: 0, max: 1},
+    damping: {default: 1, min: 0},
 
     // offsets
     localAnchorA: {type: 'vec3', default: {x: 0, y: 0, z: 0}},
@@ -23,12 +23,13 @@ module.exports = AFRAME.registerComponent("spring", {
   },
 
   init: function() {
-    this.system = this.el.sceneEl.systems.physics
-    this.world = this.system.driver.world
+    this.system = this.el.sceneEl.systems.physics;
+    this.system.addComponent(this)
+    this.isActive = true
     this.spring = /* {CANNON.Spring} */ null
   },
 
-  update: function(oldData, newData) {
+  update: function(oldData) {
     var el = this.el,
     data = this.data;
 
@@ -74,28 +75,25 @@ module.exports = AFRAME.registerComponent("spring", {
   createSpring: function() {
     if (this.spring) return // no need to create a new spring
     this.spring = new CANNON.Spring(this.el.body);
-    // Compute the force after each step
-    this.world.addEventListener("postStep", this.updateSpringForce.bind(this, {}));
   },
 
   // If the spring is valid, update the force each tick the physics are calculated
-  updateSpringForce: function() {
-    return this.spring ? this.spring.applyForce() : void 0
+  step: function(t, dt) {
+    return this.spring && this.isActive ? this.spring.applyForce() : void 0
   },
 
   // resume updating the force when component upon calling play()
   play: function() {
-    this.world.addEventListener("postStep", this.updateSpringForce.bind(this, {}));
+    this.isActive = true
   },
 
   // stop updating the force when component upon calling stop()
   pause: function() {
-    this.world.removeEventListener("postStep", this.updateSpringForce.bind(this, {}));
+    this.isActive = false
   },
 
   //remove the event listener + delete the spring
   remove: function() {
-    this.world.removeEventListener("postStep", this.updateSpringForce.bind(this, {}));
     if (this.spring)
       delete this.spring
       this.spring = null
