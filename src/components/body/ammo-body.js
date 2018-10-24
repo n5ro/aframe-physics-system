@@ -28,7 +28,10 @@ var Body = {
     shape: {default: 'hull', oneOf: ['box', 'cylinder', 'sphere', 'capsule', 'cone', 'hull', 'mesh']},
     cylinderAxis: {default: 'y', oneOf: ['x', 'y', 'z']},
     sphereRadius: {default: NaN},
-    type: {default: 'dynamic', oneOf: ['static', 'dynamic', 'kinematic']}
+    type: {default: 'dynamic', oneOf: ['static', 'dynamic', 'kinematic']},
+    addCollideEventListener: {default: false},
+    collisionGroup: {default: NaN}, //32-bit mask
+    collisionFilter: {defualt: NaN} //32-bit mask
   },
 
   /**
@@ -118,10 +121,14 @@ var Body = {
     var quat = obj.quaternion;
 
     if (this.system.debug) {
-      this.debugDrawer = this.system.driver.getDebugDrawer(this.el.sceneEl.object3D, {drawOnTop: false, debugDrawMode: 1});
+      this.debugDrawer = this.system.driver.getDebugDrawer(this.el.sceneEl.object3D, {
+        drawOnTop: false, 
+        debugDrawMode: THREE.AmmoDebugConstants.DrawWireframe
+      });
       this.debugDrawer.enable();
     }
         
+    //TODO: Support convex hull decomposition, compound shapes, gimpact (dynamic trimesh)
     switch (this.data.shape) {
       case 'box':
         this.physicsShape = new Ammo.btBoxShape( this._getHalfExtents(obj) );
@@ -160,7 +167,6 @@ var Body = {
 
       case 'capsule':
         var halfExtents = this._getHalfExtents(obj);
-        console.log(halfExtents.x(), halfExtents.y(), halfExtents.z())
         switch(data.cylinderAxis) {
           case 'y':
             this.physicsShape = new Ammo.btCapsuleShape(Math.max(halfExtents.x(), halfExtents.z()), halfExtents.y()*2);
@@ -307,8 +313,15 @@ var Body = {
       default:
         break;
     }
+
+    this.el.body = this.body;
+    this.body.el = el;
     
-    this.system.addBody( this.body );
+    this.system.addBody(this.body);
+
+    if (this.data.addCollideEventListener) {
+      this.system.driver.addEventListener(this.body);
+    }
 
     this.isLoaded = true;
 
@@ -318,9 +331,6 @@ var Body = {
     // Reference: https://github.com/mrdoob/three.js/blob/master/src/core/Object3D.js#L511-L541
     // Potential fix: https://github.com/mrdoob/three.js/pull/7019
     this.el.object3D.updateMatrixWorld(true);
-
-    this.el.body = this.body;
-    this.body.el = el;
 
     // If component wasn't initialized when play() was called, finish up.
     if (this.isPlaying) {
@@ -362,7 +372,7 @@ var Body = {
   },
 
   /**
-   * Updates the CANNON.Body instance, where possible.
+   * Updates the rigid body instance, where possible.
    */
   update: function (prevData) {
     if (!this.body) return;
@@ -376,6 +386,10 @@ var Body = {
    * Removes the component and all physics and scene side effects.
    */
   remove: function () {
+    if (this.data.addCollideEventListener) {
+      this.system.driver.removeEventListener(this.body);
+    }
+
     if (this.body) {
       delete this.body.el;
       delete this.body;
@@ -403,7 +417,7 @@ var Body = {
   },
 
   /**
-   * Updates the CANNON.Body instance's position, velocity, and rotation, based on the scene.
+   * Updates the rigid body's position, velocity, and rotation, based on the scene.
    */
   syncToPhysics: (function () {
     var q =  new THREE.Quaternion(),

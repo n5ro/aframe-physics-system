@@ -1,9 +1,9 @@
 var Ammo = require('ammo.js'),
 Driver = require('./driver');
 
-Ammo().then(function(Ammo) {
-  console.log("Ammo", Ammo)
+const EPS = 10e-6;
 
+Ammo().then(function(Ammo) {
   function AmmoDriver() {
     this.collisionConfiguration = null;
     this.dispatcher = null;
@@ -11,6 +11,10 @@ Ammo().then(function(Ammo) {
     this.solver = null;
     this.physicsWorld = null;
     this.debugDrawer = null;
+
+    this.els = {};
+    this.eventListeners = [];
+    this.collisions = [];
   }
 
   AmmoDriver.prototype = new Driver();
@@ -20,6 +24,7 @@ Ammo().then(function(Ammo) {
 
   /* @param {object} worldConfig */
   AmmoDriver.prototype.init = function(worldConfig) {
+    this.epsilon = worldConfig.epsilon || EPS;
     this.collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
     this.dispatcher = new Ammo.btCollisionDispatcher( this.collisionConfiguration );
     this.broadphase = new Ammo.btDbvtBroadphase();
@@ -43,14 +48,72 @@ Ammo().then(function(Ammo) {
   /* @param {Ammo.btCollisionObject} body */
   AmmoDriver.prototype.addBody = function(body) {
     this.physicsWorld.addRigidBody(body);
+    this.els[body.ptr] = body.el;
+  };
+
+  /* @param {Ammo.btCollisionObject} body */
+  AmmoDriver.prototype.removeBody = function (body) {
+    this.physicsWorld.removeRigidBody(body);
+    delete this.els[body.ptr];
   };
 
   /* @param {number} deltaTime */
   AmmoDriver.prototype.step = function(deltaTime) {
     this.physicsWorld.stepSimulation(deltaTime, 10);
+
+    var numManifolds = this.dispatcher.getNumManifolds();
+    for(var i = 0; i < numManifolds; i++) {
+      var persistentManifold = this.dispatcher.getManifoldByIndexInternal(i);
+      var numContacts = persistentManifold.getNumContacts();
+      var manifoldPoint = persistentManifold.getContactPoint(j);
+      var body0 = persistentManifold.getBody0();
+      var body1 = persistentManifold.getBody1();
+      var distance = manifoldPoint.getDistance();
+      var key = body0.ptr + '_' + body1.ptr;
+      var collided = false;
+      for (var j = 0; j < numContacts; j++) {
+        if (body0.ptr !== body1.ptr && distance <= this.epsilon) {
+          collided = true;
+          break;  
+        }
+      }
+      if (collided && this.collisions.indexOf(key) === -1) {
+        this.collisions.push(key);
+        if (this.eventListeners.indexOf(body0.ptr) !== -1) {
+          this.els[body0.ptr].emit('collide', {target: this.els[body1.ptr]});
+        } 
+        if (this.eventListeners.indexOf(body1.ptr) !== -1) {
+          this.els[body1.ptr].emit('collide', {target: this.els[body0.ptr]});
+        }
+      } else if (!collided && this.collisions.indexOf(key) !== -1) {
+        this.collisions.splice(this.collisions.indexOf(key), 1);
+        if (this.eventListeners.indexOf(body0.ptr) !== -1) {
+          this.els[body0.ptr].emit('collide-end', {target: this.els[body1.ptr]});
+        } 
+        if (this.eventListeners.indexOf(body1.ptr) !== -1) {
+          this.els[body1.ptr].emit('collide-end', {target: this.els[body0.ptr]});
+        }
+      }
+    }
+
     if (this.debugDrawer) {
       this.debugDrawer.update();
     }
+  };
+
+  /* @param {?} constraint */
+  AmmoDriver.prototype.addConstraint = function(constraint) {
+
+  };
+
+  /* @param {Ammo.btCollisionObject} body */
+  AmmoDriver.prototype.addEventListener = function(body) {
+    this.eventListeners.push(body.ptr);
+  };
+
+  /* @param {Ammo.btCollisionObject} body */
+  AmmoDriver.prototype.removeEventListener = function(body) {
+    this.eventListeners.splice(this.eventListeners.indexOf(body.ptr), 1);
   };
 
   AmmoDriver.prototype.destroy = function() {
@@ -72,7 +135,4 @@ Ammo().then(function(Ammo) {
     }
     return this.debugDrawer;
   };
-
-
-
 });
