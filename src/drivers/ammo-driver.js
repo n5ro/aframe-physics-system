@@ -25,7 +25,7 @@ Ammo().then(function(Ammo) {
 
   /* @param {object} worldConfig */
   AmmoDriver.prototype.init = function(worldConfig) {
-    this.epsilon = worldConfig.epsilon || EPS;
+    this.epsilon = worldConfig.epsilon || EPS;  
     this.debugDrawMode = worldConfig.debugDrawMode || THREE.AmmoDebugConstants.NoDebug;
     this.collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
     this.dispatcher = new Ammo.btCollisionDispatcher( this.collisionConfiguration );
