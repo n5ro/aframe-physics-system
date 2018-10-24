@@ -101,6 +101,19 @@ LocalDriver.prototype.addContactMaterial = function (matName1, matName2, contact
 
 /* @param {CANNON.Constraint} constraint */
 LocalDriver.prototype.addConstraint = function (constraint) {
+  if (!constraint.type) {
+    if (constraint instanceof CANNON.LockConstraint) {
+      constraint.type = 'LockConstraint';
+    } else if (constraint instanceof CANNON.DistanceConstraint) {
+      constraint.type = 'DistanceConstraint';
+    } else if (constraint instanceof CANNON.HingeConstraint) {
+      constraint.type = 'HingeConstraint';
+    } else if (constraint instanceof CANNON.ConeTwistConstraint) {
+      constraint.type = 'ConeTwistConstraint';
+    } else if (constraint instanceof CANNON.PointToPointConstraint) {
+      constraint.type = 'PointToPointConstraint';
+    }
+  }
   this.world.addConstraint(constraint);
 };
 

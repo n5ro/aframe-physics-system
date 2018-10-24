@@ -1,3 +1,4 @@
+/* global THREE */
 var Ammo = require('ammo.js'),
 Driver = require('./driver');
 
@@ -25,12 +26,14 @@ Ammo().then(function(Ammo) {
   /* @param {object} worldConfig */
   AmmoDriver.prototype.init = function(worldConfig) {
     this.epsilon = worldConfig.epsilon || EPS;
+    this.debugDrawMode = worldConfig.debugDrawMode || THREE.AmmoDebugConstants.NoDebug;
     this.collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
     this.dispatcher = new Ammo.btCollisionDispatcher( this.collisionConfiguration );
     this.broadphase = new Ammo.btDbvtBroadphase();
     this.solver = new Ammo.btSequentialImpulseConstraintSolver();
     this.physicsWorld = new Ammo.btDiscreteDynamicsWorld( this.dispatcher, this.broadphase, this.solver, this.collisionConfiguration);
     this.physicsWorld.setGravity( new Ammo.btVector3( 0, worldConfig.hasOwnProperty('gravity') ? worldConfig.gravity : -9.8, 0 ) );
+    this.physicsWorld.getSolverInfo().set_m_numIterations(worldConfig.solverIterations);
   };
 
   // LocalDriver.prototype.getMaterial = function (name) {
@@ -103,8 +106,14 @@ Ammo().then(function(Ammo) {
 
   /* @param {?} constraint */
   AmmoDriver.prototype.addConstraint = function(constraint) {
-
+    this.physicsWorld.addConstraint(constraint, false);
   };
+
+  /* @param {?} constraint */
+  AmmoDriver.prototype.removeConstraint = function (constraint) {
+    this.physicsWorld.removeConstraint(constraint);
+  };
+
 
   /* @param {Ammo.btCollisionObject} body */
   AmmoDriver.prototype.addEventListener = function(body) {
@@ -131,6 +140,8 @@ Ammo().then(function(Ammo) {
   */
   AmmoDriver.prototype.getDebugDrawer = function(scene, options) {
     if (!this.debugDrawer) {
+      options = options || {};
+      options.debugDrawMode = options.debugDrawMode || this.debugDrawMode;
       this.debugDrawer = new THREE.AmmoDebugDrawer(scene, this.physicsWorld, options);
     }
     return this.debugDrawer;

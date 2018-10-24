@@ -205,6 +205,19 @@ WorkerDriver.prototype.addContactMaterial = function (matName1, matName2, contac
 
 /* @param {CANNON.Constraint} constraint */
 WorkerDriver.prototype.addConstraint = function (constraint) {
+  if (!constraint.type) {
+    if (constraint instanceof CANNON.LockConstraint) {
+      constraint.type = 'LockConstraint';
+    } else if (constraint instanceof CANNON.DistanceConstraint) {
+      constraint.type = 'DistanceConstraint';
+    } else if (constraint instanceof CANNON.HingeConstraint) {
+      constraint.type = 'HingeConstraint';
+    } else if (constraint instanceof CANNON.ConeTwistConstraint) {
+      constraint.type = 'ConeTwistConstraint';
+    } else if (constraint instanceof CANNON.PointToPointConstraint) {
+      constraint.type = 'PointToPointConstraint';
+    }
+  }
   protocol.assignID('constraint', constraint);
   this.worker.postMessage({
     type: Event.ADD_CONSTRAINT,

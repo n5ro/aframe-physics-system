@@ -1,3 +1,4 @@
+/* global THREE */
 var CANNON = require('cannon'),
     CONSTANTS = require('./constants'),
     C_GRAV = CONSTANTS.GRAVITY,
@@ -37,6 +38,9 @@ module.exports = AFRAME.registerSystem('physics', {
 
     // If true, show wireframes around physics bodies.
     debug:                          { default: false },
+    
+    // If using ammo, set the default rendering mode for debug
+    debugDrawMode: { default: THREE.AmmoDebugConstants.NoDebug }
   },
 
   /**
@@ -84,7 +88,8 @@ module.exports = AFRAME.registerSystem('physics', {
       quatNormalizeSkip: 0,
       quatNormalizeFast: false,
       solverIterations: data.iterations,
-      gravity: data.gravity
+      gravity: data.gravity,
+      debugDrawMode: data.debugDrawMode
     });
 
     if (data.driver !== 'ammo') {
@@ -127,7 +132,12 @@ module.exports = AFRAME.registerSystem('physics', {
       this.callbacks.beforeStep[i].beforeStep(t, dt);
     }
 
-    this.driver.step(Math.min(dt / 1000, this.data.maxInterval));
+    if (driver === 'ammo') {
+      this.driver.step(dt); //TODO: make sure maxInterval math isnt needed here
+    } else {
+      this.driver.step(Math.min(dt / 1000, this.data.maxInterval));
+    }
+    
 
     for (i = 0; i < callbacks.step.length; i++) {
       callbacks.step[i].step(t, dt);
@@ -174,7 +184,7 @@ module.exports = AFRAME.registerSystem('physics', {
   removeBody: function (body) {
     this.driver.removeBody(body);
 
-    if (driver === 'local') {
+    if (driver === 'local' || driver === 'worker') {
       body.removeEventListener('collide', this.listeners[body.id]);
       delete this.listeners[body.id];
 
@@ -188,25 +198,12 @@ module.exports = AFRAME.registerSystem('physics', {
     }
   },
 
-  /** @param {CANNON.Constraint} constraint */
+  /** @param {CANNON.Constraint or Ammo.btTypedConstraint} constraint */
   addConstraint: function (constraint) {
-    if (!constraint.type) {
-      if (constraint instanceof CANNON.LockConstraint) {
-        constraint.type = 'LockConstraint';
-      } else if (constraint instanceof CANNON.DistanceConstraint) {
-        constraint.type = 'DistanceConstraint';
-      } else if (constraint instanceof CANNON.HingeConstraint) {
-        constraint.type = 'HingeConstraint';
-      } else if (constraint instanceof CANNON.ConeTwistConstraint) {
-        constraint.type = 'ConeTwistConstraint';
-      } else if (constraint instanceof CANNON.PointToPointConstraint) {
-        constraint.type = 'PointToPointConstraint';
-      }
-    }
     this.driver.addConstraint(constraint);
   },
 
-  /** @param {CANNON.Constraint} constraint */
+  /** @param {CANNON.Constraint or Ammo.btTypedConstraint} constraint */
   removeConstraint: function (constraint) {
     this.driver.removeConstraint(constraint);
   },

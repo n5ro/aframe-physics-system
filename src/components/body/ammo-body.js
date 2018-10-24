@@ -30,6 +30,7 @@ var Body = {
     sphereRadius: {default: NaN},
     type: {default: 'dynamic', oneOf: ['static', 'dynamic', 'kinematic']},
     addCollideEventListener: {default: false},
+    collisionFlags: {default: 0}, //32-bit mask
     collisionGroup: {default: NaN}, //32-bit mask
     collisionFilter: {defualt: NaN} //32-bit mask
   },
@@ -121,10 +122,7 @@ var Body = {
     var quat = obj.quaternion;
 
     if (this.system.debug) {
-      this.debugDrawer = this.system.driver.getDebugDrawer(this.el.sceneEl.object3D, {
-        drawOnTop: false, 
-        debugDrawMode: THREE.AmmoDebugConstants.DrawWireframe
-      });
+      this.debugDrawer = this.system.driver.getDebugDrawer(this.el.sceneEl.object3D);
       this.debugDrawer.enable();
     }
         
@@ -305,10 +303,10 @@ var Body = {
     }
     switch (data.type) {
       case 'static':
-        this.body.setCollisionFlags(CF_STATIC_OBJECT);
+        this.body.setCollisionFlags(CF_STATIC_OBJECT | data.collisionFlags);
         break;
       case 'kinematic':
-        this.body.setCollisionFlags(CF_KINEMATIC_OBJECT);
+        this.body.setCollisionFlags(CF_KINEMATIC_OBJECT | data.collisionFlags);
         break;
       default:
         break;
