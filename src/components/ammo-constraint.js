@@ -6,7 +6,7 @@ module.exports = AFRAME.registerComponent('ammo-constraint', {
 
   schema: {
     // Type of constraint.
-    type: {default: 'slider', oneOf: ['fixed', 'spring', 'slider', 'hinge', 'coneTwist', 'pointToPoint']},
+    type: {default: 'fixed', oneOf: ['fixed', 'spring', 'slider', 'hinge', 'coneTwist', 'pointToPoint']},
 
     // Target (other) body for the constraint.
     target: {type: 'selector'},

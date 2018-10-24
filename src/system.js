@@ -38,7 +38,7 @@ module.exports = AFRAME.registerSystem('physics', {
 
     // If true, show wireframes around physics bodies.
     debug:                          { default: false },
-    
+
     // If using ammo, set the default rendering mode for debug
     debugDrawMode: { default: THREE.AmmoDebugConstants.NoDebug }
   },
@@ -132,7 +132,7 @@ module.exports = AFRAME.registerSystem('physics', {
       this.callbacks.beforeStep[i].beforeStep(t, dt);
     }
 
-    if (driver === 'ammo') {
+    if (this.data.driver === 'ammo') {
       this.driver.step(dt); //TODO: make sure maxInterval math isnt needed here
     } else {
       this.driver.step(Math.min(dt / 1000, this.data.maxInterval));
