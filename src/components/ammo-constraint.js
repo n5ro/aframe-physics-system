@@ -11,7 +11,7 @@ module.exports = AFRAME.registerComponent('ammo-constraint', {
     // Target (other) body for the constraint.
     target: {type: 'selector'},
 
-    // Wake up bodies when connected.
+    // TODO: Wake up bodies when connected.
     wakeUpBodies: {default: true},
 
     // Offset of the hinge or point-to-point constraint, defined locally in the body.
@@ -61,15 +61,11 @@ module.exports = AFRAME.registerComponent('ammo-constraint', {
 
     var constraint;
 
-    var bodyTransform = new Ammo.btTransform();
-    bodyTransform.setIdentity();
-    var bodyOrigin = body.getWorldTransform().getOrigin();
-    bodyTransform.setOrigin(bodyOrigin);
-
-    var targetTransform = new Ammo.btTransform();
-    targetTransform.setIdentity();
-    var targetOrigin = targetBody.getWorldTransform().getOrigin();
-    targetTransform.setOrigin(targetOrigin);
+    var bodyTransform = body.getWorldTransform();
+    var targetTransform = targetBody.getWorldTransform();
+    var distance = targetTransform.getOrigin().op_sub(bodyTransform.getOrigin());
+    bodyTransform.setOrigin(distance);
+    targetTransform.setOrigin(targetTransform.getOrigin().setValue(0, 0, 0));
 
     switch (data.type) {
       case 'fixed':

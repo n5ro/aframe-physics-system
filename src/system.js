@@ -133,7 +133,8 @@ module.exports = AFRAME.registerSystem('physics', {
     }
 
     if (this.data.driver === 'ammo') {
-      this.driver.step(dt); //TODO: make sure maxInterval math isnt needed here
+      // this.driver.step(dt / 1000); //TODO: make sure maxInterval math isnt needed here
+      this.driver.step(Math.min(dt / 1000, 1/60));
     } else {
       this.driver.step(Math.min(dt / 1000, this.data.maxInterval));
     }
@@ -184,7 +185,7 @@ module.exports = AFRAME.registerSystem('physics', {
   removeBody: function (body) {
     this.driver.removeBody(body);
 
-    if (driver === 'local' || driver === 'worker') {
+    if (this.data.driver === 'local' || this.data.driver === 'worker') {
       body.removeEventListener('collide', this.listeners[body.id]);
       delete this.listeners[body.id];
 
