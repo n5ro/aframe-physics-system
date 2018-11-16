@@ -6,6 +6,7 @@ require('./src/components/body/dynamic-body');
 require('./src/components/body/static-body');
 require('./src/components/shape/shape')
 require('./src/components/constraint');
+require('./src/components/spring');
 require('./src/system');
 
 module.exports = {

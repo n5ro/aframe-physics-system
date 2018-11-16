@@ -1,6 +1,6 @@
 var CANNON = require('cannon');
 
-module.exports = AFRAME.registerComponent("spring", {
+module.exports = AFRAME.registerComponent('spring', {
 
   multiple: true,
 
@@ -24,17 +24,17 @@ module.exports = AFRAME.registerComponent("spring", {
 
   init: function() {
     this.system = this.el.sceneEl.systems.physics;
-    this.system.addComponent(this)
-    this.isActive = true
-    this.spring = /* {CANNON.Spring} */ null
+    this.system.addComponent(this);
+    this.isActive = true;
+    this.spring = /* {CANNON.Spring} */ null;
   },
 
   update: function(oldData) {
-    var el = this.el,
-    data = this.data;
+    var el = this.el;
+    var data = this.data;
 
     if (!data.target) {
-      console.warn("Spring: invalid target specified.");
+      console.warn('Spring: invalid target specified.');
       return; 
     }
     
@@ -45,57 +45,57 @@ module.exports = AFRAME.registerComponent("spring", {
     }
 
     // create the spring if necessary
-    this.createSpring()
+    this.createSpring();
     // apply new data to the spring
-    this.updateSpring(oldData)
+    this.updateSpring(oldData);
   },
 
   updateSpring: function(oldData) {
     if (!this.spring) {
-      console.warn("Spring: Component attempted to change spring before its created. No changes made.");
+      console.warn('Spring: Component attempted to change spring before its created. No changes made.');
       return;
     } 
-    var data = this.data,
-    spring = this.spring
+    var data = this.data;
+    var spring = this.spring;
 
     // Cycle through the schema and check if an attribute has changed.
     // if so, apply it to the spring
     Object.keys(data).forEach(function(attr) {
       if (data[attr] !== oldData[attr]) {
-        if (attr === "target") {
+        if (attr === 'target') {
           // special case for the target selector
-          spring.bodyB = data.target.body
-          return
+          spring.bodyB = data.target.body;
+          return;
         }
-        spring[attr] = data[attr]
+        spring[attr] = data[attr];
       }
     })
   },
 
   createSpring: function() {
-    if (this.spring) return // no need to create a new spring
+    if (this.spring) return; // no need to create a new spring
     this.spring = new CANNON.Spring(this.el.body);
   },
 
   // If the spring is valid, update the force each tick the physics are calculated
   step: function(t, dt) {
-    return this.spring && this.isActive ? this.spring.applyForce() : void 0
+    return this.spring && this.isActive ? this.spring.applyForce() : void 0;
   },
 
   // resume updating the force when component upon calling play()
   play: function() {
-    this.isActive = true
+    this.isActive = true;
   },
 
   // stop updating the force when component upon calling stop()
   pause: function() {
-    this.isActive = false
+    this.isActive = false;
   },
 
   //remove the event listener + delete the spring
   remove: function() {
     if (this.spring)
-      delete this.spring
-      this.spring = null
+      delete this.spring;
+      this.spring = null;
   }
 })
