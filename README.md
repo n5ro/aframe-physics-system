@@ -14,6 +14,7 @@ Components for A-Frame physics integration, built on [CANNON.js](http://schteppe
   + [`dynamic-body` and `static-body`](#dynamic-body-and-static-body)
   + [`shape`](#shape)
   + [`constraint`](#constraint)
+  + [`spring`](#spring)
 + [Using the CANNON.js API](#using-the-cannonjs-api)
 + [Events](#events)
 + [System Configuration](#system-configuration)
@@ -172,6 +173,30 @@ Example:
 | targetPivot      | `type: pointToPoint, coneTwist, hinge` | 0 0 0 | Offset of the hinge or point-to-point constraint, defined locally in the target's body. |
 | axis             | `type: coneTwist, hinge` | 0 0 1 | An axis that each body can rotate around, defined locally to this element's body. |
 | targetAxis       | `type: coneTwist, hinge` | 0 0 1 | An axis that each body can rotate around, defined locally to the target's body. |
+
+### `spring`
+
+The `spring` component connects two bodies, and applies forces as the bodies become farther apart.
+
+Example:
+
+```html
+<a-box id="anchor" position="0 2 -3" static-body></a-box>
+<a-box position="0 1 -3"
+       dynamic-body
+       spring="target: #anchor;
+               damping: 0.25;
+               stiffness: 25;"></a-box>
+```
+
+| Property     | Default | Description |
+| ------------ | --- | -------------------------------------------------------------- |
+| target       | —   | Target (other) body for the constraint.                        |
+| restLength   | 1   | Length of the spring, when no force acts upon it.              |
+| stiffness    | 100 | How much will the spring suppress force.                       |
+| damping      | 1   | Stretch factor of the spring.                                  |
+| localAnchorA | —   | Where to hook the spring to body A, in local body coordinates. |
+| localAnchorB | —   | Where to hook the spring to body B, in local body coordinates. |
 
 ## Using the CANNON.js API
 
