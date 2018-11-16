@@ -34,8 +34,8 @@ module.exports = function (self) {
         body.addEventListener('collide', function (evt) {
           var message = {
             type: Event.COLLIDE,
-            body: protocol.serializeBody(evt.target), // set the target as the body to be identical to the local driver
-            target: protocol.serializeBody(evt.body), // set the body as the target to be identical to the local driver
+            bodyID: evt.target[ID], // set the target as the body to be identical to the local driver
+            targetID: evt.body[ID], // set the body as the target to be identical to the local driver
             contact: protocol.serializeContact(evt.contact)
           }
           self.postMessage(message);

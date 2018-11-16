@@ -115,15 +115,14 @@ WorkerDriver.prototype._onMessage = function (event) {
     }
 
   } else if (event.data.type === Event.COLLIDE) {
-    if (!this.bodies[event.data.body.id]._listeners || !this.bodies[event.data.body.id]._listeners.collide) return
-
-    for(var listener of this.bodies[event.data.body.id]._listeners.collide) {
-      listener({
-        target: this.bodies[event.data.target.id],
-        body: this.bodies[event.data.body.id],
-        contact: event.data.contact
-      })
+    var body = this.bodies[event.data.bodyID];
+    var target = this.bodies[event.data.targetID];
+    var contact = protocol.deserializeContact(event.data.contact, this.bodies);
+    if (!body._listeners || !body._listeners.collide) return;
+    for (var i = 0; i < body._listeners.collide.length; i++) {
+      body._listeners.collide[i]({target: target, body: body, contact: contact});
     }
+
   } else {
     throw new Error('[WorkerDriver] Unexpected message type.');
   }
