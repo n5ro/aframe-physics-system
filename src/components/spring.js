@@ -8,16 +8,16 @@ module.exports = AFRAME.registerComponent('spring', {
     // Target (other) body for the constraint.
     target: {type: 'selector'},
 
-    // Lenght of the spring, when no force acts upon it
+    // Length of the spring, when no force acts upon it.
     restLength: {default: 1, min: 0},
 
-    // how much will the spring suppress the force
+    // How much will the spring suppress the force.
     stiffness: {default: 100, min: 0},
 
-    // the stretch factor of the spring
+    // Stretch factor of the spring.
     damping: {default: 1, min: 0},
 
-    // offsets
+    // Offsets.
     localAnchorA: {type: 'vec3', default: {x: 0, y: 0, z: 0}},
     localAnchorB: {type: 'vec3', default: {x: 0, y: 0, z: 0}},
   },
