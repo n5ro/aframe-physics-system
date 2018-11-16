@@ -30,6 +30,16 @@ module.exports = function (self) {
         var body = protocol.deserializeBody(data.body);
         body.material = driver.getMaterial( 'defaultMaterial' );
         bodies[body[ID]] = body;
+
+        body.addEventListener('collide', function (evt) {
+          var message = {
+            type: Event.COLLIDE,
+            bodyID: evt.target[ID], // set the target as the body to be identical to the local driver
+            targetID: evt.body[ID], // set the body as the target to be identical to the local driver
+            contact: protocol.serializeContact(evt.contact)
+          }
+          self.postMessage(message);
+        });
         driver.addBody(body);
         break;
       case Event.REMOVE_BODY:

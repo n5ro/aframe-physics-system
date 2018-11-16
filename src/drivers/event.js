@@ -14,5 +14,8 @@ module.exports = {
 
   // Constraints.
   ADD_CONSTRAINT: 'add-constraint',
-  REMOVE_CONSTRAINT: 'remove-constraint'
+  REMOVE_CONSTRAINT: 'remove-constraint',
+
+  // Events.
+  COLLIDE: 'collide'
 };
