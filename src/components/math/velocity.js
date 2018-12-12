@@ -6,7 +6,7 @@ module.exports = AFRAME.registerComponent('velocity', {
 
   init: function () {
     this.system = this.el.sceneEl.systems.physics;
-    
+
     if (this.system) {
       this.system.addComponent(this);
     }
