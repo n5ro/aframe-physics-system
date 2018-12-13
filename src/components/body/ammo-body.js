@@ -38,8 +38,8 @@ var Body = {
     addCollideEventListener: {default: false},
     collisionFlags: {default: 0}, //32-bit mask
     collisionGroup: {default: NaN}, //32-bit mask
-    collisionFilter: {defualt: NaN}, //32-bit mask,
-    meshScale: {type: 'vec3', default: {x: 1, y:1, z:1}}
+    collisionFilter: {defualt: NaN}, //32-bit mask
+    autoUpdateScale: {default: true}
   },
 
   /**
@@ -188,6 +188,7 @@ var Body = {
           data = this.data;
 
       var obj = this.el.object3D;
+      this.prevScale = obj.scale.clone();
       obj.getWorldPosition(pos);
       obj.getWorldQuaternion(quat);
 
@@ -413,7 +414,29 @@ var Body = {
   }()),
 
   tick: function () {
+    var obj = this.el.object3DMap.mesh || this.el.object3D; //TODO???
 
+    if (this.data.autoUpdateScale && this.prevScale && !almostEquals(0.001, obj.scale, this.prevScale)) {
+      this.prevScale.copy(obj.scale)
+      var shape = this.body.getCollisionShape();
+      var scale = this.physicsShape.getLocalScaling();
+      scale.setValue(obj.scale.x, obj.scale.y, obj.scale.z);
+      shape.setLocalScaling(scale);
+
+      if (this.data.mass > 0) {
+        shape.setMargin(this.data.margin);
+        shape.calculateLocalInertia(this.data.mass, this.localInertia);
+        this.body.setMassProps(this.data.mass, this.localInertia);
+        this.body.updateInertiaTensor();    
+      }
+
+      this.system.driver.updateBody(this.body);
+      
+      if (this.data.shape === 'hull' && this.system.debug) {
+        this.physicsShape.initializePolyhedralFeatures(0);
+      }
+      this.syncToPhysics();
+    }
   },
 
   /**
@@ -448,33 +471,6 @@ var Body = {
    * Updates the rigid body instance, where possible.
    */
   update: function (prevData) {
-    if (!this.body) return;
-
-    var data = this.data;
-
-    //TODO: handle dynamic changing of scale?
-    if (!almostEquals(0.001, data.meshScale, prevData.meshScale)) {
-      var shape = this.body.getCollisionShape();
-      var scale = this.physicsShape.getLocalScaling();
-      scale.setValue(data.meshScale.x, data.meshScale.y, data.meshScale.z);
-      shape.setLocalScaling(scale);
-
-      if (this.data.mass > 0) {
-        shape.setMargin(this.data.margin);
-        shape.calculateLocalInertia(this.data.mass, this.localInertia);
-        this.body.setMassProps(this.data.mass, this.localInertia);
-        this.body.updateInertiaTensor();    
-      }
-
-      this.system.driver.updateBody(this.body);
-      
-      if (data.shape === 'hull' && this.system.debug) {
-        this.physicsShape.initializePolyhedralFeatures(0);
-      }
-      this.syncToPhysics();
-    }
-
-    //TODO: handle other updates
   },
 
   /**
