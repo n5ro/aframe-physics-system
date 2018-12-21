@@ -26,6 +26,7 @@ module.exports = AFRAME.registerComponent('ammo-constraint', {
   init: function () {
     this.system = this.el.sceneEl.systems.physics;
     this.constraint = null;
+    this.targetTransform = new Ammo.btTransform();
   },
 
   remove: function () {
@@ -59,13 +60,12 @@ module.exports = AFRAME.registerComponent('ammo-constraint', {
         body = this.el.body,
         targetBody = data.target.body;
 
-    var constraint;
+    var bodyTransform = body.getCenterOfMassTransform().inverse().op_mul(targetBody.getWorldTransform());
+    bodyTransform.setRotation(body.getWorldTransform().getRotation());
 
-    var bodyTransform = body.getWorldTransform();
-    var targetTransform = targetBody.getWorldTransform();
-    var distance = targetTransform.getOrigin().op_sub(bodyTransform.getOrigin());
-    bodyTransform.setOrigin(distance);
-    targetTransform.setOrigin(targetTransform.getOrigin().setValue(0, 0, 0));
+    var targetTransform = this.targetTransform;
+    targetTransform.setIdentity();
+    targetTransform.setRotation(targetBody.getWorldTransform().getRotation());
 
     switch (data.type) {
       case 'fixed':
@@ -75,7 +75,6 @@ module.exports = AFRAME.registerComponent('ammo-constraint', {
       case 'spring':
         constraint = new Ammo.btGeneric6DofSpringConstraint(body, targetBody, bodyTransform, targetTransform, true);
         break;
-
 
       case 'slider':
         //TODO: optionally support axis/limits
