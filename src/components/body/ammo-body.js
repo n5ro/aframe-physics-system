@@ -23,15 +23,16 @@ function almostEquals(epsilon, u, v) {
 
 var Body = {
   schema: {
-    mass: {default: 5, if: {type: 'dynamic'}},
-    linearDamping:  { default: 0.01, if: {type: 'dynamic'}},
-    angularDamping: { default: 0.01,  if: {type: 'dynamic'}},
+    mass: {default: 1},
+    linearDamping:  { default: 0.01},
+    angularDamping: { default: 0.01},
     margin: {default: 0.01},
     activationState: {
       default: DISABLE_DEACTIVATION, 
       oneOf: [ACTIVE_TAG, ISLAND_SLEEPING, WANTS_DEACTIVATION, DISABLE_DEACTIVATION, DISABLE_SIMULATION]
     },
     shape: {default: 'hull', oneOf: ['box', 'cylinder', 'sphere', 'capsule', 'cone', 'hull', 'mesh']},
+    halfExtents: {default: {}, type: 'vec3'},
     cylinderAxis: {default: 'y', oneOf: ['x', 'y', 'z']},
     sphereRadius: {default: NaN},
     type: {default: 'dynamic', oneOf: ['static', 'dynamic', 'kinematic']},
@@ -146,6 +147,15 @@ var Body = {
   _getHalfExtents: (function () {
     return function(obj) {
       var {min, max} = this._getBoundingBox(obj)
+
+      if (!isNaN(this.data.halfExtents.x) && !isNaN(this.data.halfExtents.y) && !isNaN(this.data.halfExtents.z)) {
+        return halfExtents = {
+          x: this.data.halfExtents.x * this.el.object3D.scale.x,
+          y: this.data.halfExtents.y * this.el.object3D.scale.y,
+          z: this.data.halfExtents.z * this.el.object3D.scale.z
+        }
+      }
+
       return halfExtents = {
         x: (Math.abs(min.x - max.x) / 2 * this.el.object3D.scale.x),
         y: (Math.abs(min.y - max.y) / 2 * this.el.object3D.scale.y),
@@ -353,8 +363,7 @@ var Body = {
 
       this.physicsShape.setMargin( data.margin );
 
-
-      if (this.data.mass > 0) {
+      if (data.type === "dynamic") {
         this.physicsShape.calculateLocalInertia( data.mass, this.localInertia );
       }
 
@@ -423,7 +432,7 @@ var Body = {
       scale.setValue(obj.scale.x, obj.scale.y, obj.scale.z);
       shape.setLocalScaling(scale);
 
-      if (this.data.mass > 0) {
+      if (this.data.type === "dynamic") {
         shape.setMargin(this.data.margin);
         shape.calculateLocalInertia(this.data.mass, this.localInertia);
         this.body.setMassProps(this.data.mass, this.localInertia);
@@ -452,7 +461,6 @@ var Body = {
   _play: function () {
     this.syncToPhysics();
     this.system.addComponent(this);
-    // this.system.addBody(this.body);
   },
 
   /**
@@ -488,6 +496,7 @@ var Body = {
       Ammo.destroy(this.body);
     }
 
+    //TODO: fix this
     // if (this.shapeHull) Ammo.destroy(this.shapeHull);
     // if (this.triMesh) Ammo.destroy(this.triMesh);
     // Ammo.destroy(this.msTransform);
