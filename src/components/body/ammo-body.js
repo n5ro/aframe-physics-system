@@ -24,8 +24,9 @@ function almostEquals(epsilon, u, v) {
 var Body = {
   schema: {
     mass: {default: 1},
-    linearDamping:  { default: 0.01},
-    angularDamping: { default: 0.01},
+    linearDamping:  {default: 0.01},
+    angularDamping: {default: 0.01},
+    angularFactor: {type: 'vec3', default: { x: 1, y: 1, z: 1 }},
     margin: {default: 0.01},
     activationState: {
       default: DISABLE_DEACTIVATION, 
@@ -380,6 +381,9 @@ var Body = {
       }
 
       this.body.setDamping(data.linearDamping, data.angularDamping);
+
+      this.angularFactor = new Ammo.btVector3(data.angularFactor.x, data.angularFactor.y, data.angularFactor.z);
+      this.body.setAngularFactor(this.angularFactor);
 
       switch (data.type) {
         case 'static':
