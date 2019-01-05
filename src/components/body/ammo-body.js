@@ -33,7 +33,10 @@ var Body = {
       oneOf: [ACTIVE_TAG, ISLAND_SLEEPING, WANTS_DEACTIVATION, DISABLE_DEACTIVATION, DISABLE_SIMULATION]
     },
     shape: {default: 'hull', oneOf: ['box', 'cylinder', 'sphere', 'capsule', 'cone', 'hull', 'mesh']},
-    halfExtents: {default: {}, type: 'vec3'},
+    autoGenerateShape: {default: true},
+    halfExtents: {type: 'vec3', default: {x: 1, y: 1, z: 1}},
+    offset: {type: 'vec3', default: {x: 0, y: 0, z: 0}},
+    orientation: {type: 'vec4', default: {x: 0, y: 0, z: 0, w: 1}},
     cylinderAxis: {default: 'y', oneOf: ['x', 'y', 'z']},
     sphereRadius: {default: NaN},
     type: {default: 'dynamic', oneOf: ['static', 'dynamic', 'kinematic']},
@@ -60,7 +63,7 @@ var Body = {
       });
     }
 
-    if (this.el.object3DMap.mesh) {
+    if (this.el.object3DMap.mesh && this.data.autoGenerateShape) {
       this.meshSet = true;
     } else {
       this.el.addEventListener("model-loaded", () => {
@@ -70,8 +73,6 @@ var Body = {
         }
       });
     }
-
-    this.hasHalfExtents = !isNaN(this.data.halfExtents.x) && !isNaN(this.data.halfExtents.y) && !isNaN(this.data.halfExtents.z);
 
     this.initBody();
   },
@@ -148,19 +149,19 @@ var Body = {
     var box = new THREE.Box3();
     return function(obj) {
 
-      if (this.hasHalfExtents) {
-        return {
-          x: this.data.halfExtents.x,
-          y: this.data.halfExtents.y,
-          z: this.data.halfExtents.z
-        }
-      }
-      else {
+      if (this.data.autoGenerateShape) {
         var {min, max} = box.setFromPoints(this._getVertices(obj));
         return {
           x: (Math.abs(max.x - min.x) * 0.5),
           y: (Math.abs(max.y - min.y) * 0.5),
           z: (Math.abs(max.z - min.z) * 0.5)
+        };
+      }
+      else {
+        return {
+          x: this.data.halfExtents.x,
+          y: this.data.halfExtents.y,
+          z: this.data.halfExtents.z
         };
       }
       
@@ -183,7 +184,9 @@ var Body = {
     var quat = new THREE.Quaternion();
 
     return function() {
-      if (!this.loaded || !this.meshSet) return;
+      if (!(this.loaded && (this.meshSet || !this.data.autoGenerateShape))) {
+        return;
+      }
 
       var el = this.el,
           data = this.data;
@@ -282,7 +285,6 @@ var Body = {
           break;
 
         case 'hull':
-          this.hasHalfExtents = false;
           var scale = new Ammo.btVector3(mesh.scale.x, mesh.scale.y, mesh.scale.z);
           var vec3 = new Ammo.btVector3(); 
           var originalHull = new Ammo.btConvexHullShape();
@@ -315,7 +317,6 @@ var Body = {
           break;
 
         case 'mesh':
-          this.hasHalfExtents = false;
           if (data.type !== 'static') {
             //TODO: support btTriangleMeshShape for dynamic trimeshes. (not performant)
             console.warn('non-static mesh colliders are not currently supported');
@@ -357,7 +358,6 @@ var Body = {
       this.msTransform.getOrigin().setValue(pos.x, pos.y, pos.z);
       this.rotation = new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w);
       this.msTransform.setRotation(this.rotation);
-
       this.motionState = new Ammo.btDefaultMotionState( this.msTransform );
 
       this.localInertia = new Ammo.btVector3( 0, 0, 0 );
@@ -407,13 +407,6 @@ var Body = {
 
       this.isLoaded = true;
 
-      // Matrix World must be updated at root level, if scale is to be applied – updateMatrixWorld()
-      // only checks an object's parent, not the rest of the ancestors. Hence, a wrapping entity with
-      // scale="0.5 0.5 0.5" will be ignored.
-      // Reference: https://github.com/mrdoob/three.js/blob/master/src/core/Object3D.js#L511-L541
-      // Potential fix: https://github.com/mrdoob/three.js/pull/7019
-      // this.el.object3D.updateMatrixWorld(true);
-
       // If component wasn't initialized when play() was called, finish up.
       if (this.isPlaying) {
         this._play();
@@ -427,7 +420,7 @@ var Body = {
     var updated = false;
 
     var mesh = this.el.object3DMap.mesh;
-    if (!this.hasHalfExtents && mesh && this.data.autoUpdateScale && this.prevMeshScale && !almostEquals(0.001, mesh.scale, this.prevMeshScale)) {
+    if (this.data.autoGenerateShape && mesh && this.data.autoUpdateScale && this.prevMeshScale && !almostEquals(0.001, mesh.scale, this.prevMeshScale)) {
       this.prevMeshScale.copy(mesh.scale);
       updated = true;
     }
@@ -462,7 +455,6 @@ var Body = {
       if (this.data.shape === 'hull' && this.system.debug) {
         this.physicsShape.initializePolyhedralFeatures(0);
       }
-      this.syncToPhysics();
     }
   },
 
@@ -477,7 +469,6 @@ var Body = {
    * Internal helper to register component with physics system.
    */
   _play: function () {
-    this.syncToPhysics();
     this.system.addComponent(this);
   },
 
@@ -536,6 +527,26 @@ var Body = {
     }
   },
 
+  _applyOffsetAndOrientation: (function () {
+    var offset = new THREE.Vector3(),
+        orientation = new THREE.Quaternion();
+    return function(v, q) {
+      var data = this.data;
+      if (data.offset.x !== 0 || data.offset.y !== 0 || data.offset.z !== 0) {
+        offset.copy(data.offset);
+        offset.applyQuaternion(q);
+        v.add(offset);
+      }
+      if (data.orientation.x !== 0 || 
+          data.orientation.y !== 0 || 
+          data.orientation.z !== 0 || 
+          data.orientation.w !== 1) {
+        orientation.copy(data.orientation);
+        q.multiply(orientation);
+      }
+    };
+  }()),
+
   /**
    * Updates the rigid body's position, velocity, and rotation, based on the scene.
    */
@@ -559,6 +570,8 @@ var Body = {
         el.object3D.getWorldQuaternion(q);
       }
 
+      this._applyOffsetAndOrientation(v, q);
+
       if(this.data.type === 'kinematic') {
         this.msTransform.getOrigin().setValue(v.x, v.y, v.z);
       }
@@ -576,7 +589,6 @@ var Body = {
     var v = new THREE.Vector3(),
         q1 = new THREE.Quaternion(),
         q2 = new THREE.Quaternion();
-
     return function () {
       this.motionState.getWorldTransform(this.msTransform);
       var position = this.msTransform.getOrigin();
@@ -602,6 +614,8 @@ var Body = {
         parentEl.object3D.worldToLocal(v);
         el.object3D.position.copy(v);
       }
+
+      this._applyOffsetAndOrientation(el.object3D.position, el.object3D.quaternion);
     };
   }())
 };
