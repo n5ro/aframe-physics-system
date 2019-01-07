@@ -90,18 +90,18 @@ Ammo().then(function(Ammo) {
       if (collided && this.collisions.indexOf(key) === -1) {
         this.collisions.push(key);
         if (this.eventListeners.indexOf(Ammo.getPointer(body0)) !== -1) {
-          this.els[Ammo.getPointer(body0)].emit('collide', {target: this.els[Ammo.getPointer(body1)]});
+          this.els[Ammo.getPointer(body0)].emit('collide', {targetEl: this.els[Ammo.getPointer(body1)]});
         } 
         if (this.eventListeners.indexOf(Ammo.getPointer(body1)) !== -1) {
-          this.els[Ammo.getPointer(body1)].emit('collide', {target: this.els[Ammo.getPointer(body0)]});
+          this.els[Ammo.getPointer(body1)].emit('collide', {targetEl: this.els[Ammo.getPointer(body0)]});
         }
       } else if (!collided && this.collisions.indexOf(key) !== -1) {
         this.collisions.splice(this.collisions.indexOf(key), 1);
         if (this.eventListeners.indexOf(Ammo.getPointer(body0)) !== -1) {
-          this.els[Ammo.getPointer(body0)].emit('collide-end', {target: this.els[Ammo.getPointer(body1)]});
+          this.els[Ammo.getPointer(body0)].emit('collide-end', {targetEl: this.els[Ammo.getPointer(body1)]});
         } 
         if (this.eventListeners.indexOf(Ammo.getPointer(body1)) !== -1) {
-          this.els[Ammo.getPointer(body1)].emit('collide-end', {target: this.els[Ammo.getPointer(body0)]});
+          this.els[Ammo.getPointer(body1)].emit('collide-end', {targetEl: this.els[Ammo.getPointer(body0)]});
         }
       }
     }
