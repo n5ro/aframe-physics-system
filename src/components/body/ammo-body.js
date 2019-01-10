@@ -42,8 +42,8 @@ var Body = {
     type: {default: 'dynamic', oneOf: ['static', 'dynamic', 'kinematic']},
     addCollideEventListener: {default: false},
     collisionFlags: {default: 0}, //32-bit mask
-    collisionGroup: {default: NaN}, //32-bit mask
-    collisionFilter: {defualt: NaN}, //32-bit mask
+    collisionFilterGroup: {default: 1}, //32-bit mask, 
+    collisionFilterMask: {default: 1}, //32-bit mask
     autoUpdateScale: {default: true}
   },
 
@@ -385,21 +385,12 @@ var Body = {
       this.angularFactor = new Ammo.btVector3(data.angularFactor.x, data.angularFactor.y, data.angularFactor.z);
       this.body.setAngularFactor(this.angularFactor);
 
-      switch (data.type) {
-        case 'static':
-          this.body.setCollisionFlags(CF_STATIC_OBJECT | data.collisionFlags);
-          break;
-        case 'kinematic':
-          this.body.setCollisionFlags(CF_KINEMATIC_OBJECT | data.collisionFlags);
-          break;
-        default:
-          break;
-      }
+      this.updateCollisionFlags();
 
       this.el.body = this.body;
       this.body.el = el;
 
-      this.system.addBody(this.body);
+      this.system.addBody(this.body, this.data.collisionFilterGroup, this.data.collisionFilterMask);
 
       if (this.data.addCollideEventListener) {
         this.system.driver.addEventListener(this.body);
@@ -488,6 +479,20 @@ var Body = {
    * Updates the rigid body instance, where possible.
    */
   update: function (prevData) {
+
+    if (this.body) {
+      if (prevData.type !== this.data.type) {
+        this.updateCollisionFlags();
+      }
+
+      if(prevData.collisionFilterGroup !== this.data.collisionFilterGroup) {
+        this.body.getBroadphaseProxy().set_m_collisionFilterGroup(this.data.collisionFilterGroup);
+      }
+
+      if(prevData.collisionFilterMask !== this.data.collisionFilterMask) {
+        this.body.getBroadphaseProxy().set_m_collisionFilterMask(this.data.collisionFilterMask);
+      }
+    }
   },
 
   /**
@@ -617,7 +622,26 @@ var Body = {
 
       this._applyOffsetAndOrientation(el.object3D.position, el.object3D.quaternion);
     };
-  }())
+  }()),
+
+  updateCollisionFlags: function() {
+    var flags = this.data.collisionFlags;
+    switch (this.data.type) {
+      case 'static':
+        flags |= CF_STATIC_OBJECT;
+        break;
+      case 'kinematic':
+        flags |= CF_KINEMATIC_OBJECT;
+        break;
+      default:
+        break;
+    }
+    this.body.setCollisionFlags(flags);
+  },
+
+  getVelocity: function() {
+    return this.body.getLinearVelocity().length();
+  }
 };
 
 module.exports.definition = Body;

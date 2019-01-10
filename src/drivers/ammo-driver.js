@@ -50,8 +50,8 @@ Ammo().then(function(Ammo) {
   // };
 
   /* @param {Ammo.btCollisionObject} body */
-  AmmoDriver.prototype.addBody = function(body) {
-    this.physicsWorld.addRigidBody(body);
+  AmmoDriver.prototype.addBody = function(body, group, mask) {
+    this.physicsWorld.addRigidBody(body, group, mask);
     this.els[Ammo.getPointer(body)] = body.el;
   };
 

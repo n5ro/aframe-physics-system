@@ -153,7 +153,7 @@ module.exports = AFRAME.registerSystem('physics', {
    * Adds a body to the scene, and binds proxied methods to the driver.
    * @param {CANNON.Body} body
    */
-  addBody: function (body) {
+  addBody: function (body, group, mask) {
     var driver = this.driver;
 
     if (driver === 'local') {
@@ -175,7 +175,7 @@ module.exports = AFRAME.registerSystem('physics', {
       body.addEventListener('collide', this.listeners[body.id]);
     }
 
-    this.driver.addBody(body);
+    this.driver.addBody(body, group, mask);
   },
 
   /**
