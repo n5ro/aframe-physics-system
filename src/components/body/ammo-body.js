@@ -24,6 +24,7 @@ function almostEquals(epsilon, u, v) {
 var Body = {
   schema: {
     mass: {default: 1},
+    gravity: {default: { x: 0, y: -9.8, z: 0}},
     linearDamping:  {default: 0.01},
     angularDamping: {default: 0.01},
     angularFactor: {type: 'vec3', default: { x: 1, y: 1, z: 1 }},
@@ -66,7 +67,7 @@ var Body = {
     if (this.el.object3DMap.mesh && this.data.autoGenerateShape) {
       this.meshSet = true;
     } else {
-      this.el.addEventListener("model-loaded", () => {
+      this.el.addEventListener('model-loaded', () => {
         if (!this.meshSet) {
           this.meshSet = true;
           this.initBody();
@@ -364,7 +365,7 @@ var Body = {
 
       this.physicsShape.setMargin( data.margin );
 
-      if (data.type === "dynamic") {
+      if (data.type === 'dynamic') {
         this.physicsShape.calculateLocalInertia( data.mass, this.localInertia );
       }
 
@@ -384,6 +385,8 @@ var Body = {
 
       this.angularFactor = new Ammo.btVector3(data.angularFactor.x, data.angularFactor.y, data.angularFactor.z);
       this.body.setAngularFactor(this.angularFactor);
+
+      this.body.getGravity().setValue(data.gravity.x, data.gravity.y, data.gravity.z)
 
       this.updateCollisionFlags();
 
@@ -434,11 +437,9 @@ var Body = {
         this.prevObjScale.z * this.prevMeshScale.z
       );
       shape.setLocalScaling(this.localScaling);
+
       if (this.data.type === 'dynamic') {
-        shape.setMargin(this.data.margin);
-        shape.calculateLocalInertia(this.data.mass, this.localInertia);
-        this.body.setMassProps(this.data.mass, this.localInertia);
-        this.body.updateInertiaTensor();    
+        this.updateMass();
       }
 
       this.system.driver.updateBody(this.body);
@@ -484,6 +485,8 @@ var Body = {
       if (prevData.type !== this.data.type) {
         this.updateCollisionFlags();
       }
+
+      //TODO: support dynamic update for other properties
 
       if(prevData.collisionFilterGroup !== this.data.collisionFilterGroup) {
         this.body.getBroadphaseProxy().set_m_collisionFilterGroup(this.data.collisionFilterGroup);
@@ -624,6 +627,14 @@ var Body = {
     };
   }()),
 
+  updateMass: function() {
+    var shape = this.body.getCollisionShape();
+    shape.setMargin(this.data.margin);
+    shape.calculateLocalInertia(this.data.mass, this.localInertia);
+    this.body.setMassProps(this.data.mass, this.localInertia);
+    this.body.updateInertiaTensor();
+  },
+
   updateCollisionFlags: function() {
     var flags = this.data.collisionFlags;
     switch (this.data.type) {
@@ -634,9 +645,15 @@ var Body = {
         flags |= CF_KINEMATIC_OBJECT;
         break;
       default:
+        this.body.applyGravity();
         break;
     }
     this.body.setCollisionFlags(flags);
+
+    if (this.data.type === 'dynamic') {
+      this.updateMass();
+    }
+    this.system.driver.updateBody(this.body);
   },
 
   getVelocity: function() {
