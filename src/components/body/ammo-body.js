@@ -383,8 +383,9 @@ var Body = {
 
       this.body.setDamping(data.linearDamping, data.angularDamping);
 
-      this.angularFactor = new Ammo.btVector3(data.angularFactor.x, data.angularFactor.y, data.angularFactor.z);
+      var angularFactor = new Ammo.btVector3(data.angularFactor.x, data.angularFactor.y, data.angularFactor.z);
       this.body.setAngularFactor(this.angularFactor);
+      Ammo.destroy(angularFactor);
 
       this.body.getGravity().setValue(data.gravity.x, data.gravity.y, data.gravity.z)
 
@@ -509,18 +510,19 @@ var Body = {
 
     if (this.body) {
       this.system.removeBody(this.body);
-      // delete this.body.el;
+      delete this.body.el;
       Ammo.destroy(this.body);
     }
 
-    //TODO: fix this
-    // if (this.shapeHull) Ammo.destroy(this.shapeHull);
-    // if (this.triMesh) Ammo.destroy(this.triMesh);
-    // Ammo.destroy(this.msTransform);
-    // Ammo.destroy(this.vector3);
-    // Ammo.destroy(this.quaternion);
-    // Ammo.destroy(this.motionState);
-    // Ammo.destroy(this.localInertia);
+    if (this.shapeHull) Ammo.destroy(this.shapeHull);
+    if (this.triMesh) Ammo.destroy(this.triMesh);
+    if (this.localScaling) Ammo.destroy(this.localScaling);
+    if (this.physicsShape) Ammo.destroy(this.physicsShape);
+    Ammo.destroy(this.rbInfo);
+    Ammo.destroy(this.msTransform);
+    Ammo.destroy(this.motionState);
+    Ammo.destroy(this.localInertia);
+    Ammo.destroy(this.rotation);
   },
 
   beforeStep: function () {
