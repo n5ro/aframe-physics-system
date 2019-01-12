@@ -384,7 +384,7 @@ var Body = {
       this.body.setDamping(data.linearDamping, data.angularDamping);
 
       var angularFactor = new Ammo.btVector3(data.angularFactor.x, data.angularFactor.y, data.angularFactor.z);
-      this.body.setAngularFactor(this.angularFactor);
+      this.body.setAngularFactor(angularFactor);
       Ammo.destroy(angularFactor);
 
       this.body.getGravity().setValue(data.gravity.x, data.gravity.y, data.gravity.z)
