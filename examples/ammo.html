@@ -24,7 +24,7 @@
           } else if (position >= 5) {
             this.direction = -1;
           }
-          this.el.object3D.position.set(this.position.x, position + 0.1 * this.direction, this.position.z);
+          this.el.object3D.position.set(this.position.x, position + 0.05 * this.direction, this.position.z);
         }
       });
     </script>
@@ -39,7 +39,7 @@
       <a-torus position="-1 3.75 -7" radius="1.25" scale="0.5 0.5 0.5" color="red" shadow ammo-body="shape: capsule; cylinderAxis: z;"></a-torus>
       <a-torus-knot position="0 3.75 -5" radius="1.25" scale="0.5 0.5 0.5" color="blue" shadow ammo-body="addCollideEventListener: false;"></a-torus-knot>
       <a-cylinder segments-height="1" segments-radial="10" position="1 4.0 -5" radius="0.5" height="1.5" color="#FFC65D" shadow ammo-body="shape: cylinder"></a-cylinder>
-      <a-plane position="0 0 -6" rotation="-90 0 0" width="10" height="10" color="#7BC8A4" shadow ammo-body="type: static; mass: 0; shape: box;"></a-plane>
+      <a-plane position="0 2 -4" rotation="90 0 0" width="1" height="1" color="#7BC8A4" shadow ammo-body="type: static; mass: 0; shape: box;"></a-plane>
       <a-torus-knot position="0 0 -7" radius="1.25" scale="5 0.1 5" rotation="0 90 0" color="#7BC8A4" shadow ammo-body="type: static; mass: 0; shape: mesh;"></a-torus-knot>
       <a-sky color="#ECECEC"></a-sky>
     </a-scene>

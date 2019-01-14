@@ -101,16 +101,13 @@ var Body = {
       var inverse = new THREE.Matrix4().getInverse(obj.matrixWorld);
       var meshes = this._getMeshes(obj);
 
-      var pos = new THREE.Vector3();
-      var scale = new THREE.Vector3();
-      var quat = new THREE.Quaternion();
-
       for (var j = 0; j < meshes.length; j++) {
         var mesh = meshes[j];
 
         var geometry = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone();
         
         if (this.data.shape === 'mesh') {
+          //'bake' transformations for nested geometry so that their vertices are all in the parent's coordinate space
           geometry.applyMatrix( mesh.matrixWorld );
         } else {
           geometry.applyMatrix(inverse.multiply(mesh.matrixWorld));
@@ -324,7 +321,6 @@ var Body = {
             break;
           }
 
-          var scale = new Ammo.btVector3(mesh.scale.x, mesh.scale.y, mesh.scale.z);
           var a = new Ammo.btVector3(); 
           var b = new Ammo.btVector3(); 
           var c = new Ammo.btVector3(); 
@@ -340,25 +336,25 @@ var Body = {
 
           this.physicsShape = new Ammo.btBvhTriangleMeshShape(this.triMesh, true, true);
           this.physicsShape.setMargin(data.margin);
-
-          this.physicsShape.setLocalScaling(scale);
+          //TODO: support btScaledBvhTriangleMeshShape?
 
           Ammo.destroy(a);
           Ammo.destroy(b);
           Ammo.destroy(c);
-          Ammo.destroy(scale);
           break;
 
         default:
           console.warn(data.shape + ' is not currently supported');
           return;
       }
-
+      
       this.msTransform = new Ammo.btTransform();
       this.msTransform.setIdentity();
-      this.msTransform.getOrigin().setValue(pos.x, pos.y, pos.z);
       this.rotation = new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w);
-      this.msTransform.setRotation(this.rotation);
+      if (this.data.shape !== 'mesh') { //mesh shape origin and rotation are already accounted for
+        this.msTransform.getOrigin().setValue(pos.x, pos.y, pos.z);
+        this.msTransform.setRotation(this.rotation);
+      }
       this.motionState = new Ammo.btDefaultMotionState( this.msTransform );
 
       this.localInertia = new Ammo.btVector3( 0, 0, 0 );
@@ -372,14 +368,6 @@ var Body = {
       this.rbInfo = new Ammo.btRigidBodyConstructionInfo(data.mass, this.motionState, this.physicsShape, this.localInertia);
       this.body = new Ammo.btRigidBody(this.rbInfo);
       this.body.setActivationState( data.activationState );
-
-
-      if (data.type !== 'dynamic' && data.shape === 'mesh') {
-        //TODO: is this right?
-        var transform = this.body.getCenterOfMassTransform();
-        transform.setIdentity();
-        this.body.setCenterOfMassTransform(transform);
-      }
 
       this.body.setDamping(data.linearDamping, data.angularDamping);
 
@@ -426,7 +414,7 @@ var Body = {
       updated = true;
     }
 
-    if (updated) {
+    if (updated && this.data.shape !== 'mesh') { //dynamic scaling of meshes not currently supported
       var shape = this.body.getCollisionShape();
 
       if (!this.localScaling) {
@@ -569,6 +557,11 @@ var Body = {
           body = this.body;
 
       if (!body) return;
+
+      if (this.data.shape === 'mesh') {
+        //dynamic translations and rotations not currently supported for meshes
+        return;
+      }
 
       this.motionState.getWorldTransform(this.msTransform);
 
