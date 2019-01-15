@@ -132,14 +132,8 @@ module.exports = AFRAME.registerSystem('physics', {
       this.callbacks.beforeStep[i].beforeStep(t, dt);
     }
 
-    if (this.data.driver === 'ammo') {
-      // this.driver.step(dt / 1000); //TODO: make sure maxInterval math isnt needed here
-      this.driver.step(Math.min(dt / 1000, 1/60));
-    } else {
-      this.driver.step(Math.min(dt / 1000, this.data.maxInterval));
-    }
+    this.driver.step(Math.min(dt / 1000, this.data.maxInterval));
     
-
     for (i = 0; i < callbacks.step.length; i++) {
       callbacks.step[i].step(t, dt);
     }

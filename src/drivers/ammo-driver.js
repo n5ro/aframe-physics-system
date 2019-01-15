@@ -27,7 +27,8 @@ Ammo().then(function(Ammo) {
   AmmoDriver.prototype.init = function(worldConfig) {
     this.epsilon = worldConfig.epsilon || EPS;  
     this.debugDrawMode = worldConfig.debugDrawMode || THREE.AmmoDebugConstants.NoDebug;
-    this.maxSubSteps = worldConfig.maxSubSteps || 10;
+    this.maxSubSteps = worldConfig.maxSubSteps || 1;
+    this.fixedTimeStep = worldConfig.fixedTimeStep || 1/60;
     this.collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
     this.dispatcher = new Ammo.btCollisionDispatcher( this.collisionConfiguration );
     this.broadphase = new Ammo.btDbvtBroadphase();
@@ -36,18 +37,6 @@ Ammo().then(function(Ammo) {
     this.physicsWorld.setGravity( new Ammo.btVector3( 0, worldConfig.hasOwnProperty('gravity') ? worldConfig.gravity : -9.8, 0 ) );
     this.physicsWorld.getSolverInfo().set_m_numIterations(worldConfig.solverIterations);
   };
-
-  // LocalDriver.prototype.getMaterial = function (name) {
-  //   return this.materials[name];
-  // };
-
-  // AmmoDriver.prototype.addMaterial = function (materialConfig) {
-  //   console.log('addMaterial not supported by Ammo.js', materialConfig);
-  // };
-
-  // AmmoDriver.prototype.addContactMaterial = function (matName1, matName2, contactMaterialConfig) {
-  //   console.log('addContactMaterial not supported by Ammo.js', matName1, matName2, contactMaterialConfig);
-  // };
 
   /* @param {Ammo.btCollisionObject} body */
   AmmoDriver.prototype.addBody = function(body, group, mask) {
@@ -69,7 +58,7 @@ Ammo().then(function(Ammo) {
 
   /* @param {number} deltaTime */
   AmmoDriver.prototype.step = function(deltaTime) {
-    this.physicsWorld.stepSimulation(deltaTime, this.maxSubSteps);
+    this.physicsWorld.stepSimulation(deltaTime, this.maxSubSteps, this.fixedTimeStep);
 
     var numManifolds = this.dispatcher.getNumManifolds();
     for(var i = 0; i < numManifolds; i++) {
