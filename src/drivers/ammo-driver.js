@@ -27,7 +27,7 @@ Ammo().then(function(Ammo) {
   AmmoDriver.prototype.init = function(worldConfig) {
     this.epsilon = worldConfig.epsilon || EPS;  
     this.debugDrawMode = worldConfig.debugDrawMode || THREE.AmmoDebugConstants.NoDebug;
-    this.maxSubSteps = worldConfig.maxSubSteps || 1;
+    this.maxSubSteps = worldConfig.maxSubSteps || 10;
     this.fixedTimeStep = worldConfig.fixedTimeStep || 1/60;
     this.collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
     this.dispatcher = new Ammo.btCollisionDispatcher( this.collisionConfiguration );
