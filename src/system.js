@@ -46,7 +46,7 @@ module.exports = AFRAME.registerSystem('physics', {
   /**
    * Initializes the physics system.
    */
-  init: function () {
+  async init() {
     var data = this.data;
 
     // If true, show wireframes around physics bodies.
@@ -84,7 +84,7 @@ module.exports = AFRAME.registerSystem('physics', {
         throw new Error('[physics] Driver not recognized: "%s".', data.driver);
     }
 
-    this.driver.init({
+    await this.driver.init({
       quatNormalizeSkip: 0,
       quatNormalizeFast: false,
       solverIterations: data.iterations,
@@ -112,6 +112,8 @@ module.exports = AFRAME.registerSystem('physics', {
         frictionEquationRegularization: data.frictionEquationRegularization
       });
     }
+
+    this.initialized = true;
   },
 
   /**
@@ -123,7 +125,7 @@ module.exports = AFRAME.registerSystem('physics', {
    * @param  {number} dt
    */
   tick: function (t, dt) {
-    if (!dt) return;
+    if (!this.initialized || !dt) return;
 
     var i;
     var callbacks = this.callbacks;

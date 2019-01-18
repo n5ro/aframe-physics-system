@@ -67,11 +67,13 @@ var Body = {
     if (this.el.object3DMap.mesh && this.data.autoGenerateShape) {
       this.meshSet = true;
     } else {
-      this.el.addEventListener('model-loaded', () => {
-        if (!this.meshSet) {
-          this.meshSet = true;
-          this.initBody();
-        }
+      ["model-loaded", "video-loaded", "image-loaded"].forEach(eventName => {
+        this.el.addEventListener(eventName, () => {
+          if (!this.meshSet) {
+            this.meshSet = true;
+            this.initBody();
+          }
+        });
       });
     }
 
@@ -182,7 +184,7 @@ var Body = {
     var quat = new THREE.Quaternion();
 
     return function() {
-      if (!(this.loaded && (this.meshSet || !this.data.autoGenerateShape))) {
+      if (!(this.system.initialized && this.loaded && (this.meshSet || !this.data.autoGenerateShape))) {
         return;
       }
 
@@ -400,6 +402,10 @@ var Body = {
   }()),
 
   tick: function () {
+    if (!this.isLoaded && this.system.initialized) {
+      this.initBody();
+    }
+
     var updated = false;
 
     var mesh = this.el.object3DMap.mesh;
