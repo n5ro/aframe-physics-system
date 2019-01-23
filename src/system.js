@@ -115,7 +115,9 @@ module.exports = AFRAME.registerSystem('physics', {
 
     this.initialized = true;
 
-    this.setDebug(this.debug);
+    if (this.debug) {
+      this.setDebug(true);
+    }
   },
 
   /**
@@ -148,13 +150,14 @@ module.exports = AFRAME.registerSystem('physics', {
   },
 
   setDebug: function(debug) {
+    this.debug = debug;
     if (this.data.driver === 'ammo' && this.initialized) {
-      this.debug = debug;
       if (debug && !this.debugDrawer) {
         this.debugDrawer = this.driver.getDebugDrawer(this.el.object3D);
         this.debugDrawer.enable();
       } else if (this.debugDrawer) {
         this.debugDrawer.disable();
+        this.debugDrawer = null;
       }
     }
   },
