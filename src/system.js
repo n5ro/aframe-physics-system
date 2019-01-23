@@ -114,6 +114,8 @@ module.exports = AFRAME.registerSystem('physics', {
     }
 
     this.initialized = true;
+
+    this.setDebug(this.debug);
   },
 
   /**
@@ -145,6 +147,18 @@ module.exports = AFRAME.registerSystem('physics', {
     }
   },
 
+  setDebug: function(debug) {
+    if (this.data.driver === 'ammo' && this.initialized) {
+      this.debug = debug;
+      if (debug && !this.debugDrawer) {
+        this.debugDrawer = this.driver.getDebugDrawer(this.el.object3D);
+        this.debugDrawer.enable();
+      } else if (this.debugDrawer) {
+        this.debugDrawer.disable();
+      }
+    }
+  },
+
   /**
    * Adds a body to the scene, and binds proxied methods to the driver.
    * @param {CANNON.Body} body
@@ -152,7 +166,7 @@ module.exports = AFRAME.registerSystem('physics', {
   addBody: function (body, group, mask) {
     var driver = this.driver;
 
-    if (driver === 'local') {
+    if (this.data.driver === 'local') {
       body.__applyImpulse = body.applyImpulse;
       body.applyImpulse = function () {
         driver.applyBodyMethod(body, 'applyImpulse', arguments);

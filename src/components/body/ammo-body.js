@@ -200,11 +200,6 @@ var Body = {
 
       var mesh = this.el.object3DMap.mesh || this.el.object3D; //TODO: why is object3DMap.mesh not set sometimes?
 
-      if (this.system.debug) {
-        this.debugDrawer = this.system.driver.getDebugDrawer(this.el.sceneEl.object3D);
-        this.debugDrawer.enable();
-      }
-
       //This is for helping migration between cannon and ammo
       if (data.shape === 'none') {
         data.shape = 'box';
