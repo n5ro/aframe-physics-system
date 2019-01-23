@@ -304,6 +304,7 @@ var Body = {
           this.physicsShape.setLocalScaling(scale);
           
           if (this.system.debug) {
+            this.polyHedralFeaturesInitialized = true;
             this.physicsShape.initializePolyhedralFeatures(0);
           }
 
@@ -433,10 +434,16 @@ var Body = {
       }
 
       this.system.driver.updateBody(this.body);
-      
-      if (this.data.shape === 'hull' && this.system.debug) {
-        this.physicsShape.initializePolyhedralFeatures(0);
-      }
+    }
+
+    if (
+      this.physicsShape &&
+      this.data.shape === "hull" &&
+      this.system.debug &&
+      (updated || !this.polyHedralFeaturesInitialized)
+    ) { //the scale was updated or debug was turned on for a hull shape
+      this.polyHedralFeaturesInitialized = true;
+      this.physicsShape.initializePolyhedralFeatures(0);
     }
   },
 
