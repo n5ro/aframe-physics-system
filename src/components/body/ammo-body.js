@@ -36,6 +36,7 @@ var Body = {
     shape: {default: 'hull', oneOf: ['box', 'cylinder', 'sphere', 'capsule', 'cone', 'hull', 'mesh']},
     autoGenerateShape: {default: true},
     halfExtents: {type: 'vec3', default: {x: 1, y: 1, z: 1}},
+    recenter: {default: false}, //recenter the object3D's geometry
     offset: {type: 'vec3', default: {x: 0, y: 0, z: 0}},
     orientation: {type: 'vec4', default: {x: 0, y: 0, z: 0, w: 1}},
     cylinderAxis: {default: 'y', oneOf: ['x', 'y', 'z']},
@@ -80,9 +81,9 @@ var Body = {
     this.initBody();
   },
 
-  _getMeshes: function (object) {
+  _getMeshes: function (sceneRoot) {
     var meshes = [];
-    object.traverse(function (o) {
+    sceneRoot.traverse((o) => {
       if (o.type === 'Mesh' && (!THREE.Sky || o.__proto__ != THREE.Sky.prototype)) {
         meshes.push(o);
       }
@@ -93,28 +94,22 @@ var Body = {
   _getVertices: (function () {
     var vertexPool = [];
     var vertices = [];
-    var center = new THREE.Vector3();
-    return function (obj) {
+    var matrix = new THREE.Matrix4();
+    var inverse = new THREE.Matrix4();
+    return function (sceneRoot, meshes) {
       while (vertices.length > 0) {
         vertexPool.push(vertices.pop());
       }
 
-      obj.updateMatrixWorld(true);
-      var inverse = new THREE.Matrix4().getInverse(obj.matrixWorld);
-      var meshes = this._getMeshes(obj);
+      inverse.getInverse(sceneRoot.matrixWorld);
 
       for (var j = 0; j < meshes.length; j++) {
         var mesh = meshes[j];
 
         var geometry = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone();
-        
-        if (this.data.shape === 'mesh') {
-          //'bake' transformations for nested geometry so that their vertices are all in the parent's coordinate space
-          geometry.applyMatrix( mesh.matrixWorld );
-        } else {
-          geometry.applyMatrix(inverse.multiply(mesh.matrixWorld));
-        }
 
+        matrix.multiplyMatrices(inverse, mesh.matrixWorld)
+        geometry.applyMatrix(matrix);
 
         if (geometry.isBufferGeometry) {
           var components = geometry.attributes.position.array;
@@ -146,15 +141,15 @@ var Body = {
   }()),
 
   _getHalfExtents: (function () {
-    var box = new THREE.Box3();
-    return function(obj) {
-
+    var halfExtents = new THREE.Vector3();
+    return function(boundingBox) {
       if (this.data.autoGenerateShape) {
-        var {min, max} = box.setFromPoints(this._getVertices(obj));
+        var {min, max} = boundingBox;
+        halfExtents.subVectors(max, min).multiplyScalar(0.5);
         return {
-          x: (Math.abs(max.x - min.x) * 0.5),
-          y: (Math.abs(max.y - min.y) * 0.5),
-          z: (Math.abs(max.z - min.z) * 0.5)
+          x: halfExtents.x,
+          y: halfExtents.y,
+          z: halfExtents.z
         };
       }
       else {
@@ -163,17 +158,60 @@ var Body = {
           y: this.data.halfExtents.y,
           z: this.data.halfExtents.z
         };
-      }
-      
+      }      
     };
   }()),
 
-  _recenter: function (obj) {
-    var meshes = this._getMeshes(obj);
-    for (var j = 0; j < meshes.length; j++) {
-      meshes[j].geometry.center();
-    }
-  },
+  _recenter: (function () {
+    var offset = new THREE.Matrix4();
+    var center = new THREE.Vector3();
+    var geometries = [];
+    return function(sceneRoot, meshes) {
+      if (meshes.length === 1) {
+        meshes[0].geometry.center();
+        return;
+      }
+
+      var {min, max} = this._getBoundingBox(meshes);
+      center.addVectors(max, min).multiplyScalar(-0.5);
+      offset.makeTranslation(center.x, center.y, center.z);
+
+      for (var j = 0; j < meshes.length; j++) {
+        var mesh = meshes[j];
+        if (geometries.indexOf(mesh.geometry.uuid) !== -1) {
+          continue;
+        }
+        mesh.geometry.applyMatrix(offset);
+        geometries.push(mesh.geometry.uuid);
+      }
+    };
+  }()),
+
+  _getBoundingBox: (function () {
+    var boundingBox = {
+      min: new THREE.Vector3(Number.MAX_VALUE),
+      max: new THREE.Vector3(Number.MIN_VALUE)
+    };
+    return function (meshes) {
+      for( var i = 0; i < meshes.length; ++i)
+      {
+          var mesh = meshes[i];
+          if (!mesh.geometry.boundingBox) {
+            mesh.geometry.computeBoundingBox();
+          }
+          var box = mesh.geometry.boundingBox;
+
+          boundingBox.min.x = Math.min(box.min.x, box.min.x);
+          boundingBox.min.y = Math.min(box.min.y, box.min.y);
+          boundingBox.min.z = Math.min(box.min.z, box.min.z);
+
+          boundingBox.max.x = Math.max(box.max.x, box.max.x);
+          boundingBox.max.y = Math.max(box.max.y, box.max.y);
+          boundingBox.max.z = Math.max(box.max.z, box.max.z);
+      }
+      return boundingBox;
+    };
+  }()),
 
   /**
    * Parses an element's geometry and component metadata to create an Ammo body instance for the
@@ -182,6 +220,7 @@ var Body = {
   initBody: (function () {
     var pos = new THREE.Vector3();
     var quat = new THREE.Quaternion();
+    var boundingBox = new THREE.Box3();
 
     return function() {
       if (!(this.system.initialized && this.loaded && (this.meshSet || !this.data.autoGenerateShape))) {
@@ -198,21 +237,28 @@ var Body = {
       this.prevObjScale = new THREE.Vector3(1,1,1);
       this.prevMeshScale = new THREE.Vector3(1,1,1);
 
-      var mesh = this.el.object3DMap.mesh || this.el.object3D; //TODO: why is object3DMap.mesh not set sometimes?
+      var sceneRoot = this.el.object3DMap.mesh || this.el.object3D; //TODO: why is object3DMap.mesh not set sometimes?
 
       //This is for helping migration between cannon and ammo
       if (data.shape === 'none') {
         data.shape = 'box';
       }
 
+      var meshes = this._getMeshes(sceneRoot);
+
       if (data.shape !== 'mesh') {
-        this._recenter(mesh);
+        if(data.recenter) {
+          this._recenter(sceneRoot, meshes);
+        }
       }
-          
+
+      var vertices = this._getVertices(sceneRoot, meshes);
+      boundingBox.setFromPoints(vertices);
+
       //TODO: Support convex hull decomposition, compound shapes, gimpact (dynamic trimesh)
       switch (data.shape) {
         case 'box':
-          var {x, y, z} = this._getHalfExtents(mesh);
+          var {x, y, z} = this._getHalfExtents(boundingBox);
           var halfExtents = new Ammo.btVector3(x, y, z);
           this.physicsShape = new Ammo.btBoxShape(halfExtents);
           Ammo.destroy(halfExtents);
@@ -224,16 +270,16 @@ var Body = {
             radius = data.sphereRadius;
           } else {
             var sphere = new THREE.Sphere();
-            sphere.setFromPoints(this._getVertices(mesh));
+            sphere.setFromPoints(vertices);
             if (isFinite(sphere.radius)) {
               radius = sphere.radius;
             }
-          }
+          } 
           this.physicsShape = new Ammo.btSphereShape(radius);
           break;
 
         case 'cylinder':
-          var {x, y, z} = this._getHalfExtents(mesh);
+          var {x, y, z} = this._getHalfExtents(boundingBox);
           var halfExtents = new Ammo.btVector3(x, y, z);
           switch(data.cylinderAxis) {
             case 'y':
@@ -250,7 +296,7 @@ var Body = {
           break;
 
         case 'capsule':
-          var {x, y, z} = this._getHalfExtents(mesh);
+          var {x, y, z} = this._getHalfExtents(boundingBox);
           switch(data.cylinderAxis) {
             case 'y':
               this.physicsShape = new Ammo.btCapsuleShape(Math.max(x, z), y*2);
@@ -265,7 +311,7 @@ var Body = {
           break;
 
         case 'cone':
-          var {x, y, z} = this._getHalfExtents(mesh);
+          var {x, y, z} = this._getHalfExtents(boundingBox);
           switch(data.cylinderAxis) {
             case 'y':
               this.physicsShape = new Ammo.btConeShape(Math.max(x, z), y*2);
@@ -280,14 +326,10 @@ var Body = {
           break;
 
         case 'hull':
-          var scale = new Ammo.btVector3(mesh.scale.x, mesh.scale.y, mesh.scale.z);
+          var scale = new Ammo.btVector3(sceneRoot.scale.x, sceneRoot.scale.y, sceneRoot.scale.z);
           var vec3 = new Ammo.btVector3(); 
           var originalHull = new Ammo.btConvexHullShape();
           originalHull.setMargin(data.margin);
-
-          this._recenter(mesh);
-
-          var vertices = this._getVertices(mesh);
 
           for (var i = 0; i < vertices.length; i++) {
             vec3.setValue( vertices[i].x, vertices[i].y, vertices[i].z );
@@ -324,7 +366,6 @@ var Body = {
           var c = new Ammo.btVector3(); 
           this.triMesh = new Ammo.btTriangleMesh(true, false);
 
-          var vertices = this._getVertices(mesh);
           for (var j = 0; j < vertices.length; j+=3) {
             a.setValue(vertices[j].x, vertices[j].y, vertices[j].z);
             b.setValue(vertices[j+1].x, vertices[j+1].y, vertices[j+1].z);
@@ -589,7 +630,6 @@ var Body = {
       this.rotation.setValue(q.x, q.y, q.z, q.w);
       this.msTransform.setRotation(this.rotation);
       this.motionState.setWorldTransform(this.msTransform);
-      body.setWorldTransform(this.msTransform);
     };
   }()),
 
