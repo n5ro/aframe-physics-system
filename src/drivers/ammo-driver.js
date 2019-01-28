@@ -1,5 +1,5 @@
 /* global THREE */
-var Driver = require('./driver');
+let Driver = require("./driver");
 window.AmmoModule = window.Ammo;
 window.Ammo = null;
 
@@ -28,16 +28,23 @@ AmmoDriver.prototype.init = function(worldConfig) {
   return new Promise(resolve => {
     AmmoModule().then(result => {
       Ammo = result;
-      this.epsilon = worldConfig.epsilon || EPS;  
+      this.epsilon = worldConfig.epsilon || EPS;
       this.debugDrawMode = worldConfig.debugDrawMode || THREE.AmmoDebugConstants.NoDebug;
       this.maxSubSteps = worldConfig.maxSubSteps || 10;
-      this.fixedTimeStep = worldConfig.fixedTimeStep || 1/60;
+      this.fixedTimeStep = worldConfig.fixedTimeStep || 1 / 60;
       this.collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
-      this.dispatcher = new Ammo.btCollisionDispatcher( this.collisionConfiguration );
+      this.dispatcher = new Ammo.btCollisionDispatcher(this.collisionConfiguration);
       this.broadphase = new Ammo.btDbvtBroadphase();
       this.solver = new Ammo.btSequentialImpulseConstraintSolver();
-      this.physicsWorld = new Ammo.btDiscreteDynamicsWorld( this.dispatcher, this.broadphase, this.solver, this.collisionConfiguration);
-      this.physicsWorld.setGravity( new Ammo.btVector3( 0, worldConfig.hasOwnProperty('gravity') ? worldConfig.gravity : -9.8, 0 ) );
+      this.physicsWorld = new Ammo.btDiscreteDynamicsWorld(
+        this.dispatcher,
+        this.broadphase,
+        this.solver,
+        this.collisionConfiguration
+      );
+      this.physicsWorld.setGravity(
+        new Ammo.btVector3(0, worldConfig.hasOwnProperty("gravity") ? worldConfig.gravity : -9.8, 0)
+      );
       this.physicsWorld.getSolverInfo().set_m_numIterations(worldConfig.solverIterations);
       resolve();
     });
@@ -51,52 +58,52 @@ AmmoDriver.prototype.addBody = function(body, group, mask) {
 };
 
 /* @param {Ammo.btCollisionObject} body */
-AmmoDriver.prototype.removeBody = function (body) {
+AmmoDriver.prototype.removeBody = function(body) {
   this.physicsWorld.removeRigidBody(body);
   delete this.els[Ammo.getPointer(body)];
 };
 
-AmmoDriver.prototype.updateBody = function (body) {
+AmmoDriver.prototype.updateBody = function(body) {
   if (this.els.hasOwnProperty(Ammo.getPointer(body))) {
     this.physicsWorld.updateSingleAabb(body);
   }
-}
+};
 
 /* @param {number} deltaTime */
 AmmoDriver.prototype.step = function(deltaTime) {
   this.physicsWorld.stepSimulation(deltaTime, this.maxSubSteps, this.fixedTimeStep);
 
-  var numManifolds = this.dispatcher.getNumManifolds();
-  for(var i = 0; i < numManifolds; i++) {
-    var persistentManifold = this.dispatcher.getManifoldByIndexInternal(i);
-    var numContacts = persistentManifold.getNumContacts();
-    var manifoldPoint = persistentManifold.getContactPoint(j);
-    var body0 = persistentManifold.getBody0();
-    var body1 = persistentManifold.getBody1();
-    var distance = manifoldPoint.getDistance();
-    var key = Ammo.getPointer(body0) + '_' + Ammo.getPointer(body1);
-    var collided = false;
-    for (var j = 0; j < numContacts; j++) {
+  let numManifolds = this.dispatcher.getNumManifolds();
+  for (let i = 0; i < numManifolds; i++) {
+    let persistentManifold = this.dispatcher.getManifoldByIndexInternal(i);
+    let numContacts = persistentManifold.getNumContacts();
+    let manifoldPoint = persistentManifold.getContactPoint(j);
+    let body0 = persistentManifold.getBody0();
+    let body1 = persistentManifold.getBody1();
+    let distance = manifoldPoint.getDistance();
+    let key = Ammo.getPointer(body0) + "_" + Ammo.getPointer(body1);
+    let collided = false;
+    for (let j = 0; j < numContacts; j++) {
       if (Ammo.getPointer(body0) !== Ammo.getPointer(body1) && distance <= this.epsilon) {
         collided = true;
-        break;  
+        break;
       }
     }
     if (collided && this.collisions.indexOf(key) === -1) {
       this.collisions.push(key);
       if (this.eventListeners.indexOf(Ammo.getPointer(body0)) !== -1) {
-        this.els[Ammo.getPointer(body0)].emit('collide', {targetEl: this.els[Ammo.getPointer(body1)]});
-      } 
+        this.els[Ammo.getPointer(body0)].emit("collide", { targetEl: this.els[Ammo.getPointer(body1)] });
+      }
       if (this.eventListeners.indexOf(Ammo.getPointer(body1)) !== -1) {
-        this.els[Ammo.getPointer(body1)].emit('collide', {targetEl: this.els[Ammo.getPointer(body0)]});
+        this.els[Ammo.getPointer(body1)].emit("collide", { targetEl: this.els[Ammo.getPointer(body0)] });
       }
     } else if (!collided && this.collisions.indexOf(key) !== -1) {
       this.collisions.splice(this.collisions.indexOf(key), 1);
       if (this.eventListeners.indexOf(Ammo.getPointer(body0)) !== -1) {
-        this.els[Ammo.getPointer(body0)].emit('collide-end', {targetEl: this.els[Ammo.getPointer(body1)]});
-      } 
+        this.els[Ammo.getPointer(body0)].emit("collide-end", { targetEl: this.els[Ammo.getPointer(body1)] });
+      }
       if (this.eventListeners.indexOf(Ammo.getPointer(body1)) !== -1) {
-        this.els[Ammo.getPointer(body1)].emit('collide-end', {targetEl: this.els[Ammo.getPointer(body0)]});
+        this.els[Ammo.getPointer(body1)].emit("collide-end", { targetEl: this.els[Ammo.getPointer(body0)] });
       }
     }
   }
@@ -112,10 +119,9 @@ AmmoDriver.prototype.addConstraint = function(constraint) {
 };
 
 /* @param {?} constraint */
-AmmoDriver.prototype.removeConstraint = function (constraint) {
+AmmoDriver.prototype.removeConstraint = function(constraint) {
   this.physicsWorld.removeConstraint(constraint);
 };
-
 
 /* @param {Ammo.btCollisionObject} body */
 AmmoDriver.prototype.addEventListener = function(body) {
@@ -136,10 +142,10 @@ AmmoDriver.prototype.destroy = function() {
   Ammo.destroy(this.debugDrawer);
 };
 
-/** 
- * @param {THREE.Scene} scene 
+/**
+ * @param {THREE.Scene} scene
  * @param {object} options
-*/
+ */
 AmmoDriver.prototype.getDebugDrawer = function(scene, options) {
   if (!this.debugDrawer) {
     options = options || {};
