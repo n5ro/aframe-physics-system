@@ -109,8 +109,12 @@ let Body = {
 
         let geometry = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone();
 
-        matrix.multiplyMatrices(inverse, mesh.matrixWorld);
-        geometry.applyMatrix(matrix);
+        if (this.data.shape === "mesh") {
+          geometry.applyMatrix(mesh.matrixWorld);
+        } else {
+          matrix.multiplyMatrices(inverse, mesh.matrixWorld);
+          geometry.applyMatrix(matrix);
+        }
 
         if (geometry.isBufferGeometry) {
           let components = geometry.attributes.position.array;
@@ -480,7 +484,6 @@ let Body = {
 
     if (updated && this.data.shape !== "mesh") {
       //dynamic scaling of meshes not currently supported
-      let shape = this.body.getCollisionShape();
 
       if (!this.localScaling) {
         this.localScaling = new Ammo.btVector3();
@@ -490,7 +493,7 @@ let Body = {
         this.prevObjScale.y * this.prevMeshScale.y,
         this.prevObjScale.z * this.prevMeshScale.z
       );
-      shape.setLocalScaling(this.localScaling);
+      this.physicsShape.setLocalScaling(this.localScaling);
 
       if (this.data.type === "dynamic") {
         this.updateMass();

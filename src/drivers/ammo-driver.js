@@ -77,13 +77,13 @@ AmmoDriver.prototype.step = function(deltaTime) {
   for (let i = 0; i < numManifolds; i++) {
     let persistentManifold = this.dispatcher.getManifoldByIndexInternal(i);
     let numContacts = persistentManifold.getNumContacts();
-    let manifoldPoint = persistentManifold.getContactPoint(j);
     let body0 = persistentManifold.getBody0();
     let body1 = persistentManifold.getBody1();
-    let distance = manifoldPoint.getDistance();
     let key = Ammo.getPointer(body0) + "_" + Ammo.getPointer(body1);
     let collided = false;
     for (let j = 0; j < numContacts; j++) {
+      let manifoldPoint = persistentManifold.getContactPoint(j);
+      let distance = manifoldPoint.getDistance();
       if (Ammo.getPointer(body0) !== Ammo.getPointer(body1) && distance <= this.epsilon) {
         collided = true;
         break;
