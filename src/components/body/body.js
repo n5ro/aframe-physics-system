@@ -77,12 +77,11 @@ var Body = {
         this.shouldUpdateWireframe = true;
       }
 
-      this.isLoaded = true;
-    }
+     }
 
     this.el.body = this.body;
     this.body.el = el;
-
+    this.isLoaded = true;
     // If component wasn't initialized when play() was called, finish up.
     if (this.isPlaying) {
       this._play();
