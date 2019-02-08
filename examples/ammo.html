@@ -33,15 +33,43 @@
   <body>
     <a-scene physics="driver: ammo; debug: true; gravity: -9.8; debugDrawMode: 2049">
       <a-camera near=0.001></a-camera>
-      <a-box position="-1 5 -5" rotation="0 45 0" color="#4CC3D9" shadow ammo-body="shape: box;"></a-box>
-      <a-box id="target" position="1 3.75 -4" rotation="0 45 0" color="purple" shadow ammo-body="shape: box;"></a-box>
-      <a-sphere position="0 10 -10" radius="1.25" color="#EF2D5E" shadow ammo-body="shape: sphere;"></a-sphere>
-      <a-cone position="0 3.75 -4" radius-bottom="1.25" color="green" shadow bounce ammo-body="type: kinematic; shape: cone; addCollideEventListener: true; collisionFlags: 4" ammo-constraint="target: #target;"></a-cone>
-      <a-torus position="-1 3.75 -7" radius="1.25" scale="0.5 0.5 0.5" color="red" shadow ammo-body="shape: capsule; cylinderAxis: z;"></a-torus>
-      <a-torus-knot position="0 3.75 -5" radius="1.25" scale="0.5 0.5 0.5" color="blue" shadow ammo-body="addCollideEventListener: false;"></a-torus-knot>
-      <a-cylinder segments-height="1" segments-radial="10" position="1 4.0 -5" radius="0.5" height="1.5" color="#FFC65D" shadow ammo-body="shape: cylinder"></a-cylinder>
-      <a-plane position="0 2 -4" rotation="90 0 0" width="1" height="1" color="#7BC8A4" shadow ammo-body="type: static; mass: 0; shape: box;"></a-plane>
-      <a-torus-knot position="0 0 -7" radius="1.25" scale="5 0.1 5" rotation="0 90 0" color="#7BC8A4" shadow ammo-body="type: static; mass: 0; shape: mesh;"></a-torus-knot>
+      <a-box position="-1 5 -5" rotation="0 45 0" color="#4CC3D9" shadow 
+        ammo-body 
+        ammo-shape="type: box";></a-box>
+      <a-box id="target" position="1 3.75 -4" rotation="0 45 0" color="purple" shadow 
+        ammo-body 
+        ammo-shape="type: box;"
+      ></a-box>
+      <a-sphere position="0 10 -10" radius="1.25" color="#EF2D5E" shadow 
+        ammo-body 
+        ammo-shape="type: sphere;"
+      ></a-sphere>
+      <a-cone position="0 3.75 -4" radius-bottom="1.25" color="green" shadow 
+        bounce 
+        ammo-body="type: kinematic; addCollideEventListener: true; collisionFlags: 4" 
+        ammo-shape="type: cone;" 
+        ammo-constraint="target: #target;"
+      ></a-cone>
+      <a-torus position="-1 3.75 -7" radius="1.25" scale="0.5 0.5 0.5" color="red" shadow 
+        ammo-body 
+        ammo-shape="type: capsule; cylinderAxis: z;"
+      ></a-torus>
+      <a-torus-knot position="0 3.75 -5" radius="1.25" scale="0.5 0.5 0.5" color="blue" shadow 
+        ammo-body="addCollideEventListener: false;" 
+        ammo-shape
+      ></a-torus-knot>
+      <a-cylinder segments-height="1" segments-radial="10" position="1 4.0 -5" radius="0.5" height="1.5" color="#FFC65D" shadow 
+        ammo-body 
+        ammo-shape="type: cylinder"
+      ></a-cylinder>
+      <a-plane position="0 2 -4" rotation="90 0 0" width="1" height="1" color="#7BC8A4" shadow 
+        ammo-body="type: static; mass: 0;" 
+        ammo-shape="type: box;"
+      ></a-plane>
+      <a-torus-knot position="0 0 -7" radius="1.25" scale="5 0.1 5" rotation="0 90 0" color="#7BC8A4" shadow 
+        ammo-body="type: static; mass: 0;" 
+        ammo-shape="type: mesh; autoUpdateScale: true;"
+      ></a-torus-knot>
       <a-sky color="#ECECEC"></a-sky>
     </a-scene>
   </body>

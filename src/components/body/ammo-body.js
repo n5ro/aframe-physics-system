@@ -1,5 +1,6 @@
 /* global Ammo,THREE */
-let AmmoDebugDrawer = require("ammo-debug-drawer");
+const AmmoDebugDrawer = require("ammo-debug-drawer");
+const threeToAmmo = require("three-to-ammo");
 
 //Activation States
 const ACTIVE_TAG = 1;
@@ -21,26 +22,18 @@ function almostEquals(epsilon, u, v) {
   return Math.abs(u.x - v.x) < epsilon && Math.abs(u.y - v.y) < epsilon && Math.abs(u.z - v.z) < epsilon;
 }
 
-let Body = {
+let AmmoBody = {
   schema: {
+    loadedEvent: { default: "" },
     mass: { default: 1 },
-    gravity: { default: { x: 0, y: -9.8, z: 0 } },
+    gravity: { type: "vec3", default: { x: 0, y: -9.8, z: 0 } },
     linearDamping: { default: 0.01 },
     angularDamping: { default: 0.01 },
     angularFactor: { type: "vec3", default: { x: 1, y: 1, z: 1 } },
-    margin: { default: 0.01 },
     activationState: {
       default: DISABLE_DEACTIVATION,
       oneOf: [ACTIVE_TAG, ISLAND_SLEEPING, WANTS_DEACTIVATION, DISABLE_DEACTIVATION, DISABLE_SIMULATION]
     },
-    shape: { default: "hull", oneOf: ["box", "cylinder", "sphere", "capsule", "cone", "hull", "mesh"] },
-    autoGenerateShape: { default: true },
-    halfExtents: { type: "vec3", default: { x: 1, y: 1, z: 1 } },
-    recenter: { default: false }, //recenter the object3D's geometry
-    offset: { type: "vec3", default: { x: 0, y: 0, z: 0 } },
-    orientation: { type: "vec4", default: { x: 0, y: 0, z: 0, w: 1 } },
-    cylinderAxis: { default: "y", oneOf: ["x", "y", "z"] },
-    sphereRadius: { default: NaN },
     type: { default: "dynamic", oneOf: ["static", "dynamic", "kinematic"] },
     addCollideEventListener: { default: false },
     collisionFlags: { default: 0 }, //32-bit mask
@@ -55,368 +48,65 @@ let Body = {
    */
   init: function() {
     this.system = this.el.sceneEl.systems.physics;
+    this.shapeComponents = [];
 
-    if (this.el.sceneEl.hasLoaded) {
-      this.loaded = true;
+    if (this.data.loadedEvent === "") {
+      this.loadedEventFired = true;
     } else {
-      this.el.sceneEl.addEventListener("loaded", () => {
-        //TODO: remove this after?
-        this.loaded = true;
-        this.initBody();
-      });
+      this.el.addEventListener(
+        this.data.loadedEvent,
+        () => {
+          this.loadedEventFired = true;
+        },
+        { once: true }
+      );
     }
 
-    if (this.el.object3DMap.mesh && this.data.autoGenerateShape) {
-      this.meshSet = true;
-    } else {
-      ["model-loaded", "video-loaded", "image-loaded"].forEach(eventName => {
-        this.el.addEventListener(eventName, () => {
-          if (!this.meshSet) {
-            this.meshSet = true;
-            this.initBody();
-          }
-        });
-      });
+    if (this.system.initialized && this.loadedEventFired) {
+      this.initBody();
     }
-
-    this.initBody();
   },
-
-  _getMeshes: function(sceneRoot) {
-    let meshes = [];
-    sceneRoot.traverse(o => {
-      if (o.type === "Mesh" && (!THREE.Sky || o.__proto__ != THREE.Sky.prototype)) {
-        meshes.push(o);
-      }
-    });
-    return meshes;
-  },
-
-  _getVertices: (function() {
-    let vertexPool = [];
-    let vertices = [];
-    let matrix = new THREE.Matrix4();
-    let inverse = new THREE.Matrix4();
-    return function(sceneRoot, meshes) {
-      while (vertices.length > 0) {
-        vertexPool.push(vertices.pop());
-      }
-
-      inverse.getInverse(sceneRoot.matrixWorld);
-
-      for (let j = 0; j < meshes.length; j++) {
-        let mesh = meshes[j];
-
-        let geometry = mesh.geometry.index ? mesh.geometry.toNonIndexed() : mesh.geometry.clone();
-
-        if (this.data.shape === "mesh") {
-          geometry.applyMatrix(mesh.matrixWorld);
-        } else {
-          matrix.multiplyMatrices(inverse, mesh.matrixWorld);
-          geometry.applyMatrix(matrix);
-        }
-
-        if (geometry.isBufferGeometry) {
-          let components = geometry.attributes.position.array;
-          for (let i = 0; i < components.length; i += 3) {
-            let x = components[i];
-            let y = components[i + 1];
-            let z = components[i + 2];
-
-            if (vertexPool.length > 0) {
-              vertices.push(vertexPool.pop().set(x, y, z));
-            } else {
-              vertices.push(new THREE.Vector3(x, y, z));
-            }
-          }
-        } else {
-          for (let i = 0; i < geometry.vertices.length; i++) {
-            let vertex = geometry.vertices[i];
-            if (vertexPool.length > 0) {
-              vertices.push(vertexPool.pop().copy(vertex));
-            } else {
-              vertices.push(new THREE.Vector3(vertex.x, vertex.y, vertex.z));
-            }
-          }
-        }
-      }
-
-      return vertices;
-    };
-  })(),
-
-  _getHalfExtents: (function() {
-    let halfExtents = new THREE.Vector3();
-    return function(boundingBox) {
-      if (this.data.autoGenerateShape) {
-        let { min, max } = boundingBox;
-        halfExtents.subVectors(max, min).multiplyScalar(0.5);
-        return {
-          x: halfExtents.x,
-          y: halfExtents.y,
-          z: halfExtents.z
-        };
-      } else {
-        return {
-          x: this.data.halfExtents.x,
-          y: this.data.halfExtents.y,
-          z: this.data.halfExtents.z
-        };
-      }
-    };
-  })(),
-
-  _recenter: (function() {
-    let offset = new THREE.Matrix4();
-    let center = new THREE.Vector3();
-    let geometries = [];
-    return function(sceneRoot, meshes) {
-      if (meshes.length === 1) {
-        meshes[0].geometry.center();
-        return;
-      }
-
-      let { min, max } = this._getBoundingBox(meshes);
-      center.addVectors(max, min).multiplyScalar(-0.5);
-      offset.makeTranslation(center.x, center.y, center.z);
-
-      for (let j = 0; j < meshes.length; j++) {
-        let mesh = meshes[j];
-        if (geometries.indexOf(mesh.geometry.uuid) !== -1) {
-          continue;
-        }
-        mesh.geometry.applyMatrix(offset);
-        geometries.push(mesh.geometry.uuid);
-      }
-    };
-  })(),
-
-  _getBoundingBox: (function() {
-    let boundingBox = {
-      min: new THREE.Vector3(Number.MAX_VALUE),
-      max: new THREE.Vector3(Number.MIN_VALUE)
-    };
-    return function(meshes) {
-      for (let i = 0; i < meshes.length; ++i) {
-        let mesh = meshes[i];
-        if (!mesh.geometry.boundingBox) {
-          mesh.geometry.computeBoundingBox();
-        }
-        let box = mesh.geometry.boundingBox;
-
-        boundingBox.min.x = Math.min(box.min.x, box.min.x);
-        boundingBox.min.y = Math.min(box.min.y, box.min.y);
-        boundingBox.min.z = Math.min(box.min.z, box.min.z);
-
-        boundingBox.max.x = Math.max(box.max.x, box.max.x);
-        boundingBox.max.y = Math.max(box.max.y, box.max.y);
-        boundingBox.max.z = Math.max(box.max.z, box.max.z);
-      }
-      return boundingBox;
-    };
-  })(),
 
   /**
    * Parses an element's geometry and component metadata to create an Ammo body instance for the
    * component.
    */
   initBody: (function() {
-    let pos = new THREE.Vector3();
-    let quat = new THREE.Quaternion();
-    let boundingBox = new THREE.Box3();
+    const pos = new THREE.Vector3();
+    const quat = new THREE.Quaternion();
+    const boundingBox = new THREE.Box3();
 
     return function() {
-      if (!(this.system.initialized && this.loaded && (this.meshSet || !this.data.autoGenerateShape))) {
-        return;
-      }
-
-      let el = this.el,
+      const el = this.el,
         data = this.data;
 
-      let obj = this.el.object3D;
+      this.localScaling = new Ammo.btVector3();
+
+      const obj = this.el.object3D;
       obj.getWorldPosition(pos);
       obj.getWorldQuaternion(quat);
 
       this.prevObjScale = new THREE.Vector3(1, 1, 1);
       this.prevMeshScale = new THREE.Vector3(1, 1, 1);
-
-      let sceneRoot = this.el.object3DMap.mesh || this.el.object3D; //TODO: why is object3DMap.mesh not set sometimes?
-
-      //This is for helping migration between cannon and ammo
-      if (data.shape === "none") {
-        data.shape = "box";
-      }
-
-      let meshes = this._getMeshes(sceneRoot);
-
-      if (data.shape !== "mesh") {
-        if (data.recenter) {
-          this._recenter(sceneRoot, meshes);
-        }
-      }
-
-      let vertices = this._getVertices(sceneRoot, meshes);
-      boundingBox.setFromPoints(vertices);
-
-      //TODO: Support convex hull decomposition, compound shapes, gimpact (dynamic trimesh)
-      switch (data.shape) {
-        case "box": {
-          let { x, y, z } = this._getHalfExtents(boundingBox);
-          let halfExtents = new Ammo.btVector3(x, y, z);
-          this.physicsShape = new Ammo.btBoxShape(halfExtents);
-          Ammo.destroy(halfExtents);
-          break;
-        }
-        case "sphere": {
-          let radius = 1;
-          if (data.sphereRadius) {
-            radius = data.sphereRadius;
-          } else {
-            let sphere = new THREE.Sphere();
-            sphere.setFromPoints(vertices);
-            if (isFinite(sphere.radius)) {
-              radius = sphere.radius;
-            }
-          }
-          this.physicsShape = new Ammo.btSphereShape(radius);
-          break;
-        }
-        case "cylinder": {
-          let { x, y, z } = this._getHalfExtents(boundingBox);
-          let halfExtents = new Ammo.btVector3(x, y, z);
-          switch (data.cylinderAxis) {
-            case "y":
-              this.physicsShape = new Ammo.btCylinderShape(halfExtents);
-              break;
-            case "x":
-              this.physicsShape = new Ammo.btCylinderShapeX(halfExtents);
-              break;
-            case "z":
-              this.physicsShape = new Ammo.btCylinderShapeZ(halfExtents);
-              break;
-          }
-          Ammo.destroy(halfExtents);
-          break;
-        }
-        case "capsule": {
-          let { x, y, z } = this._getHalfExtents(boundingBox);
-          switch (data.cylinderAxis) {
-            case "y":
-              this.physicsShape = new Ammo.btCapsuleShape(Math.max(x, z), y * 2);
-              break;
-            case "x":
-              this.physicsShape = new Ammo.btCapsuleShapeX(Math.max(y, z), x * 2);
-              break;
-            case "z":
-              this.physicsShape = new Ammo.btCapsuleShapeZ(Math.max(x, y), z * 2);
-              break;
-          }
-          break;
-        }
-        case "cone": {
-          let { x, y, z } = this._getHalfExtents(boundingBox);
-          switch (data.cylinderAxis) {
-            case "y":
-              this.physicsShape = new Ammo.btConeShape(Math.max(x, z), y * 2);
-              break;
-            case "x":
-              this.physicsShape = new Ammo.btConeShapeX(Math.max(y, z), x * 2);
-              break;
-            case "z":
-              this.physicsShape = new Ammo.btConeShapeZ(Math.max(x, y), z * 2);
-              break;
-          }
-          break;
-        }
-        case "hull": {
-          let scale = new Ammo.btVector3(sceneRoot.scale.x, sceneRoot.scale.y, sceneRoot.scale.z);
-          let vec3 = new Ammo.btVector3();
-          let originalHull = new Ammo.btConvexHullShape();
-          originalHull.setMargin(data.margin);
-
-          for (let i = 0; i < vertices.length; i++) {
-            vec3.setValue(vertices[i].x, vertices[i].y, vertices[i].z);
-            originalHull.addPoint(vec3, i == vertices.length - 1);
-          }
-
-          this.physicsShape = originalHull;
-          if (originalHull.getNumVertices() >= 100) {
-            //Bullet documentation says don't use convexHulls with 100 verts or more
-            this.shapeHull = new Ammo.btShapeHull(originalHull);
-            this.shapeHull.buildHull(data.margin);
-            Ammo.destroy(originalHull);
-            this.physicsShape = new Ammo.btConvexHullShape(
-              Ammo.getPointer(this.shapeHull.getVertexPointer()),
-              this.shapeHull.numVertices()
-            );
-          }
-          this.physicsShape.setLocalScaling(scale);
-
-          if (this.system.debug) {
-            this.polyHedralFeaturesInitialized = true;
-            this.physicsShape.initializePolyhedralFeatures(0);
-          }
-
-          Ammo.destroy(scale);
-          Ammo.destroy(vec3);
-          break;
-        }
-        case "mesh": {
-          if (data.type !== "static") {
-            //TODO: support btTriangleMeshShape for dynamic trimeshes. (not performant)
-            console.warn("non-static mesh colliders are not currently supported");
-            break;
-          }
-
-          let a = new Ammo.btVector3();
-          let b = new Ammo.btVector3();
-          let c = new Ammo.btVector3();
-          this.triMesh = new Ammo.btTriangleMesh(true, false);
-
-          for (let j = 0; j < vertices.length; j += 3) {
-            a.setValue(vertices[j].x, vertices[j].y, vertices[j].z);
-            b.setValue(vertices[j + 1].x, vertices[j + 1].y, vertices[j + 1].z);
-            c.setValue(vertices[j + 2].x, vertices[j + 2].y, vertices[j + 2].z);
-            this.triMesh.addTriangle(a, b, c, j == vertices.length - 3);
-          }
-
-          this.physicsShape = new Ammo.btBvhTriangleMeshShape(this.triMesh, true, true);
-          this.physicsShape.setMargin(data.margin);
-          //TODO: support btScaledBvhTriangleMeshShape?
-
-          Ammo.destroy(a);
-          Ammo.destroy(b);
-          Ammo.destroy(c);
-          break;
-        }
-
-        default:
-          console.warn(data.shape + " is not currently supported");
-          return;
-      }
+      this.prevNumChildShapes = 0;
 
       this.msTransform = new Ammo.btTransform();
       this.msTransform.setIdentity();
       this.rotation = new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w);
-      if (this.data.shape !== "mesh") {
-        //mesh shape origin and rotation are already accounted for
-        this.msTransform.getOrigin().setValue(pos.x, pos.y, pos.z);
-        this.msTransform.setRotation(this.rotation);
-      }
+
+      this.msTransform.getOrigin().setValue(pos.x, pos.y, pos.z);
+      this.msTransform.setRotation(this.rotation);
+
       this.motionState = new Ammo.btDefaultMotionState(this.msTransform);
 
       this.localInertia = new Ammo.btVector3(0, 0, 0);
 
-      this.physicsShape.setMargin(data.margin);
-
-      if (data.type === "dynamic") {
-        this.physicsShape.calculateLocalInertia(data.mass, this.localInertia);
-      }
+      this.compoundShape = new Ammo.btCompoundShape(true);
 
       this.rbInfo = new Ammo.btRigidBodyConstructionInfo(
         data.mass,
         this.motionState,
-        this.physicsShape,
+        this.compoundShape,
         this.localInertia
       );
       this.body = new Ammo.btRigidBody(this.rbInfo);
@@ -435,33 +125,25 @@ let Body = {
       this.el.body = this.body;
       this.body.el = el;
 
-      this.system.addBody(this.body, this.data.collisionFilterGroup, this.data.collisionFilterMask);
-
-      if (this.data.addCollideEventListener) {
-        this.system.driver.addEventListener(this.body);
-      }
-
       this.isLoaded = true;
 
-      // If component wasn't initialized when play() was called, finish up.
-      if (this.isPlaying) {
-        this._play();
-      }
-
       this.el.emit("body-loaded", { body: this.el.body });
+
+      this._addToSystem();
     };
   })(),
 
   tick: function() {
-    if (!this.isLoaded && this.system.initialized) {
+    if (!this.system.initialized || !this.loadedEventFired) {
+      return;
+    } else if (this.system.initialized && !this.isLoaded && this.loadedEventFired) {
       this.initBody();
     }
 
     let updated = false;
 
-    let mesh = this.el.object3DMap.mesh;
+    const mesh = this.el.object3DMap.mesh;
     if (
-      this.data.autoGenerateShape &&
       mesh &&
       this.data.autoUpdateScale &&
       this.prevMeshScale &&
@@ -471,7 +153,7 @@ let Body = {
       updated = true;
     }
 
-    let obj = this.el.object3D;
+    const obj = this.el.object3D;
     if (
       obj !== mesh &&
       this.data.autoUpdateScale &&
@@ -482,18 +164,35 @@ let Body = {
       updated = true;
     }
 
-    if (updated && this.data.shape !== "mesh") {
-      //dynamic scaling of meshes not currently supported
+    if (this.shapeComponentsChanged) {
+      this.shapeComponentsChanged = false;
+      updated = true;
+    }
 
-      if (!this.localScaling) {
-        this.localScaling = new Ammo.btVector3();
-      }
+    if (updated) {
       this.localScaling.setValue(
         this.prevObjScale.x * this.prevMeshScale.x,
         this.prevObjScale.y * this.prevMeshScale.y,
         this.prevObjScale.z * this.prevMeshScale.z
       );
-      this.physicsShape.setLocalScaling(this.localScaling);
+      this.compoundShape.setLocalScaling(this.localScaling);
+
+      for (let i = 0; i < this.shapeComponents.length; i++) {
+        const shapeComponent = this.shapeComponents[i];
+        if (!shapeComponent.getShape()) {
+          this._createCollisionShape(shapeComponent);
+        }
+        const collisionShape = shapeComponent.getShape();
+        if (!collisionShape.added) {
+          this.compoundShape.addChildShape(shapeComponent.getLocalTransform(), collisionShape);
+          collisionShape.added = true;
+        }
+
+        if (shapeComponent.data.type !== "mesh") {
+          //dynamic scaling of meshes not supported
+          shapeComponent.getShape().setLocalScaling(this.localScaling);
+        }
+      }
 
       if (this.data.type === "dynamic") {
         this.updateMass();
@@ -502,49 +201,75 @@ let Body = {
       this.system.driver.updateBody(this.body);
     }
 
-    if (
-      this.physicsShape &&
-      this.data.shape === "hull" &&
-      this.system.debug &&
-      (updated || !this.polyHedralFeaturesInitialized)
-    ) {
-      //the scale was updated or debug was turned on for a hull shape
+    //call initializePolyhedralFeatures for hull shapes if debug is turned on and/or scale changes
+    if (this.system.debug && (updated || !this.polyHedralFeaturesInitialized)) {
+      for (let i = 0; i < this.shapeComponents.length; i++) {
+        const shape = this.shapeComponents[i].getShape();
+        if (shape.type === "hull") {
+          shape.initializePolyhedralFeatures(0);
+        }
+      }
       this.polyHedralFeaturesInitialized = true;
-      this.physicsShape.initializePolyhedralFeatures(0);
     }
   },
 
-  /**
-   * Registers the component with the physics system, if ready.
-   */
-  play: function() {
-    if (this.isLoaded) this._play();
+  _createCollisionShape: function(shapeComponent) {
+    const data = shapeComponent.data;
+
+    const localTransform = new Ammo.btTransform();
+    localTransform.setIdentity();
+    localTransform.getOrigin().setValue(data.offset.x, data.offset.y, data.offset.z);
+
+    this.rotation.setValue(data.orientation.x, data.orientation.y, data.orientation.z, data.orientation.w);
+    localTransform.setRotation(this.rotation);
+
+    const collisionShape = threeToAmmo.createCollisionShape(shapeComponent.getMesh(), data);
+    shapeComponent.setShape(collisionShape, localTransform);
+    return { collisionShape: collisionShape, localTransform: localTransform };
   },
 
   /**
-   * Internal helper to register component with physics system.
+   * Registers the component with the physics system.
    */
-  _play: function() {
-    this.system.addComponent(this);
+  play: function() {
+    if (this.isLoaded) {
+      this._addToSystem();
+    }
+  },
+
+  _addToSystem: function() {
+    if (!this.addedToSystem) {
+      this.system.addBody(this.body, this.data.collisionFilterGroup, this.data.collisionFilterMask);
+
+      if (this.data.addCollideEventListener) {
+        this.system.driver.addEventListener(this.body);
+      }
+
+      this.system.addComponent(this);
+      this.addedToSystem = true;
+    }
   },
 
   /**
    * Unregisters the component with the physics system.
    */
   pause: function() {
-    if (this.isLoaded) this._pause();
-  },
+    if (this.addedToSystem) {
+      this.system.removeComponent(this);
 
-  _pause: function() {
-    this.system.removeComponent(this);
-    if (this.body) this.system.removeBody(this.body);
+      if (this.data.addCollideEventListener) {
+        this.system.driver.removeEventListener(this.body);
+      }
+      this.system.removeBody(this.body);
+      this.addedToSystem = false;
+    }
   },
 
   /**
    * Updates the rigid body instance, where possible.
    */
   update: function(prevData) {
-    if (this.body) {
+    if (this.isLoaded) {
       if (prevData.type !== this.data.type) {
         this.updateCollisionFlags();
       }
@@ -565,20 +290,13 @@ let Body = {
    * Removes the component and all physics and scene side effects.
    */
   remove: function() {
-    if (this.data.addCollideEventListener) {
-      this.system.driver.removeEventListener(this.body);
-    }
-
-    if (this.body) {
-      this.system.removeBody(this.body);
-      delete this.body.el;
-      Ammo.destroy(this.body);
-    }
-
-    if (this.shapeHull) Ammo.destroy(this.shapeHull);
     if (this.triMesh) Ammo.destroy(this.triMesh);
     if (this.localScaling) Ammo.destroy(this.localScaling);
-    if (this.physicsShape) Ammo.destroy(this.physicsShape);
+    if (this.compoundShape) Ammo.destroy(this.compoundShape);
+    if (this.body) {
+      Ammo.destroy(this.body);
+      delete this.body;
+    }
     Ammo.destroy(this.rbInfo);
     Ammo.destroy(this.msTransform);
     Ammo.destroy(this.motionState);
@@ -597,28 +315,6 @@ let Body = {
       this.syncFromPhysics();
     }
   },
-
-  _applyOffsetAndOrientation: (function() {
-    let offset = new THREE.Vector3(),
-      orientation = new THREE.Quaternion();
-    return function(v, q) {
-      let data = this.data;
-      if (data.offset.x !== 0 || data.offset.y !== 0 || data.offset.z !== 0) {
-        offset.copy(data.offset);
-        offset.applyQuaternion(q);
-        v.add(offset);
-      }
-      if (
-        data.orientation.x !== 0 ||
-        data.orientation.y !== 0 ||
-        data.orientation.z !== 0 ||
-        data.orientation.w !== 1
-      ) {
-        orientation.copy(data.orientation);
-        q.multiply(orientation);
-      }
-    };
-  })(),
 
   /**
    * Updates the rigid body's position, velocity, and rotation, based on the scene.
@@ -648,8 +344,6 @@ let Body = {
         el.object3D.getWorldQuaternion(q);
       }
 
-      this._applyOffsetAndOrientation(v, q);
-
       if (this.data.type === "kinematic") {
         this.msTransform.getOrigin().setValue(v.x, v.y, v.z);
       }
@@ -666,6 +360,7 @@ let Body = {
     let v = new THREE.Vector3(),
       q1 = new THREE.Quaternion(),
       q2 = new THREE.Quaternion();
+    let x = (y = z = 0);
     return function() {
       this.motionState.getWorldTransform(this.msTransform);
       let position = this.msTransform.getOrigin();
@@ -691,14 +386,30 @@ let Body = {
         parentEl.object3D.worldToLocal(v);
         el.object3D.position.copy(v);
       }
-
-      this._applyOffsetAndOrientation(el.object3D.position, el.object3D.quaternion);
     };
   })(),
 
+  addShape: function(shapeComponent) {
+    if (shapeComponent.data.type === "mesh" && this.data.type !== "static") {
+      console.warn("non-static mesh colliders not supported");
+      return;
+    }
+
+    this.shapeComponents.push(shapeComponent);
+    this.shapeComponentsChanged = true;
+  },
+
+  removeShape: function(shapeComponent) {
+    const index = this.shapeComponents.indexOf(shapeComponent);
+    if (this.compoundShape && index !== -1 && index < this.compoundShape.getNumChildShapes()) {
+      this.shapeComponents.splice(index, 1);
+      this.compoundShape.removeChildShapeByIndex(index);
+      this.shapeComponentsChanged = true;
+    }
+  },
+
   updateMass: function() {
-    let shape = this.body.getCollisionShape();
-    shape.setMargin(this.data.margin);
+    const shape = this.body.getCollisionShape();
     shape.calculateLocalInertia(this.data.mass, this.localInertia);
     this.body.setMassProps(this.data.mass, this.localInertia);
     this.body.updateInertiaTensor();
@@ -721,7 +432,11 @@ let Body = {
 
     if (this.data.type === "dynamic") {
       this.updateMass();
+      // TODO: enable CCD?
+      // this.body.setCcdMotionThreshold(0.001);
+      // this.body.setCcdSweptSphereRadius(0.001);
     }
+
     this.system.driver.updateBody(this.body);
   },
 
@@ -730,5 +445,5 @@ let Body = {
   }
 };
 
-module.exports.definition = Body;
-module.exports.Component = AFRAME.registerComponent("ammo-body", Body);
+module.exports.definition = AmmoBody;
+module.exports.Component = AFRAME.registerComponent("ammo-body", AmmoBody);
