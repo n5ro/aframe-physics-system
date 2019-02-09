@@ -69,12 +69,39 @@ suite('body', function () {
   });
 
   suite('sync', function () {
+    var eps = Number.EPSILON
+    teardown(function () {
+      delete body.quaternion
+      delete body.position
+    });
+
     test.skip('syncToPhysics', function () {
       // TODO
     });
 
     test.skip('syncFromPhysics', function () {
       // TODO
+    });
+
+    test('syncFromPhysics nested rotation', function (done) {
+      var childEl = el.appendChild(document.createElement('a-entity'));
+      childEl.addEventListener('loaded', function () {
+        component.el = childEl;
+        component.body = el.body = body;
+        // body rotation on x and y
+        body.quaternion = new THREE.Quaternion()
+          .setFromEuler(new THREE.Euler(Math.PI / 2, Math.PI / 2, 0));
+        body.position = {x: 0, y: 0, z: 0};
+        // parent already rotated on x, so child only needs y rotation
+        el.object3D.quaternion.setFromEuler(new THREE.Euler(Math.PI / 2, 0, 0));
+        component.syncFromPhysics();
+        var eulerOut = new THREE.Euler();
+        eulerOut.setFromQuaternion(childEl.object3D.quaternion);
+        expect(eulerOut.x).to.be.closeTo(0, eps, 'x rotation');
+        expect(eulerOut.y).to.be.closeTo(Math.PI / 2, eps, 'y rotation');
+        expect(eulerOut.z).to.be.closeTo(0, eps, 'z rotation');
+        done();
+      });
     });
   });
 });

@@ -9,6 +9,7 @@ require('./src/components/shape/shape');
 require('./src/components/shape/ammo-shape')
 require('./src/components/ammo-constraint');
 require('./src/components/constraint');
+require('./src/components/spring');
 require('./src/system');
 
 module.exports = {

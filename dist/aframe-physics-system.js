@@ -7,6 +7,7 @@ require('./src/components/body/dynamic-body');
 require('./src/components/body/static-body');
 require('./src/components/shape/shape')
 require('./src/components/constraint');
+require('./src/components/spring');
 require('./src/system');
 
 module.exports = {
@@ -18,7 +19,7 @@ module.exports = {
 // Export CANNON.js.
 window.CANNON = window.CANNON || CANNON;
 
-},{"./src/components/body/body":63,"./src/components/body/dynamic-body":64,"./src/components/body/static-body":65,"./src/components/constraint":66,"./src/components/math":67,"./src/components/shape/shape":69,"./src/system":79,"cannon":4}],2:[function(require,module,exports){
+},{"./src/components/body/body":63,"./src/components/body/dynamic-body":64,"./src/components/body/static-body":65,"./src/components/constraint":66,"./src/components/math":67,"./src/components/shape/shape":69,"./src/components/spring":70,"./src/system":80,"cannon":4}],2:[function(require,module,exports){
 /**
  * CANNON.shape2mesh
  *
@@ -15909,10 +15910,9 @@ var Body = {
         el.object3D.quaternion.copy(body.quaternion);
         el.object3D.position.copy(body.position);
       } else {
-        // TODO - Nested rotation doesn't seem to be working as expected.
         q1.copy(body.quaternion);
         parentEl.object3D.getWorldQuaternion(q2);
-        q1.multiply(q2.inverse());
+        q1.premultiply(q2.inverse());
         el.object3D.quaternion.copy(q1);
 
         v.copy(body.position);
@@ -16287,6 +16287,109 @@ module.exports.definition = Shape;
 module.exports.Component = AFRAME.registerComponent('shape', Shape);
 
 },{"cannon":4}],70:[function(require,module,exports){
+var CANNON = require('cannon');
+
+module.exports = AFRAME.registerComponent('spring', {
+
+  multiple: true,
+
+  schema: {
+    // Target (other) body for the constraint.
+    target: {type: 'selector'},
+
+    // Length of the spring, when no force acts upon it.
+    restLength: {default: 1, min: 0},
+
+    // How much will the spring suppress the force.
+    stiffness: {default: 100, min: 0},
+
+    // Stretch factor of the spring.
+    damping: {default: 1, min: 0},
+
+    // Offsets.
+    localAnchorA: {type: 'vec3', default: {x: 0, y: 0, z: 0}},
+    localAnchorB: {type: 'vec3', default: {x: 0, y: 0, z: 0}},
+  },
+
+  init: function() {
+    this.system = this.el.sceneEl.systems.physics;
+    this.system.addComponent(this);
+    this.isActive = true;
+    this.spring = /* {CANNON.Spring} */ null;
+  },
+
+  update: function(oldData) {
+    var el = this.el;
+    var data = this.data;
+
+    if (!data.target) {
+      console.warn('Spring: invalid target specified.');
+      return; 
+    }
+    
+    // wait until the CANNON bodies is created and attached
+    if (!el.body || !data.target.body) {
+      (el.body ? data.target : el).addEventListener('body-loaded', this.update.bind(this, {}));
+      return;
+    }
+
+    // create the spring if necessary
+    this.createSpring();
+    // apply new data to the spring
+    this.updateSpring(oldData);
+  },
+
+  updateSpring: function(oldData) {
+    if (!this.spring) {
+      console.warn('Spring: Component attempted to change spring before its created. No changes made.');
+      return;
+    } 
+    var data = this.data;
+    var spring = this.spring;
+
+    // Cycle through the schema and check if an attribute has changed.
+    // if so, apply it to the spring
+    Object.keys(data).forEach(function(attr) {
+      if (data[attr] !== oldData[attr]) {
+        if (attr === 'target') {
+          // special case for the target selector
+          spring.bodyB = data.target.body;
+          return;
+        }
+        spring[attr] = data[attr];
+      }
+    })
+  },
+
+  createSpring: function() {
+    if (this.spring) return; // no need to create a new spring
+    this.spring = new CANNON.Spring(this.el.body);
+  },
+
+  // If the spring is valid, update the force each tick the physics are calculated
+  step: function(t, dt) {
+    return this.spring && this.isActive ? this.spring.applyForce() : void 0;
+  },
+
+  // resume updating the force when component upon calling play()
+  play: function() {
+    this.isActive = true;
+  },
+
+  // stop updating the force when component upon calling stop()
+  pause: function() {
+    this.isActive = false;
+  },
+
+  //remove the event listener + delete the spring
+  remove: function() {
+    if (this.spring)
+      delete this.spring;
+      this.spring = null;
+  }
+})
+
+},{"cannon":4}],71:[function(require,module,exports){
 module.exports = {
   GRAVITY: -9.8,
   MAX_INTERVAL: 4 / 60,
@@ -16301,7 +16404,7 @@ module.exports = {
   }
 };
 
-},{}],71:[function(require,module,exports){
+},{}],72:[function(require,module,exports){
 var Driver = require('./driver');
 
 function AmmoDriver () {
@@ -16313,7 +16416,7 @@ AmmoDriver.prototype.constructor = AmmoDriver;
 
 module.exports = AmmoDriver;
 
-},{"./driver":72}],72:[function(require,module,exports){
+},{"./driver":73}],73:[function(require,module,exports){
 /**
  * Driver - defines limited API to local and remote physics controllers.
  */
@@ -16391,7 +16494,7 @@ function abstractMethod () {
   throw new Error('Method not implemented.');
 }
 
-},{}],73:[function(require,module,exports){
+},{}],74:[function(require,module,exports){
 module.exports = {
   INIT: 'init',
   STEP: 'step',
@@ -16408,10 +16511,13 @@ module.exports = {
 
   // Constraints.
   ADD_CONSTRAINT: 'add-constraint',
-  REMOVE_CONSTRAINT: 'remove-constraint'
+  REMOVE_CONSTRAINT: 'remove-constraint',
+
+  // Events.
+  COLLIDE: 'collide'
 };
 
-},{}],74:[function(require,module,exports){
+},{}],75:[function(require,module,exports){
 var CANNON = require('cannon'),
     Driver = require('./driver');
 
@@ -16532,7 +16638,7 @@ LocalDriver.prototype.getContacts = function () {
   return this.world.contacts;
 };
 
-},{"./driver":72,"cannon":4}],75:[function(require,module,exports){
+},{"./driver":73,"cannon":4}],76:[function(require,module,exports){
 var Driver = require('./driver');
 
 function NetworkDriver () {
@@ -16544,7 +16650,7 @@ NetworkDriver.prototype.constructor = NetworkDriver;
 
 module.exports = NetworkDriver;
 
-},{"./driver":72}],76:[function(require,module,exports){
+},{"./driver":73}],77:[function(require,module,exports){
 /**
  * Stub version of webworkify, for debugging code outside of a webworker.
  */
@@ -16587,7 +16693,7 @@ EventTarget.prototype.postMessage = function (msg) {
   this.target.dispatchEvent('message', {data: msg});
 };
 
-},{}],77:[function(require,module,exports){
+},{}],78:[function(require,module,exports){
 /* global performance */
 
 var webworkify = require('webworkify'),
@@ -16702,6 +16808,15 @@ WorkerDriver.prototype._onMessage = function (event) {
           protocol.deserializeBodyUpdate(bodies[id], this.bodies[id]);
         }
       }
+    }
+
+  } else if (event.data.type === Event.COLLIDE) {
+    var body = this.bodies[event.data.bodyID];
+    var target = this.bodies[event.data.targetID];
+    var contact = protocol.deserializeContact(event.data.contact, this.bodies);
+    if (!body._listeners || !body._listeners.collide) return;
+    for (var i = 0; i < body._listeners.collide.length; i++) {
+      body._listeners.collide[i]({target: target, body: body, contact: contact});
     }
 
   } else {
@@ -16823,7 +16938,7 @@ WorkerDriver.prototype.getContacts = function () {
   });
 };
 
-},{"../utils/protocol":81,"./driver":72,"./event":73,"./webworkify-debug":76,"./worker":78,"webworkify":62}],78:[function(require,module,exports){
+},{"../utils/protocol":82,"./driver":73,"./event":74,"./webworkify-debug":77,"./worker":79,"webworkify":62}],79:[function(require,module,exports){
 var Event = require('./event'),
     LocalDriver = require('./local-driver'),
     AmmoDriver = require('./ammo-driver'),
@@ -16856,6 +16971,16 @@ module.exports = function (self) {
         var body = protocol.deserializeBody(data.body);
         body.material = driver.getMaterial( 'defaultMaterial' );
         bodies[body[ID]] = body;
+
+        body.addEventListener('collide', function (evt) {
+          var message = {
+            type: Event.COLLIDE,
+            bodyID: evt.target[ID], // set the target as the body to be identical to the local driver
+            targetID: evt.body[ID], // set the body as the target to be identical to the local driver
+            contact: protocol.serializeContact(evt.contact)
+          }
+          self.postMessage(message);
+        });
         driver.addBody(body);
         break;
       case Event.REMOVE_BODY:
@@ -16917,7 +17042,7 @@ module.exports = function (self) {
   }
 };
 
-},{"../utils/protocol":81,"./ammo-driver":71,"./event":73,"./local-driver":74}],79:[function(require,module,exports){
+},{"../utils/protocol":82,"./ammo-driver":72,"./event":74,"./local-driver":75}],80:[function(require,module,exports){
 var CANNON = require('cannon'),
     CONSTANTS = require('./constants'),
     C_GRAV = CONSTANTS.GRAVITY,
@@ -17162,7 +17287,7 @@ module.exports = AFRAME.registerSystem('physics', {
   }
 });
 
-},{"./constants":70,"./drivers/ammo-driver":71,"./drivers/local-driver":74,"./drivers/network-driver":75,"./drivers/worker-driver":77,"cannon":4}],80:[function(require,module,exports){
+},{"./constants":71,"./drivers/ammo-driver":72,"./drivers/local-driver":75,"./drivers/network-driver":76,"./drivers/worker-driver":78,"cannon":4}],81:[function(require,module,exports){
 module.exports.slerp = function ( a, b, t ) {
   if ( t <= 0 ) return a;
   if ( t >= 1 ) return b;
@@ -17227,7 +17352,7 @@ module.exports.slerp = function ( a, b, t ) {
 
 };
 
-},{}],81:[function(require,module,exports){
+},{}],82:[function(require,module,exports){
 var CANNON = require('cannon');
 var mathUtils = require('./math');
 
@@ -17554,4 +17679,4 @@ function deserializeQuaternion (message) {
   return new CANNON.Quaternion(message[0], message[1], message[2], message[3]);
 }
 
-},{"./math":80,"cannon":4}]},{},[1]);
+},{"./math":81,"cannon":4}]},{},[1]);

@@ -327,10 +327,9 @@ var Body = {
         el.object3D.quaternion.copy(body.quaternion);
         el.object3D.position.copy(body.position);
       } else {
-        // TODO - Nested rotation doesn't seem to be working as expected.
         q1.copy(body.quaternion);
         parentEl.object3D.getWorldQuaternion(q2);
-        q1.multiply(q2.inverse());
+        q1.premultiply(q2.inverse());
         el.object3D.quaternion.copy(q1);
 
         v.copy(body.position);

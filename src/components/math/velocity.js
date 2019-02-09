@@ -29,16 +29,16 @@ module.exports = AFRAME.registerComponent('velocity', {
 
     var physics = this.el.sceneEl.systems.physics || {data: {maxInterval: 1 / 60}},
 
-        // TODO - There's definitely a bug with getComputedAttribute and el.data.
-        velocity = this.el.getAttribute('velocity') || {x: 0, y: 0, z: 0},
-        position = this.el.getAttribute('position') || {x: 0, y: 0, z: 0};
+    // TODO - There's definitely a bug with getComputedAttribute and el.data.
+    velocity = this.el.getAttribute('velocity') || {x: 0, y: 0, z: 0},
+    position = this.el.object3D.position || {x: 0, y: 0, z: 0};
 
     dt = Math.min(dt, physics.data.maxInterval * 1000);
 
-    this.el.setAttribute('position', {
-      x: position.x + velocity.x * dt / 1000,
-      y: position.y + velocity.y * dt / 1000,
-      z: position.z + velocity.z * dt / 1000
-    });
+    this.el.object3D.position.set(
+      position.x + velocity.x * dt / 1000,
+      position.y + velocity.y * dt / 1000,
+      position.z + velocity.z * dt / 1000
+    );
   }
 });
