@@ -4,67 +4,18 @@ Driver = require('./driver');
 
 const EPS = 10e-6;
 
-function AmmoDriver() {
-  this.collisionConfiguration = null;
-  this.dispatcher = null;
-  this.broadphase = null;
-  this.solver = null;
-  this.physicsWorld = null;
-  this.debugDrawer = null;
+Ammo().then(function(Ammo) {
+  function AmmoDriver() {
+    this.collisionConfiguration = null;
+    this.dispatcher = null;
+    this.broadphase = null;
+    this.solver = null;
+    this.physicsWorld = null;
+    this.debugDrawer = null;
 
-  this.els = {};
-  this.eventListeners = [];
-  this.collisions = [];
-}
-
-AmmoDriver.prototype = new Driver();
-AmmoDriver.prototype.constructor = AmmoDriver;
-
-module.exports = AmmoDriver;
-
-/* @param {object} worldConfig */
-AmmoDriver.prototype.init = function(worldConfig) {
-  return new Promise(resolve => {
-    AmmoModule().then(result => {
-      Ammo = result;
-      this.epsilon = worldConfig.epsilon || EPS;
-      this.debugDrawMode = worldConfig.debugDrawMode || THREE.AmmoDebugConstants.NoDebug;
-      this.maxSubSteps = worldConfig.maxSubSteps || 4;
-      this.fixedTimeStep = worldConfig.fixedTimeStep || 1 / 120;
-      this.collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
-      this.dispatcher = new Ammo.btCollisionDispatcher(this.collisionConfiguration);
-      this.broadphase = new Ammo.btDbvtBroadphase();
-      this.solver = new Ammo.btSequentialImpulseConstraintSolver();
-      this.physicsWorld = new Ammo.btDiscreteDynamicsWorld(
-        this.dispatcher,
-        this.broadphase,
-        this.solver,
-        this.collisionConfiguration
-      );
-      this.physicsWorld.setGravity(
-        new Ammo.btVector3(0, worldConfig.hasOwnProperty("gravity") ? worldConfig.gravity : -9.8, 0)
-      );
-      this.physicsWorld.getSolverInfo().set_m_numIterations(worldConfig.solverIterations);
-      resolve();
-    });
-  });
-};
-
-/* @param {Ammo.btCollisionObject} body */
-AmmoDriver.prototype.addBody = function(body, group, mask) {
-  this.physicsWorld.addRigidBody(body, group, mask);
-  this.els[Ammo.getPointer(body)] = body.el;
-};
-
-/* @param {Ammo.btCollisionObject} body */
-AmmoDriver.prototype.removeBody = function(body) {
-  this.physicsWorld.removeRigidBody(body);
-  delete this.els[Ammo.getPointer(body)];
-};
-
-AmmoDriver.prototype.updateBody = function(body) {
-  if (this.els.hasOwnProperty(Ammo.getPointer(body))) {
-    this.physicsWorld.updateSingleAabb(body);
+    this.els = {};
+    this.eventListeners = [];
+    this.collisions = [];
   }
 
   AmmoDriver.prototype = new Driver();
