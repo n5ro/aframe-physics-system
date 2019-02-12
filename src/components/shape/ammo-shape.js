@@ -35,8 +35,12 @@ var AmmoShape = {
       return;
     }
 
-    if (this.data.mergeGeometry) {
-      this.setMesh(this.el.object3DMap.mesh);
+    if (this.data.mergeGeometry || !this.data.autoGenerateShape) {
+      if (this.el.object3DMap.mesh) {
+        this.setMesh(this.el.object3DMap.mesh);
+      } else {
+        this.body.addShape(this);
+      }
     }
   },
 
