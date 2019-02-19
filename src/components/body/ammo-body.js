@@ -410,8 +410,9 @@ let AmmoBody = {
 
   updateMass: function() {
     const shape = this.body.getCollisionShape();
-    shape.calculateLocalInertia(this.data.mass, this.localInertia);
-    this.body.setMassProps(this.data.mass, this.localInertia);
+    const mass = this.data.type === "dynamic" ? this.data.mass : 0;
+    shape.calculateLocalInertia(mass, this.localInertia);
+    this.body.setMassProps(mass, this.localInertia);
     this.body.updateInertiaTensor();
   },
 
@@ -430,12 +431,11 @@ let AmmoBody = {
     }
     this.body.setCollisionFlags(flags);
 
-    if (this.data.type === "dynamic") {
-      this.updateMass();
-      // TODO: enable CCD?
-      // this.body.setCcdMotionThreshold(0.001);
-      // this.body.setCcdSweptSphereRadius(0.001);
-    }
+    this.updateMass();
+
+    // TODO: enable CCD if dynamic?
+    // this.body.setCcdMotionThreshold(0.001);
+    // this.body.setCcdSweptSphereRadius(0.001);
 
     this.system.driver.updateBody(this.body);
   },
