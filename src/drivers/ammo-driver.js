@@ -15,7 +15,7 @@ function AmmoDriver() {
 
   this.els = {};
   this.eventListeners = [];
-  this.collisions = [];
+  this.collisions = {};
 }
 
 AmmoDriver.prototype = new Driver();
@@ -73,6 +73,10 @@ AmmoDriver.prototype.updateBody = function(body) {
 AmmoDriver.prototype.step = function(deltaTime) {
   this.physicsWorld.stepSimulation(deltaTime, this.maxSubSteps, this.fixedTimeStep);
 
+  for (const key in this.collisions) {
+    this.collisions[key].colliding = false;
+  }
+
   let numManifolds = this.dispatcher.getNumManifolds();
   for (let i = 0; i < numManifolds; i++) {
     let persistentManifold = this.dispatcher.getManifoldByIndexInternal(i);
@@ -89,22 +93,36 @@ AmmoDriver.prototype.step = function(deltaTime) {
         break;
       }
     }
-    if (collided && this.collisions.indexOf(key) === -1) {
-      this.collisions.push(key);
-      if (this.eventListeners.indexOf(Ammo.getPointer(body0)) !== -1) {
-        this.els[Ammo.getPointer(body0)].emit("collide", { targetEl: this.els[Ammo.getPointer(body1)] });
+    if (collided) {
+      if (!this.collisions.hasOwnProperty(key)) {
+        this.collisions[key] = {
+          colliding: true,
+          body0ptr: Ammo.getPointer(body0),
+          body1ptr: Ammo.getPointer(body1)
+        };
+        const datum = this.collisions[key];
+        if (this.eventListeners.indexOf(datum.body0ptr) !== -1) {
+          this.els[datum.body0ptr].emit("collide", { targetEl: this.els[datum.body1ptr] });
+        }
+        if (this.eventListeners.indexOf(datum.body1ptr) !== -1) {
+          this.els[datum.body1ptr].emit("collide", { targetEl: this.els[datum.body0ptr] });
+        }
+      } else {
+        this.collisions[key].colliding = true;
       }
-      if (this.eventListeners.indexOf(Ammo.getPointer(body1)) !== -1) {
-        this.els[Ammo.getPointer(body1)].emit("collide", { targetEl: this.els[Ammo.getPointer(body0)] });
+    }
+  }
+
+  for (const key in this.collisions) {
+    const datum = this.collisions[key];
+    if (!datum.colliding) {
+      if (this.eventListeners.indexOf(datum.body0ptr) !== -1) {
+        this.els[datum.body0ptr].emit("collide-end", { targetEl: this.els[datum.body1ptr] });
       }
-    } else if (!collided && this.collisions.indexOf(key) !== -1) {
-      this.collisions.splice(this.collisions.indexOf(key), 1);
-      if (this.eventListeners.indexOf(Ammo.getPointer(body0)) !== -1) {
-        this.els[Ammo.getPointer(body0)].emit("collide-end", { targetEl: this.els[Ammo.getPointer(body1)] });
+      if (this.eventListeners.indexOf(datum.body1ptr) !== -1) {
+        this.els[datum.body1ptr].emit("collide-end", { targetEl: this.els[datum.body0ptr] });
       }
-      if (this.eventListeners.indexOf(Ammo.getPointer(body1)) !== -1) {
-        this.els[Ammo.getPointer(body1)].emit("collide-end", { targetEl: this.els[Ammo.getPointer(body0)] });
-      }
+      delete this.collisions[key];
     }
   }
 
