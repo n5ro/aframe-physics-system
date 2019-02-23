@@ -348,11 +348,6 @@ let AmmoBody = {
 
       if (!body) return;
 
-      if (this.data.shape === "mesh") {
-        //dynamic translations and rotations not currently supported for meshes
-        return;
-      }
-
       this.motionState.getWorldTransform(this.msTransform);
 
       if (parentEl.isScene) {
