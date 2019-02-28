@@ -75,13 +75,13 @@ AmmoDriver.prototype.updateBody = function(body) {
 AmmoDriver.prototype.step = function(deltaTime) {
   this.physicsWorld.stepSimulation(deltaTime, this.maxSubSteps, this.fixedTimeStep);
 
-  let numManifolds = this.dispatcher.getNumManifolds();
+  const numManifolds = this.dispatcher.getNumManifolds();
   for (let i = 0; i < numManifolds; i++) {
     const persistentManifold = this.dispatcher.getManifoldByIndexInternal(i);
     const numContacts = persistentManifold.getNumContacts();
     const body0ptr = Ammo.getPointer(persistentManifold.getBody0());
     const body1ptr = Ammo.getPointer(persistentManifold.getBody1());
-    let key = body0ptr + "_" + body1ptr;
+    const key = body0ptr + "_" + body1ptr;
     let collided = false;
     for (let j = 0; j < numContacts; j++) {
       const manifoldPoint = persistentManifold.getContactPoint(j);
