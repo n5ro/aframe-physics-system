@@ -16,6 +16,7 @@ function AmmoDriver() {
   this.els = {};
   this.eventListeners = [];
   this.collisions = {};
+  this.currentCollisions = [];
 }
 
 AmmoDriver.prototype = new Driver();
@@ -60,6 +61,7 @@ AmmoDriver.prototype.addBody = function(body, group, mask) {
 /* @param {Ammo.btCollisionObject} body */
 AmmoDriver.prototype.removeBody = function(body) {
   this.physicsWorld.removeRigidBody(body);
+  this.removeEventListener(body);
   delete this.els[Ammo.getPointer(body)];
 };
 
@@ -73,58 +75,53 @@ AmmoDriver.prototype.updateBody = function(body) {
 AmmoDriver.prototype.step = function(deltaTime) {
   this.physicsWorld.stepSimulation(deltaTime, this.maxSubSteps, this.fixedTimeStep);
 
-  for (const key in this.collisions) {
-    this.collisions[key].colliding = false;
-  }
-
   let numManifolds = this.dispatcher.getNumManifolds();
   for (let i = 0; i < numManifolds; i++) {
-    let persistentManifold = this.dispatcher.getManifoldByIndexInternal(i);
-    let numContacts = persistentManifold.getNumContacts();
-    let body0 = persistentManifold.getBody0();
-    let body1 = persistentManifold.getBody1();
-    let key = Ammo.getPointer(body0) + "_" + Ammo.getPointer(body1);
+    const persistentManifold = this.dispatcher.getManifoldByIndexInternal(i);
+    const numContacts = persistentManifold.getNumContacts();
+    const body0ptr = Ammo.getPointer(persistentManifold.getBody0());
+    const body1ptr = Ammo.getPointer(persistentManifold.getBody1());
+    let key = body0ptr + "_" + body1ptr;
     let collided = false;
     for (let j = 0; j < numContacts; j++) {
-      let manifoldPoint = persistentManifold.getContactPoint(j);
-      let distance = manifoldPoint.getDistance();
-      if (Ammo.getPointer(body0) !== Ammo.getPointer(body1) && distance <= this.epsilon) {
+      const manifoldPoint = persistentManifold.getContactPoint(j);
+      const distance = manifoldPoint.getDistance();
+      if (body0ptr !== body1ptr && distance <= this.epsilon) {
         collided = true;
         break;
       }
     }
     if (collided) {
       if (!this.collisions.hasOwnProperty(key)) {
-        this.collisions[key] = {
-          colliding: true,
-          body0ptr: Ammo.getPointer(body0),
-          body1ptr: Ammo.getPointer(body1)
-        };
-        const datum = this.collisions[key];
-        if (this.eventListeners.indexOf(datum.body0ptr) !== -1) {
-          this.els[datum.body0ptr].emit("collide", { targetEl: this.els[datum.body1ptr] });
+        this.collisions[key] = [body0ptr, body1ptr];
+        if (this.eventListeners.indexOf(body0ptr) !== -1) {
+          this.els[body0ptr].emit("collide", { targetEl: this.els[body1ptr] });
         }
-        if (this.eventListeners.indexOf(datum.body1ptr) !== -1) {
-          this.els[datum.body1ptr].emit("collide", { targetEl: this.els[datum.body0ptr] });
+        if (this.eventListeners.indexOf(body1ptr) !== -1) {
+          this.els[body1ptr].emit("collide", { targetEl: this.els[body0ptr] });
         }
-      } else {
-        this.collisions[key].colliding = true;
       }
+      this.currentCollisions.push(key);
     }
   }
 
   for (const key in this.collisions) {
-    const datum = this.collisions[key];
-    if (!datum.colliding) {
-      if (this.eventListeners.indexOf(datum.body0ptr) !== -1) {
-        this.els[datum.body0ptr].emit("collide-end", { targetEl: this.els[datum.body1ptr] });
-      }
-      if (this.eventListeners.indexOf(datum.body1ptr) !== -1) {
-        this.els[datum.body1ptr].emit("collide-end", { targetEl: this.els[datum.body0ptr] });
-      }
-      delete this.collisions[key];
+    if (this.currentCollisions.indexOf(key) !== -1) {
+      continue;
     }
+
+    const [body0ptr, body1ptr] = this.collisions[key];
+
+    if (this.eventListeners.indexOf(body0ptr) !== -1) {
+      this.els[body0ptr].emit("collide-end", { targetEl: this.els[body1ptr] });
+    }
+    if (this.eventListeners.indexOf(body1ptr) !== -1) {
+      this.els[body1ptr].emit("collide-end", { targetEl: this.els[body0ptr] });
+    }
+    delete this.collisions[key];
   }
+
+  this.currentCollisions.length = 0;
 
   if (this.debugDrawer) {
     this.debugDrawer.update();
@@ -148,7 +145,10 @@ AmmoDriver.prototype.addEventListener = function(body) {
 
 /* @param {Ammo.btCollisionObject} body */
 AmmoDriver.prototype.removeEventListener = function(body) {
-  this.eventListeners.splice(this.eventListeners.indexOf(Ammo.getPointer(body)), 1);
+  const ptr = Ammo.getPointer(body);
+  if (this.eventListeners.indexOf(ptr) !== -1) {
+    this.eventListeners.splice(this.eventListeners.indexOf(ptr), 1);
+  }
 };
 
 AmmoDriver.prototype.destroy = function() {
