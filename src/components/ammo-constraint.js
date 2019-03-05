@@ -10,14 +10,11 @@ module.exports = AFRAME.registerComponent("ammo-constraint", {
     // Target (other) body for the constraint.
     target: { type: "selector" },
 
-    // TODO: Wake up bodies when connected.
-    wakeUpBodies: { default: true },
-
-    // Offset of the hinge or point-to-point constraint, defined locally in the body.
+    // Offset of the hinge or point-to-point constraint, defined locally in the body. Used for hinge, coneTwist pointToPoint constraints.
     pivot: { type: "vec3" },
     targetPivot: { type: "vec3" },
 
-    // An axis that each body can rotate around, defined locally to that body.
+    // An axis that each body can rotate around, defined locally to that body. Used for hinge constraints.
     axis: { type: "vec3", default: { x: 0, y: 0, z: 1 } },
     targetAxis: { type: "vec3", default: { x: 0, y: 0, z: 1 } }
   },
@@ -35,13 +32,13 @@ module.exports = AFRAME.registerComponent("ammo-constraint", {
   },
 
   update: function() {
-    var el = this.el,
+    const el = this.el,
       data = this.data;
 
     this.remove();
 
     if (!el.body || !data.target.body) {
-      (el.body ? data.target : el).addEventListener("body-loaded", this.update.bind(this, {}));
+      (el.body ? data.target : el).addEventListener("body-loaded", this.update.bind(this, {}), { once: true });
       return;
     }
 
@@ -53,41 +50,40 @@ module.exports = AFRAME.registerComponent("ammo-constraint", {
    * @return {Ammo.btTypedConstraint}
    */
   createConstraint: function() {
-    var constraint,
-      data = this.data,
+    let constraint;
+    const data = this.data,
       body = this.el.body,
       targetBody = data.target.body;
 
-    var bodyTransform = body
+    const bodyTransform = body
       .getCenterOfMassTransform()
       .inverse()
       .op_mul(targetBody.getWorldTransform());
-    var targetTransform = new Ammo.btTransform();
+    const targetTransform = new Ammo.btTransform();
     targetTransform.setIdentity();
 
     switch (data.type) {
-      case "lock":
+      case "lock": {
         constraint = new Ammo.btGeneric6DofConstraint(body, targetBody, bodyTransform, targetTransform, true);
         constraint.setLinearLowerLimit(0);
         constraint.setLinearUpperLimit(0);
         constraint.setAngularLowerLimit(0);
         constraint.setAngularUpperLimit(0);
         break;
-
+      }
       //TODO: test and verify all other constraint types
-
-      case "fixed":
+      case "fixed": {
         //btFixedConstraint does not seem to debug render
         bodyTransform.setRotation(body.getWorldTransform().getRotation());
         targetTransform.setRotation(targetBody.getWorldTransform().getRotation());
         constraint = new Ammo.btFixedConstraint(body, targetBody, bodyTransform, targetTransform);
         break;
-
-      case "spring":
+      }
+      case "spring": {
         constraint = new Ammo.btGeneric6DofSpringConstraint(body, targetBody, bodyTransform, targetTransform, true);
         break;
-
-      case "slider":
+      }
+      case "slider": {
         //TODO: support setting linear and angular limits
         constraint = new Ammo.btSliderConstraint(body, targetBody, bodyTransform, targetTransform, true);
         constraint.setLowerLinLimit(-1);
@@ -95,13 +91,13 @@ module.exports = AFRAME.registerComponent("ammo-constraint", {
         // constraint.setLowerAngLimit();
         // constraint.setUpperAngLimit();
         break;
+      }
+      case "hinge": {
+        const pivot = new Ammo.btVector3(data.pivot.x, data.pivot.y, data.pivot.z);
+        const targetPivot = new Ammo.btVector3(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z);
 
-      case "hinge":
-        var pivot = new Ammo.btVector3(data.pivot.x, data.pivot.y, data.pivot.z);
-        var targetPivot = new Ammo.btVector3(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z);
-
-        var axis = new Ammo.btVector3(data.axis.x, data.axis.y, data.axis.z);
-        var targetAxis = new Ammo.btVector3(data.targetAxis.x, data.targetAxis.y, data.targetAxis.z);
+        const axis = new Ammo.btVector3(data.axis.x, data.axis.y, data.axis.z);
+        const targetAxis = new Ammo.btVector3(data.targetAxis.x, data.targetAxis.y, data.targetAxis.z);
 
         constraint = new Ammo.btHingeConstraint(body, targetBody, pivot, targetPivot, axis, targetAxis, true);
 
@@ -110,25 +106,25 @@ module.exports = AFRAME.registerComponent("ammo-constraint", {
         Ammo.destroy(axis);
         Ammo.destroy(targetAxis);
         break;
-
-      case "coneTwist":
-        var pivotTransform = new Ammo.btTransform();
+      }
+      case "coneTwist": {
+        const pivotTransform = new Ammo.btTransform();
         pivotTransform.setIdentity();
-        pivotTransform.getOrigin.setValue(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z);
+        pivotTransform.getOrigin().setValue(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z);
         constraint = new Ammo.btConeTwistConstraint(body, pivotTransform);
         Ammo.destroy(pivotTransform);
         break;
-
-      case "pointToPoint":
-        var pivot = new Ammo.btVector3(data.pivot.x, data.pivot.y, data.pivot.z);
-        var targetPivot = new Ammo.btVector3(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z);
+      }
+      case "pointToPoint": {
+        const pivot = new Ammo.btVector3(data.pivot.x, data.pivot.y, data.pivot.z);
+        const targetPivot = new Ammo.btVector3(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z);
 
         constraint = new Ammo.btPoint2PointConstraint(body, targetBody, pivot, targetPivot);
 
         Ammo.destroy(pivot);
         Ammo.destroy(targetPivot);
         break;
-
+      }
       default:
         throw new Error("[constraint] Unexpected type: " + data.type);
     }

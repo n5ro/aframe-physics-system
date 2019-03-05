@@ -54,7 +54,7 @@ let AmmoBody = {
     collisionFlags: { default: 0 }, //32-bit mask
     collisionFilterGroup: { default: 1 }, //32-bit mask,
     collisionFilterMask: { default: 1 }, //32-bit mask
-    autoUpdateScale: { default: true }
+    scaleAutoUpdate: { default: true }
   },
 
   /**
@@ -130,7 +130,7 @@ let AmmoBody = {
 
       this.body.setDamping(data.linearDamping, data.angularDamping);
 
-      let angularFactor = new Ammo.btVector3(data.angularFactor.x, data.angularFactor.y, data.angularFactor.z);
+      const angularFactor = new Ammo.btVector3(data.angularFactor.x, data.angularFactor.y, data.angularFactor.z);
       this.body.setAngularFactor(angularFactor);
       Ammo.destroy(angularFactor);
 
@@ -150,9 +150,7 @@ let AmmoBody = {
   })(),
 
   tick: function() {
-    if (!this.system.initialized || !this.loadedEventFired) {
-      return;
-    } else if (this.system.initialized && !this.isLoaded && this.loadedEventFired) {
+    if (this.system.initialized && !this.isLoaded && this.loadedEventFired) {
       this.initBody();
     }
   },
@@ -163,7 +161,7 @@ let AmmoBody = {
     const mesh = this.el.object3DMap.mesh;
     if (
       mesh &&
-      this.data.autoUpdateScale &&
+      this.data.scaleAutoUpdate &&
       this.prevMeshScale &&
       !almostEqualsVector3(0.001, mesh.scale, this.prevMeshScale)
     ) {
@@ -174,7 +172,7 @@ let AmmoBody = {
     const obj = this.el.object3D;
     if (
       obj !== mesh &&
-      this.data.autoUpdateScale &&
+      this.data.scaleAutoUpdate &&
       this.prevObjScale &&
       !almostEqualsVector3(0.001, obj.scale, this.prevObjScale)
     ) {
@@ -274,10 +272,6 @@ let AmmoBody = {
   pause: function() {
     if (this.addedToSystem) {
       this.system.removeComponent(this);
-
-      if (this.data.addCollideEventListener) {
-        this.system.driver.removeEventListener(this.body);
-      }
       this.system.removeBody(this.body);
       this.addedToSystem = false;
     }
@@ -339,10 +333,10 @@ let AmmoBody = {
    * Updates the rigid body's position, velocity, and rotation, based on the scene.
    */
   syncToPhysics: (function() {
-    let q = new THREE.Quaternion(),
+    const q = new THREE.Quaternion(),
       v = new THREE.Vector3();
     return function() {
-      let el = this.el,
+      const el = this.el,
         parentEl = el.parentEl,
         body = this.body;
 
@@ -388,16 +382,15 @@ let AmmoBody = {
    * Updates the scene object's position and rotation, based on the physics simulation.
    */
   syncFromPhysics: (function() {
-    let v = new THREE.Vector3(),
+    const v = new THREE.Vector3(),
       q1 = new THREE.Quaternion(),
       q2 = new THREE.Quaternion();
-    let x = (y = z = 0);
     return function() {
       this.motionState.getWorldTransform(this.msTransform);
-      let position = this.msTransform.getOrigin();
-      let quaternion = this.msTransform.getRotation();
+      const position = this.msTransform.getOrigin();
+      const quaternion = this.msTransform.getRotation();
 
-      let el = this.el,
+      const el = this.el,
         parentEl = el.parentEl,
         body = this.body;
 

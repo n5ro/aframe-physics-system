@@ -1,5 +1,5 @@
 /* global THREE */
-let Driver = require("./driver");
+const Driver = require("./driver");
 window.AmmoModule = window.Ammo;
 window.Ammo = null;
 
