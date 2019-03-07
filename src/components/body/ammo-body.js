@@ -1,22 +1,9 @@
 /* global Ammo,THREE */
 const AmmoDebugDrawer = require("ammo-debug-drawer");
 const threeToAmmo = require("three-to-ammo");
-
-//Activation States
-const ACTIVE_TAG = 1;
-const ISLAND_SLEEPING = 2;
-const WANTS_DEACTIVATION = 3;
-const DISABLE_DEACTIVATION = 4;
-const DISABLE_SIMULATION = 5;
-
-//CollisionFlags
-const CF_STATIC_OBJECT = 1;
-const CF_KINEMATIC_OBJECT = 2;
-const CF_NO_CONTACT_RESPONSE = 4;
-const CF_CUSTOM_MATERIAL_CALLBACK = 8; //this allows per-triangle material (friction/restitution)
-const CF_CHARACTER_OBJECT = 16;
-const CF_DISABLE_VISUALIZE_OBJECT = 32; //disable debug drawing
-const CF_DISABLE_SPU_COLLISION_PROCESSING = 64; //disable parallel/SPU processing
+const CONSTANTS = require("../../constants"),
+  ACTIVATION_STATES = CONSTANTS.ACTIVATION_STATES,
+  COLLISION_FLAGS = CONSTANTS.COLLISION_FLAGS;
 
 function almostEqualsVector3(epsilon, u, v) {
   return Math.abs(u.x - v.x) < epsilon && Math.abs(u.y - v.y) < epsilon && Math.abs(u.z - v.z) < epsilon;
@@ -46,8 +33,14 @@ let AmmoBody = {
     angularSleepingThreshold: { default: 2.5 },
     angularFactor: { type: "vec3", default: { x: 1, y: 1, z: 1 } },
     activationState: {
-      default: ACTIVE_TAG,
-      oneOf: [ACTIVE_TAG, ISLAND_SLEEPING, WANTS_DEACTIVATION, DISABLE_DEACTIVATION, DISABLE_SIMULATION]
+      default: ACTIVATION_STATES.ACTIVE_TAG,
+      oneOf: [
+        ACTIVATION_STATES.ACTIVE_TAG,
+        ACTIVATION_STATES.ISLAND_SLEEPING,
+        ACTIVATION_STATES.WANTS_DEACTIVATION,
+        ACTIVATION_STATES.DISABLE_DEACTIVATION,
+        ACTIVATION_STATES.DISABLE_SIMULATION
+      ]
     },
     type: { default: "dynamic", oneOf: ["static", "dynamic", "kinematic"] },
     addCollideEventListener: { default: false },
@@ -444,10 +437,10 @@ let AmmoBody = {
     let flags = this.data.collisionFlags;
     switch (this.data.type) {
       case "static":
-        flags |= CF_STATIC_OBJECT;
+        flags |= COLLISION_FLAGS.STATIC_OBJECT;
         break;
       case "kinematic":
-        flags |= CF_KINEMATIC_OBJECT;
+        flags |= COLLISION_FLAGS.KINEMATIC_OBJECT;
         break;
       default:
         this.body.applyGravity();
@@ -465,7 +458,7 @@ let AmmoBody = {
   },
 
   getVelocity: function() {
-    return this.body.getLinearVelocity().length();
+    return this.body.getLinearVelocity();
   }
 };
 

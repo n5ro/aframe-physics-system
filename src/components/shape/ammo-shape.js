@@ -4,7 +4,6 @@ const threeToAmmo = require("three-to-ammo");
 var AmmoShape = {
   schema: {
     type: { default: "hull", oneOf: ["box", "cylinder", "sphere", "capsule", "cone", "hull", "mesh"] },
-    recenter: { default: false }, //recenter the object3D's geometry
     autoGenerateShape: { default: true }, //disable if using custom halfExtents or sphereRadius
     mergeGeometry: { default: true }, //use all geometry on the object to generate the shape. Otherwise, setMesh must be called explicitly
     halfExtents: { type: "vec3", default: { x: 1, y: 1, z: 1 } },
