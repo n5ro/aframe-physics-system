@@ -275,7 +275,7 @@ let AmmoBody = {
    */
   update: function(prevData) {
     if (this.isLoaded) {
-      if (prevData.type !== this.data.type) {
+      if (prevData.type !== this.data.type || prevData.collisionFlags !== this.data.collisionFlags) {
         this.updateCollisionFlags();
       }
 
