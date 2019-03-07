@@ -35,7 +35,7 @@
       <a-camera near=0.001></a-camera>
       <a-box position="-1 5 -5" rotation="0 45 0" color="#4CC3D9" shadow 
         ammo-body 
-        ammo-shape="type: box";></a-box>
+        ammo-shape="type: box; halfExtents: 0.6 0.6 0.6; autoGenerateShape: false;"></a-box>
       <a-box id="target" position="1 3.75 -4" rotation="0 45 0" color="purple" shadow 
         ammo-body 
         ammo-shape="type: box;"
@@ -46,7 +46,7 @@
       ></a-sphere>
       <a-cone position="0 3.75 -4" radius-bottom="1.25" color="green" shadow 
         bounce 
-        ammo-body="type: kinematic; addCollideEventListener: true; collisionFlags: 4" 
+        ammo-body="type: kinematic; addCollideEventListener: true; collisionFlags: 4;" 
         ammo-shape="type: cone;" 
         ammo-constraint="target: #target;"
       ></a-cone>
@@ -70,7 +70,7 @@
         ammo-body="type: static; mass: 0;" 
         ammo-shape="type: mesh; autoUpdateScale: true;"
       ></a-torus-knot>
-      <a-sky color="#ECECEC"></a-sky>
+      <a-sky color="#000000"></a-sky>
     </a-scene>
   </body>
 </html>

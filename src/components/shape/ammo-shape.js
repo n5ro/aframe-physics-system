@@ -1,9 +1,13 @@
 /* global Ammo,THREE */
 const threeToAmmo = require("three-to-ammo");
+const SHAPES = require("../../constants").SHAPES;
 
 var AmmoShape = {
   schema: {
-    type: { default: "hull", oneOf: ["box", "cylinder", "sphere", "capsule", "cone", "hull", "mesh"] },
+    type: {
+      default: SHAPES.HULL,
+      oneOf: [SHAPES.BOX, SHAPES.CYLINDER, SHAPES.SPHERE, SHAPES.CAPSULE, SHAPES.CONE, SHAPES.HULL, SHAPES.MESH]
+    },
     autoGenerateShape: { default: true }, //disable if using custom halfExtents or sphereRadius
     mergeGeometry: { default: true }, //use all geometry on the object to generate the shape. Otherwise, setMesh must be called explicitly
     halfExtents: { type: "vec3", default: { x: 1, y: 1, z: 1 } },

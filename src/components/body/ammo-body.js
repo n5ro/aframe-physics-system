@@ -3,7 +3,9 @@ const AmmoDebugDrawer = require("ammo-debug-drawer");
 const threeToAmmo = require("three-to-ammo");
 const CONSTANTS = require("../../constants"),
   ACTIVATION_STATES = CONSTANTS.ACTIVATION_STATES,
-  COLLISION_FLAGS = CONSTANTS.COLLISION_FLAGS;
+  COLLISION_FLAGS = CONSTANTS.COLLISION_FLAGS,
+  SHAPES = CONSTANTS.SHAPES,
+  TYPES = CONSTANTS.TYPES;
 
 function almostEqualsVector3(epsilon, u, v) {
   return Math.abs(u.x - v.x) < epsilon && Math.abs(u.y - v.y) < epsilon && Math.abs(u.z - v.z) < epsilon;
@@ -42,7 +44,7 @@ let AmmoBody = {
         ACTIVATION_STATES.DISABLE_SIMULATION
       ]
     },
-    type: { default: "dynamic", oneOf: ["static", "dynamic", "kinematic"] },
+    type: { default: "dynamic", oneOf: [TYPES.STATIC, TYPES.DYNAMIC, TYPES.KINEMATIC] },
     addCollideEventListener: { default: false },
     collisionFlags: { default: 0 }, //32-bit mask
     collisionFilterGroup: { default: 1 }, //32-bit mask,
@@ -197,13 +199,13 @@ let AmmoBody = {
           collisionShape.added = true;
         }
 
-        if (shapeComponent.data.type !== "mesh") {
+        if (shapeComponent.data.type !== SHAPES.MESH) {
           //dynamic scaling of meshes not supported
           shapeComponent.getShape().setLocalScaling(this.localScaling);
         }
       }
 
-      if (this.data.type === "dynamic") {
+      if (this.data.type === TYPES.DYNAMIC) {
         this.updateMass();
       }
 
@@ -214,7 +216,7 @@ let AmmoBody = {
     if (this.system.debug && (updated || !this.polyHedralFeaturesInitialized)) {
       for (let i = 0; i < this.shapeComponents.length; i++) {
         const shape = this.shapeComponents[i].getShape();
-        if (shape.type === "hull") {
+        if (shape.type === SHAPES.HULL) {
           shape.initializePolyhedralFeatures(0);
         }
       }
@@ -311,13 +313,13 @@ let AmmoBody = {
 
   beforeStep: function() {
     this._updateShapes();
-    if (this.data.type !== "dynamic") {
+    if (this.data.type !== TYPES.DYNAMIC) {
       this.syncToPhysics();
     }
   },
 
   step: function() {
-    if (this.data.type === "dynamic") {
+    if (this.data.type === TYPES.DYNAMIC) {
       this.syncFromPhysics();
     }
   },
@@ -407,7 +409,7 @@ let AmmoBody = {
   })(),
 
   addShape: function(shapeComponent) {
-    if (shapeComponent.data.type === "mesh" && this.data.type !== "static") {
+    if (shapeComponent.data.type === SHAPES.MESH && this.data.type !== TYPES.STATIC) {
       console.warn("non-static mesh colliders not supported");
       return;
     }
@@ -427,7 +429,7 @@ let AmmoBody = {
 
   updateMass: function() {
     const shape = this.body.getCollisionShape();
-    const mass = this.data.type === "dynamic" ? this.data.mass : 0;
+    const mass = this.data.type === TYPES.DYNAMIC ? this.data.mass : 0;
     shape.calculateLocalInertia(mass, this.localInertia);
     this.body.setMassProps(mass, this.localInertia);
     this.body.updateInertiaTensor();
@@ -436,10 +438,10 @@ let AmmoBody = {
   updateCollisionFlags: function() {
     let flags = this.data.collisionFlags;
     switch (this.data.type) {
-      case "static":
+      case TYPES.STATIC:
         flags |= COLLISION_FLAGS.STATIC_OBJECT;
         break;
-      case "kinematic":
+      case TYPES.KINEMATIC:
         flags |= COLLISION_FLAGS.KINEMATIC_OBJECT;
         break;
       default:

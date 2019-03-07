@@ -1,11 +1,23 @@
 /* global Ammo */
+const CONSTRAINTS = require("../constants").CONSTRAINTS;
 
 module.exports = AFRAME.registerComponent("ammo-constraint", {
   multiple: true,
 
   schema: {
     // Type of constraint.
-    type: { default: "lock", oneOf: ["lock", "fixed", "spring", "slider", "hinge", "coneTwist", "pointToPoint"] },
+    type: {
+      default: CONSTRAINTS.LOCK,
+      oneOf: [
+        CONSTRAINTS.LOCK,
+        CONSTRAINTS.FIXED,
+        CONSTRAINTS.SPRING,
+        CONSTRAINTS.SLIDER,
+        CONSTRAINTS.HINGE,
+        CONSTRAINTS.CONE_TWIST,
+        CONSTRAINTS.POINT_TO_POINT
+      ]
+    },
 
     // Target (other) body for the constraint.
     target: { type: "selector" },
@@ -63,7 +75,7 @@ module.exports = AFRAME.registerComponent("ammo-constraint", {
     targetTransform.setIdentity();
 
     switch (data.type) {
-      case "lock": {
+      case CONSTRAINTS.LOCK: {
         constraint = new Ammo.btGeneric6DofConstraint(body, targetBody, bodyTransform, targetTransform, true);
         constraint.setLinearLowerLimit(0);
         constraint.setLinearUpperLimit(0);
@@ -72,18 +84,18 @@ module.exports = AFRAME.registerComponent("ammo-constraint", {
         break;
       }
       //TODO: test and verify all other constraint types
-      case "fixed": {
+      case CONSTRAINTS.FIXED: {
         //btFixedConstraint does not seem to debug render
         bodyTransform.setRotation(body.getWorldTransform().getRotation());
         targetTransform.setRotation(targetBody.getWorldTransform().getRotation());
         constraint = new Ammo.btFixedConstraint(body, targetBody, bodyTransform, targetTransform);
         break;
       }
-      case "spring": {
+      case CONSTRAINTS.SPRING: {
         constraint = new Ammo.btGeneric6DofSpringConstraint(body, targetBody, bodyTransform, targetTransform, true);
         break;
       }
-      case "slider": {
+      case CONSTRAINTS.SLIDER: {
         //TODO: support setting linear and angular limits
         constraint = new Ammo.btSliderConstraint(body, targetBody, bodyTransform, targetTransform, true);
         constraint.setLowerLinLimit(-1);
@@ -92,7 +104,7 @@ module.exports = AFRAME.registerComponent("ammo-constraint", {
         // constraint.setUpperAngLimit();
         break;
       }
-      case "hinge": {
+      case CONSTRAINTS.HINGE: {
         const pivot = new Ammo.btVector3(data.pivot.x, data.pivot.y, data.pivot.z);
         const targetPivot = new Ammo.btVector3(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z);
 
@@ -107,7 +119,7 @@ module.exports = AFRAME.registerComponent("ammo-constraint", {
         Ammo.destroy(targetAxis);
         break;
       }
-      case "coneTwist": {
+      case CONSTRAINTS.CONE_TWIST: {
         const pivotTransform = new Ammo.btTransform();
         pivotTransform.setIdentity();
         pivotTransform.getOrigin().setValue(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z);
@@ -115,7 +127,7 @@ module.exports = AFRAME.registerComponent("ammo-constraint", {
         Ammo.destroy(pivotTransform);
         break;
       }
-      case "pointToPoint": {
+      case CONSTRAINTS.POINT_TO_POINT: {
         const pivot = new Ammo.btVector3(data.pivot.x, data.pivot.y, data.pivot.z);
         const targetPivot = new Ammo.btVector3(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z);
 

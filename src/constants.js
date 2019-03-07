@@ -25,5 +25,28 @@ module.exports = {
     CHARACTER_OBJECT: 16,
     DISABLE_VISUALIZE_OBJECT: 32, //disable debug drawing
     DISABLE_SPU_COLLISION_PROCESSING: 64 //disable parallel/SPU processing
+  },
+  TYPES: {
+    STATIC: "static",
+    DYNAMIC: "dynamic",
+    KINEMATIC: "kinematic"
+  },
+  SHAPES: {
+    BOX: "box",
+    CYLINDER: "cylinder",
+    SPHERE: "sphere",
+    CAPSULE: "capsule",
+    CONE: "cone",
+    HULL: "hull",
+    MESH: "mesh"
+  },
+  CONSTRAINTS: {
+    LOCK: "lock",
+    FIXED: "fixed",
+    SPRING: "spring",
+    SLIDER: "slider",
+    HINGE: "hinge",
+    CONE_TWIST: "coneTwist",
+    POINT_TO_POINT: "pointToPoint"
   }
 };
