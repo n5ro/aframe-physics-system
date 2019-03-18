@@ -26,6 +26,7 @@ module.exports = AmmoDriver;
 
 /* @param {object} worldConfig */
 AmmoDriver.prototype.init = function(worldConfig) {
+  //Emscripten doesn't use real promises, just a .then() callback, so it necessary to wrap in a real promise.
   return new Promise(resolve => {
     AmmoModule().then(result => {
       Ammo = result;

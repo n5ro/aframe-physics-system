@@ -1,15 +1,16 @@
 /* global Ammo,THREE */
 const threeToAmmo = require("three-to-ammo");
-const SHAPES = require("../../constants").SHAPES;
+const CONSTANTS = require("../../constants"),
+  SHAPE = CONSTANTS.SHAPE,
+  FIT = CONSTANTS.FIT;
 
 var AmmoShape = {
   schema: {
     type: {
-      default: SHAPES.HULL,
-      oneOf: [SHAPES.BOX, SHAPES.CYLINDER, SHAPES.SPHERE, SHAPES.CAPSULE, SHAPES.CONE, SHAPES.HULL, SHAPES.MESH]
+      default: SHAPE.HULL,
+      oneOf: [SHAPE.BOX, SHAPE.CYLINDER, SHAPE.SPHERE, SHAPE.CAPSULE, SHAPE.CONE, SHAPE.HULL, SHAPE.MESH]
     },
-    autoGenerateShape: { default: true }, //disable if using custom halfExtents or sphereRadius
-    mergeGeometry: { default: true }, //use all geometry on the object to generate the shape. Otherwise, setMesh must be called explicitly
+    fit: { default: FIT.ALL, oneOf: [FIT.ALL, FIT.COMPOUND, FIT.MANUAL] },
     halfExtents: { type: "vec3", default: { x: 1, y: 1, z: 1 } },
     minHalfExtent: { default: 0 },
     maxHalfExtent: { default: Number.POSITIVE_INFINITY },
@@ -24,6 +25,7 @@ var AmmoShape = {
 
   init: function() {
     this.system = this.el.sceneEl.systems.physics;
+    this.collisionShapes = [];
 
     let bodyEl = this.el;
     this.body = bodyEl.components["ammo-body"] || null;
@@ -37,36 +39,26 @@ var AmmoShape = {
       console.warn("body not found");
       return;
     }
-
-    if (this.data.mergeGeometry || !this.data.autoGenerateShape) {
-      if (this.el.object3DMap.mesh) {
-        this.setMesh(this.el.object3DMap.mesh);
-      } else {
-        this.body.addShape(this);
+    if (this.data.fit !== FIT.MANUAL) {
+      if (!this.el.object3DMap.mesh) {
+        console.error("Cannot use all or compound fit without object3DMap.mesh");
+        return;
       }
+      this.mesh = this.el.object3DMap.mesh;
     }
-  },
-
-  setMesh: function(mesh) {
-    this.mesh = mesh;
-    this.body.addShape(this);
+    this.body.addShapeComponent(this);
   },
 
   getMesh: function() {
     return this.mesh || null;
   },
 
-  setShape: function(collisionShape, localTransform) {
-    this.collisionShape = collisionShape;
-    this.localTransform = localTransform;
+  addShapes: function(collisionShapes) {
+    this.collisionShapes = collisionShapes;
   },
 
-  getShape: function() {
-    return this.collisionShape || null;
-  },
-
-  getLocalTransform: function() {
-    return this.localTransform || null;
+  getShapes: function() {
+    return this.collisionShapes;
   },
 
   remove: function() {
@@ -74,10 +66,13 @@ var AmmoShape = {
       return;
     }
 
-    this.body.removeShape(this);
+    this.body.removeShapeComponent(this);
 
-    if (this.collisionShape) this.collisionShape.destroy();
-    if (this.localTransform) Ammo.destroy(this.localTransform);
+    while (this.collisionShapes.length > 0) {
+      const collisionShape = this.collisionShapes.pop();
+      collisionShape.destroy();
+      Ammo.destroy(collisionShape.localTransform);
+    }
   }
 };
 

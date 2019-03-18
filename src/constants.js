@@ -10,14 +10,14 @@ module.exports = {
     frictionEquationStiffness: 1e8,
     frictionEquationRegularization: 3
   },
-  ACTIVATION_STATES: {
+  ACTIVATION_STATE: {
     ACTIVE_TAG: 1,
     ISLAND_SLEEPING: 2,
     WANTS_DEACTIVATION: 3,
     DISABLE_DEACTIVATION: 4,
     DISABLE_SIMULATION: 5
   },
-  COLLISION_FLAGS: {
+  COLLISION_FLAG: {
     STATIC_OBJECT: 1,
     KINEMATIC_OBJECT: 2,
     NO_CONTACT_RESPONSE: 4,
@@ -26,12 +26,12 @@ module.exports = {
     DISABLE_VISUALIZE_OBJECT: 32, //disable debug drawing
     DISABLE_SPU_COLLISION_PROCESSING: 64 //disable parallel/SPU processing
   },
-  TYPES: {
+  TYPE: {
     STATIC: "static",
     DYNAMIC: "dynamic",
     KINEMATIC: "kinematic"
   },
-  SHAPES: {
+  SHAPE: {
     BOX: "box",
     CYLINDER: "cylinder",
     SPHERE: "sphere",
@@ -40,7 +40,12 @@ module.exports = {
     HULL: "hull",
     MESH: "mesh"
   },
-  CONSTRAINTS: {
+  FIT: {
+    ALL: "all",
+    COMPOUND: "compound",
+    MANUAL: "manual"
+  },
+  CONSTRAINT: {
     LOCK: "lock",
     FIXED: "fixed",
     SPRING: "spring",

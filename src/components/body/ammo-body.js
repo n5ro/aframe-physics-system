@@ -2,10 +2,11 @@
 const AmmoDebugDrawer = require("ammo-debug-drawer");
 const threeToAmmo = require("three-to-ammo");
 const CONSTANTS = require("../../constants"),
-  ACTIVATION_STATES = CONSTANTS.ACTIVATION_STATES,
-  COLLISION_FLAGS = CONSTANTS.COLLISION_FLAGS,
-  SHAPES = CONSTANTS.SHAPES,
-  TYPES = CONSTANTS.TYPES;
+  ACTIVATION_STATE = CONSTANTS.ACTIVATION_STATE,
+  COLLISION_FLAG = CONSTANTS.COLLISION_FLAG,
+  SHAPE = CONSTANTS.SHAPE,
+  TYPE = CONSTANTS.TYPE,
+  FIT = CONSTANTS.FIT;
 
 function almostEqualsVector3(epsilon, u, v) {
   return Math.abs(u.x - v.x) < epsilon && Math.abs(u.y - v.y) < epsilon && Math.abs(u.z - v.z) < epsilon;
@@ -35,16 +36,16 @@ let AmmoBody = {
     angularSleepingThreshold: { default: 2.5 },
     angularFactor: { type: "vec3", default: { x: 1, y: 1, z: 1 } },
     activationState: {
-      default: ACTIVATION_STATES.ACTIVE_TAG,
+      default: ACTIVATION_STATE.ACTIVE_TAG,
       oneOf: [
-        ACTIVATION_STATES.ACTIVE_TAG,
-        ACTIVATION_STATES.ISLAND_SLEEPING,
-        ACTIVATION_STATES.WANTS_DEACTIVATION,
-        ACTIVATION_STATES.DISABLE_DEACTIVATION,
-        ACTIVATION_STATES.DISABLE_SIMULATION
+        ACTIVATION_STATE.ACTIVE_TAG,
+        ACTIVATION_STATE.ISLAND_SLEEPING,
+        ACTIVATION_STATE.WANTS_DEACTIVATION,
+        ACTIVATION_STATE.DISABLE_DEACTIVATION,
+        ACTIVATION_STATE.DISABLE_SIMULATION
       ]
     },
-    type: { default: "dynamic", oneOf: [TYPES.STATIC, TYPES.DYNAMIC, TYPES.KINEMATIC] },
+    type: { default: "dynamic", oneOf: [TYPE.STATIC, TYPE.DYNAMIC, TYPE.KINEMATIC] },
     addCollideEventListener: { default: false },
     collisionFlags: { default: 0 }, //32-bit mask
     collisionFilterGroup: { default: 1 }, //32-bit mask,
@@ -96,8 +97,7 @@ let AmmoBody = {
       obj.getWorldPosition(pos);
       obj.getWorldQuaternion(quat);
 
-      this.prevObjScale = new THREE.Vector3(1, 1, 1);
-      this.prevMeshScale = new THREE.Vector3(1, 1, 1);
+      this.prevScale = new THREE.Vector3(1, 1, 1);
       this.prevNumChildShapes = 0;
 
       this.msTransform = new Ammo.btTransform();
@@ -153,59 +153,34 @@ let AmmoBody = {
   _updateShapes: function() {
     let updated = false;
 
-    const mesh = this.el.object3DMap.mesh;
-    if (
-      mesh &&
-      this.data.scaleAutoUpdate &&
-      this.prevMeshScale &&
-      !almostEqualsVector3(0.001, mesh.scale, this.prevMeshScale)
-    ) {
-      this.prevMeshScale.copy(mesh.scale);
-      updated = true;
-    }
-
     const obj = this.el.object3D;
-    if (
-      obj !== mesh &&
-      this.data.scaleAutoUpdate &&
-      this.prevObjScale &&
-      !almostEqualsVector3(0.001, obj.scale, this.prevObjScale)
-    ) {
-      this.prevObjScale.copy(obj.scale);
+    if (this.data.scaleAutoUpdate && this.prevScale && !almostEqualsVector3(0.001, obj.scale, this.prevScale)) {
+      this.prevScale.copy(obj.scale);
       updated = true;
+
+      this.localScaling.setValue(this.prevScale.x, this.prevScale.y, this.prevScale.z);
+      this.compoundShape.setLocalScaling(this.localScaling);
     }
 
     if (this.shapeComponentsChanged) {
       this.shapeComponentsChanged = false;
       updated = true;
-    }
-
-    if (updated) {
-      this.localScaling.setValue(
-        this.prevObjScale.x * this.prevMeshScale.x,
-        this.prevObjScale.y * this.prevMeshScale.y,
-        this.prevObjScale.z * this.prevMeshScale.z
-      );
-      this.compoundShape.setLocalScaling(this.localScaling);
-
       for (let i = 0; i < this.shapeComponents.length; i++) {
         const shapeComponent = this.shapeComponents[i];
-        if (!shapeComponent.getShape()) {
+        if (shapeComponent.getShapes().length === 0) {
           this._createCollisionShape(shapeComponent);
         }
-        const collisionShape = shapeComponent.getShape();
-        if (!collisionShape.added) {
-          this.compoundShape.addChildShape(shapeComponent.getLocalTransform(), collisionShape);
-          collisionShape.added = true;
-        }
-
-        if (shapeComponent.data.type !== SHAPES.MESH) {
-          //dynamic scaling of meshes not supported
-          shapeComponent.getShape().setLocalScaling(this.localScaling);
+        const collisionShapes = shapeComponent.getShapes();
+        for (let j = 0; j < collisionShapes.length; j++) {
+          const collisionShape = collisionShapes[j];
+          if (!collisionShape.added) {
+            this.compoundShape.addChildShape(collisionShape.localTransform, collisionShape);
+            collisionShape.added = true;
+          }
         }
       }
 
-      if (this.data.type === TYPES.DYNAMIC) {
+      if (this.data.type === TYPE.DYNAMIC) {
         this.updateMass();
       }
 
@@ -215,9 +190,12 @@ let AmmoBody = {
     //call initializePolyhedralFeatures for hull shapes if debug is turned on and/or scale changes
     if (this.system.debug && (updated || !this.polyHedralFeaturesInitialized)) {
       for (let i = 0; i < this.shapeComponents.length; i++) {
-        const shape = this.shapeComponents[i].getShape();
-        if (shape.type === SHAPES.HULL) {
-          shape.initializePolyhedralFeatures(0);
+        const collisionShapes = this.shapeComponents[i].getShapes();
+        for (let j = 0; j < collisionShapes.length; j++) {
+          const collisionShape = collisionShapes[j];
+          if (collisionShape.type === SHAPE.HULL) {
+            collisionShape.initializePolyhedralFeatures(0);
+          }
         }
       }
       this.polyHedralFeaturesInitialized = true;
@@ -226,17 +204,9 @@ let AmmoBody = {
 
   _createCollisionShape: function(shapeComponent) {
     const data = shapeComponent.data;
-
-    const localTransform = new Ammo.btTransform();
-    localTransform.setIdentity();
-    localTransform.getOrigin().setValue(data.offset.x, data.offset.y, data.offset.z);
-
-    this.rotation.setValue(data.orientation.x, data.orientation.y, data.orientation.z, data.orientation.w);
-    localTransform.setRotation(this.rotation);
-
-    const collisionShape = threeToAmmo.createCollisionShape(shapeComponent.getMesh(), data);
-    shapeComponent.setShape(collisionShape, localTransform);
-    return { collisionShape: collisionShape, localTransform: localTransform };
+    const collisionShapes = threeToAmmo.createCollisionShapes(shapeComponent.getMesh(), data);
+    shapeComponent.addShapes(collisionShapes);
+    return;
   },
 
   /**
@@ -313,13 +283,13 @@ let AmmoBody = {
 
   beforeStep: function() {
     this._updateShapes();
-    if (this.data.type !== TYPES.DYNAMIC) {
+    if (this.data.type !== TYPE.DYNAMIC) {
       this.syncToPhysics();
     }
   },
 
   step: function() {
-    if (this.data.type === TYPES.DYNAMIC) {
+    if (this.data.type === TYPE.DYNAMIC) {
       this.syncFromPhysics();
     }
   },
@@ -408,8 +378,8 @@ let AmmoBody = {
     };
   })(),
 
-  addShape: function(shapeComponent) {
-    if (shapeComponent.data.type === SHAPES.MESH && this.data.type !== TYPES.STATIC) {
+  addShapeComponent: function(shapeComponent) {
+    if (shapeComponent.data.type === SHAPE.MESH && this.data.type !== TYPE.STATIC) {
       console.warn("non-static mesh colliders not supported");
       return;
     }
@@ -418,7 +388,7 @@ let AmmoBody = {
     this.shapeComponentsChanged = true;
   },
 
-  removeShape: function(shapeComponent) {
+  removeShapeComponent: function(shapeComponent) {
     const index = this.shapeComponents.indexOf(shapeComponent);
     if (this.compoundShape && index !== -1 && index < this.compoundShape.getNumChildShapes()) {
       this.shapeComponents.splice(index, 1);
@@ -429,7 +399,7 @@ let AmmoBody = {
 
   updateMass: function() {
     const shape = this.body.getCollisionShape();
-    const mass = this.data.type === TYPES.DYNAMIC ? this.data.mass : 0;
+    const mass = this.data.type === TYPE.DYNAMIC ? this.data.mass : 0;
     shape.calculateLocalInertia(mass, this.localInertia);
     this.body.setMassProps(mass, this.localInertia);
     this.body.updateInertiaTensor();
@@ -438,11 +408,11 @@ let AmmoBody = {
   updateCollisionFlags: function() {
     let flags = this.data.collisionFlags;
     switch (this.data.type) {
-      case TYPES.STATIC:
-        flags |= COLLISION_FLAGS.STATIC_OBJECT;
+      case TYPE.STATIC:
+        flags |= COLLISION_FLAG.STATIC_OBJECT;
         break;
-      case TYPES.KINEMATIC:
-        flags |= COLLISION_FLAGS.KINEMATIC_OBJECT;
+      case TYPE.KINEMATIC:
+        flags |= COLLISION_FLAG.KINEMATIC_OBJECT;
         break;
       default:
         this.body.applyGravity();
