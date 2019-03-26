@@ -253,6 +253,10 @@ let AmmoBody = {
         this.updateCollisionFlags();
       }
 
+      if (prevData.activationState !== this.data.activationState) {
+        this.body.forceActivationState(ACTIVATION_STATES.indexOf(this.data.activationState) + 1);
+      }
+
       //TODO: support dynamic update for other properties
 
       if (prevData.collisionFilterGroup !== this.data.collisionFilterGroup) {
