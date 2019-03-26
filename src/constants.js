@@ -11,11 +11,11 @@ module.exports = {
     frictionEquationRegularization: 3
   },
   ACTIVATION_STATE: {
-    ACTIVE_TAG: 1,
-    ISLAND_SLEEPING: 2,
-    WANTS_DEACTIVATION: 3,
-    DISABLE_DEACTIVATION: 4,
-    DISABLE_SIMULATION: 5
+    ACTIVE_TAG: "active",
+    ISLAND_SLEEPING: "island_sleeping",
+    WANTS_DEACTIVATION: "wants_deactivation",
+    DISABLE_DEACTIVATION: "disable_deactivation",
+    DISABLE_SIMULATION: "disable_simulation"
   },
   COLLISION_FLAG: {
     STATIC_OBJECT: 1,

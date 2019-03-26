@@ -8,6 +8,14 @@ const CONSTANTS = require("../../constants"),
   TYPE = CONSTANTS.TYPE,
   FIT = CONSTANTS.FIT;
 
+const ACTIVATION_STATES = [
+  ACTIVATION_STATE.ACTIVE_TAG,
+  ACTIVATION_STATE.ISLAND_SLEEPING,
+  ACTIVATION_STATE.WANTS_DEACTIVATION,
+  ACTIVATION_STATE.DISABLE_DEACTIVATION,
+  ACTIVATION_STATE.DISABLE_SIMULATION
+];
+
 function almostEqualsVector3(epsilon, u, v) {
   return Math.abs(u.x - v.x) < epsilon && Math.abs(u.y - v.y) < epsilon && Math.abs(u.z - v.z) < epsilon;
 }
@@ -37,13 +45,7 @@ let AmmoBody = {
     angularFactor: { type: "vec3", default: { x: 1, y: 1, z: 1 } },
     activationState: {
       default: ACTIVATION_STATE.ACTIVE_TAG,
-      oneOf: [
-        ACTIVATION_STATE.ACTIVE_TAG,
-        ACTIVATION_STATE.ISLAND_SLEEPING,
-        ACTIVATION_STATE.WANTS_DEACTIVATION,
-        ACTIVATION_STATE.DISABLE_DEACTIVATION,
-        ACTIVATION_STATE.DISABLE_SIMULATION
-      ]
+      oneOf: ACTIVATION_STATES
     },
     type: { default: "dynamic", oneOf: [TYPE.STATIC, TYPE.DYNAMIC, TYPE.KINEMATIC] },
     addCollideEventListener: { default: false },
@@ -120,7 +122,7 @@ let AmmoBody = {
         this.localInertia
       );
       this.body = new Ammo.btRigidBody(this.rbInfo);
-      this.body.setActivationState(data.activationState);
+      this.body.setActivationState(ACTIVATION_STATES.indexOf(data.activationState) + 1);
       this.body.setSleepingThresholds(data.linearSleepingThreshold, data.angularSleepingThreshold);
 
       this.body.setDamping(data.linearDamping, data.angularDamping);
