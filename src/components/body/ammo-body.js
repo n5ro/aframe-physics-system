@@ -396,9 +396,12 @@ let AmmoBody = {
 
   removeShapeComponent: function(shapeComponent) {
     const index = this.shapeComponents.indexOf(shapeComponent);
-    if (this.compoundShape && index !== -1 && index < this.compoundShape.getNumChildShapes()) {
+    if (this.compoundShape && index !== -1) {
       this.shapeComponents.splice(index, 1);
-      this.compoundShape.removeChildShapeByIndex(index);
+      const shapes = shapeComponent.getShapes();
+      for (var i = 0; i < shapes.length; i++) {
+        this.compoundShape.removeChildShape(shapes[i]);
+      }
       this.shapeComponentsChanged = true;
     }
   },
