@@ -13,10 +13,10 @@ function AmmoDriver() {
   this.physicsWorld = null;
   this.debugDrawer = null;
 
-  this.els = {};
+  this.els = new Map();
   this.eventListeners = [];
-  this.collisions = {};
-  this.currentCollisions = [];
+  this.collisions = new Map();
+  this.currentCollisions = new Map();
 }
 
 AmmoDriver.prototype = new Driver();
@@ -56,18 +56,21 @@ AmmoDriver.prototype.init = function(worldConfig) {
 /* @param {Ammo.btCollisionObject} body */
 AmmoDriver.prototype.addBody = function(body, group, mask) {
   this.physicsWorld.addRigidBody(body, group, mask);
-  this.els[Ammo.getPointer(body)] = body.el;
+  this.els.set(Ammo.getPointer(body), body.el);
 };
 
 /* @param {Ammo.btCollisionObject} body */
 AmmoDriver.prototype.removeBody = function(body) {
   this.physicsWorld.removeRigidBody(body);
   this.removeEventListener(body);
-  delete this.els[Ammo.getPointer(body)];
+  const bodyptr = Ammo.getPointer(body);
+  this.els.delete(bodyptr);
+  this.collisions.delete(bodyptr);
+  this.currentCollisions.delete(bodyptr);
 };
 
 AmmoDriver.prototype.updateBody = function(body) {
-  if (this.els.hasOwnProperty(Ammo.getPointer(body))) {
+  if (this.els.has(Ammo.getPointer(body))) {
     this.physicsWorld.updateSingleAabb(body);
   }
 };
@@ -82,47 +85,52 @@ AmmoDriver.prototype.step = function(deltaTime) {
     const numContacts = persistentManifold.getNumContacts();
     const body0ptr = Ammo.getPointer(persistentManifold.getBody0());
     const body1ptr = Ammo.getPointer(persistentManifold.getBody1());
-    const key = body0ptr + "_" + body1ptr;
     let collided = false;
+
     for (let j = 0; j < numContacts; j++) {
       const manifoldPoint = persistentManifold.getContactPoint(j);
       const distance = manifoldPoint.getDistance();
-      if (body0ptr !== body1ptr && distance <= this.epsilon) {
+      if (distance <= this.epsilon) {
         collided = true;
         break;
       }
     }
+
     if (collided) {
-      if (!this.collisions.hasOwnProperty(key)) {
-        this.collisions[key] = [body0ptr, body1ptr];
+      if (!this.collisions.has(body0ptr)) {
+        this.collisions.set(body0ptr, new Set());
+      }
+      if (!this.collisions.get(body0ptr).has(body1ptr)) {
+        this.collisions.get(body0ptr).add(body1ptr);
         if (this.eventListeners.indexOf(body0ptr) !== -1) {
-          this.els[body0ptr].emit("collide", { targetEl: this.els[body1ptr] });
+          this.els.get(body0ptr).emit("collide", { targetEl: this.els.get(body1ptr) });
         }
         if (this.eventListeners.indexOf(body1ptr) !== -1) {
-          this.els[body1ptr].emit("collide", { targetEl: this.els[body0ptr] });
+          this.els.get(body1ptr).emit("collide", { targetEl: this.els.get(body0ptr) });
         }
       }
-      this.currentCollisions.push(key);
+      if (!this.currentCollisions.has(body0ptr)) {
+        this.currentCollisions.set(body0ptr, new Set());
+      }
+      this.currentCollisions.get(body0ptr).add(body1ptr);
     }
   }
 
-  for (const key in this.collisions) {
-    if (this.currentCollisions.indexOf(key) !== -1) {
-      continue;
+  for (const [body0ptr, body1ptrs] of this.collisions) {
+    for (const body1ptr of body1ptrs) {
+      if (this.currentCollisions.get(body0ptr).has(body1ptr)) {
+        continue;
+      }
+      if (this.eventListeners.indexOf(body0ptr) !== -1) {
+        this.els.get(body0ptr).emit("collide-end", { targetEl: this.els.get(body1ptr) });
+      }
+      if (this.eventListeners.indexOf(body1ptr) !== -1) {
+        this.els.get(body1ptr).emit("collide-end", { targetEl: this.els.get(body0ptr) });
+      }
+      this.collisions.get(body0ptr).delete(body1ptr);
     }
-
-    const [body0ptr, body1ptr] = this.collisions[key];
-
-    if (this.eventListeners.indexOf(body0ptr) !== -1) {
-      this.els[body0ptr].emit("collide-end", { targetEl: this.els[body1ptr] });
-    }
-    if (this.eventListeners.indexOf(body1ptr) !== -1) {
-      this.els[body1ptr].emit("collide-end", { targetEl: this.els[body0ptr] });
-    }
-    delete this.collisions[key];
+    this.currentCollisions.get(body0ptr).clear();
   }
-
-  this.currentCollisions.length = 0;
 
   if (this.debugDrawer) {
     this.debugDrawer.update();

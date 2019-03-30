@@ -48,7 +48,7 @@ let AmmoBody = {
       oneOf: ACTIVATION_STATES
     },
     type: { default: "dynamic", oneOf: [TYPE.STATIC, TYPE.DYNAMIC, TYPE.KINEMATIC] },
-    addCollideEventListener: { default: false },
+    emitCollisionEvents: { default: false },
     collisionFlags: { default: 0 }, //32-bit mask
     collisionFilterGroup: { default: 1 }, //32-bit mask,
     collisionFilterMask: { default: 1 }, //32-bit mask
@@ -224,7 +224,7 @@ let AmmoBody = {
     if (!this.addedToSystem) {
       this.system.addBody(this.body, this.data.collisionFilterGroup, this.data.collisionFilterMask);
 
-      if (this.data.addCollideEventListener) {
+      if (this.data.emitCollisionEvents) {
         this.system.driver.addEventListener(this.body);
       }
 
