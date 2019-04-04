@@ -259,12 +259,16 @@ let AmmoBody = {
 
       //TODO: support dynamic update for other properties
 
-      if (prevData.collisionFilterGroup !== this.data.collisionFilterGroup) {
-        this.body.getBroadphaseProxy().set_m_collisionFilterGroup(this.data.collisionFilterGroup);
-      }
-
-      if (prevData.collisionFilterMask !== this.data.collisionFilterMask) {
-        this.body.getBroadphaseProxy().set_m_collisionFilterMask(this.data.collisionFilterMask);
+      if (
+        prevData.collisionFilterGroup !== this.data.collisionFilterGroup ||
+        prevData.collisionFilterMask !== this.data.collisionFilterMask
+      ) {
+        const broadphaseProxy = this.body.getBroadphaseProxy();
+        broadphaseProxy.set_m_collisionFilterGroup(this.data.collisionFilterGroup);
+        broadphaseProxy.set_m_collisionFilterMask(this.data.collisionFilterMask);
+        this.system.driver.broadphase
+          .getOverlappingPairCache()
+          .removeOverlappingPairsContainingProxy(broadphaseProxy, this.system.driver.dispatcher);
       }
     }
   },
@@ -345,6 +349,10 @@ let AmmoBody = {
         this.rotation.setValue(q.x, q.y, q.z, q.w);
         this.msTransform.setRotation(this.rotation);
         this.motionState.setWorldTransform(this.msTransform);
+
+        if (this.data.type === TYPE.STATIC) {
+          this.body.setCenterOfMassTransform(this.msTransform);
+        }
       }
     };
   })(),
