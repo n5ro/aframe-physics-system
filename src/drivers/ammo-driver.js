@@ -117,7 +117,8 @@ AmmoDriver.prototype.step = function(deltaTime) {
     }
   }
 
-  for (const [body0ptr, body1ptrs] of this.collisions) {
+  for (const body0ptr of this.collisions.keys()) {
+    const body1ptrs = this.collisions.get(body0ptr);
     for (const body1ptr of body1ptrs) {
       if (this.currentCollisions.get(body0ptr).has(body1ptr)) {
         continue;

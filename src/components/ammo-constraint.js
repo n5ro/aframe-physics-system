@@ -77,10 +77,13 @@ module.exports = AFRAME.registerComponent("ammo-constraint", {
     switch (data.type) {
       case CONSTRAINT.LOCK: {
         constraint = new Ammo.btGeneric6DofConstraint(body, targetBody, bodyTransform, targetTransform, true);
-        constraint.setLinearLowerLimit(0);
-        constraint.setLinearUpperLimit(0);
-        constraint.setAngularLowerLimit(0);
-        constraint.setAngularUpperLimit(0);
+        const zero = new Ammo.btVector3(0, 0, 0);
+        //TODO: allow these to be configurable
+        constraint.setLinearLowerLimit(zero);
+        constraint.setLinearUpperLimit(zero);
+        constraint.setAngularLowerLimit(zero);
+        constraint.setAngularUpperLimit(zero);
+        Ammo.destroy(zero);
         break;
       }
       //TODO: test and verify all other constraint types
@@ -93,6 +96,7 @@ module.exports = AFRAME.registerComponent("ammo-constraint", {
       }
       case CONSTRAINT.SPRING: {
         constraint = new Ammo.btGeneric6DofSpringConstraint(body, targetBody, bodyTransform, targetTransform, true);
+        //TODO: enableSpring, setStiffness and setDamping
         break;
       }
       case CONSTRAINT.SLIDER: {
