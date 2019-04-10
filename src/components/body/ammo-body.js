@@ -249,6 +249,11 @@ let AmmoBody = {
    */
   update: function(prevData) {
     if (this.isLoaded) {
+      if (!this.hasUpdated) {
+        //skip the first update
+        this.hasUpdated = true;
+        return;
+      }
       if (prevData.type !== this.data.type || prevData.collisionFlags !== this.data.collisionFlags) {
         this.updateCollisionFlags();
       }
@@ -256,8 +261,6 @@ let AmmoBody = {
       if (prevData.activationState !== this.data.activationState) {
         this.body.forceActivationState(ACTIVATION_STATES.indexOf(this.data.activationState) + 1);
       }
-
-      //TODO: support dynamic update for other properties
 
       if (
         prevData.collisionFilterGroup !== this.data.collisionFilterGroup ||
@@ -270,6 +273,8 @@ let AmmoBody = {
           .getOverlappingPairCache()
           .removeOverlappingPairsContainingProxy(broadphaseProxy, this.system.driver.dispatcher);
       }
+
+      //TODO: support dynamic update for other properties
     }
   },
 
