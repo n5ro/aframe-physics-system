@@ -313,8 +313,10 @@ let AmmoBody = {
    * Updates the rigid body's position, velocity, and rotation, based on the scene.
    */
   syncToPhysics: (function() {
-    const q = new THREE.Quaternion(),
-      v = new THREE.Vector3();
+    const q = new THREE.Quaternion();
+    const v = new THREE.Vector3();
+    const q2 = new THREE.Vector3();
+    const v2 = new THREE.Vector3();
     return function() {
       const el = this.el,
         parentEl = el.parentEl,
@@ -333,20 +335,12 @@ let AmmoBody = {
       }
 
       const position = this.msTransform.getOrigin();
-      const pos = {
-        x: position.x(),
-        y: position.y(),
-        z: position.z()
-      };
-      const quaternion = this.msTransform.getRotation();
-      const quat = {
-        x: quaternion.x(),
-        y: quaternion.y(),
-        z: quaternion.z(),
-        w: quaternion.w()
-      };
+      v2.set(position.x(), position.y(), position.z());
 
-      if (!almostEqualsVector3(0.001, v, pos) || !almostEqualsQuaternion(0.001, q, quat)) {
+      const quaternion = this.msTransform.getRotation();
+      q2.set(quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
+
+      if (!almostEqualsVector3(0.001, v, v2) || !almostEqualsQuaternion(0.001, q, q2)) {
         if (!this.body.isActive()) {
           this.body.activate(true);
         }
