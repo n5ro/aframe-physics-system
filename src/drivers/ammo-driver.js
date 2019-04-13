@@ -16,6 +16,7 @@ function AmmoDriver() {
   this.els = new Map();
   this.eventListeners = [];
   this.collisions = new Map();
+  this.collisionKeys = [];
   this.currentCollisions = new Map();
 }
 
@@ -67,6 +68,7 @@ AmmoDriver.prototype.removeBody = function(body) {
   const bodyptr = Ammo.getPointer(body);
   this.els.delete(bodyptr);
   this.collisions.delete(bodyptr);
+  this.collisionKeys.splice(this.collisionKeys.indexOf(bodyptr), 1);
   this.currentCollisions.delete(bodyptr);
 };
 
@@ -99,10 +101,11 @@ AmmoDriver.prototype.step = function(deltaTime) {
 
     if (collided) {
       if (!this.collisions.has(body0ptr)) {
-        this.collisions.set(body0ptr, new Set());
+        this.collisions.set(body0ptr, []);
+        this.collisionKeys.push(body0ptr);
       }
-      if (!this.collisions.get(body0ptr).has(body1ptr)) {
-        this.collisions.get(body0ptr).add(body1ptr);
+      if (this.collisions.get(body0ptr).indexOf(body1ptr) === -1) {
+        this.collisions.get(body0ptr).push(body1ptr);
         if (this.eventListeners.indexOf(body0ptr) !== -1) {
           this.els.get(body0ptr).emit("collide", { targetEl: this.els.get(body1ptr) });
         }
@@ -117,9 +120,11 @@ AmmoDriver.prototype.step = function(deltaTime) {
     }
   }
 
-  for (const body0ptr of this.collisions.keys()) {
+  for (let i = 0; i < this.collisionKeys.length; i++) {
+    const body0ptr = this.collisionKeys[i];
     const body1ptrs = this.collisions.get(body0ptr);
-    for (const body1ptr of body1ptrs) {
+    for (let j = body1ptrs.length; j >= 0; j--) {
+      const body1ptr = body1ptrs[j];
       if (this.currentCollisions.get(body0ptr).has(body1ptr)) {
         continue;
       }
@@ -129,7 +134,7 @@ AmmoDriver.prototype.step = function(deltaTime) {
       if (this.eventListeners.indexOf(body1ptr) !== -1) {
         this.els.get(body1ptr).emit("collide-end", { targetEl: this.els.get(body0ptr) });
       }
-      this.collisions.get(body0ptr).delete(body1ptr);
+      body1ptrs.splice(j, 1);
     }
     this.currentCollisions.get(body0ptr).clear();
   }
