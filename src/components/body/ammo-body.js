@@ -152,57 +152,60 @@ let AmmoBody = {
     }
   },
 
-  _updateShapes: function() {
-    let updated = false;
+  _updateShapes: (function() {
+    const needsPolyhedralInitialization = [SHAPE.HULL, SHAPE.HACD, SHAPE.VHACD];
+    return function() {
+      let updated = false;
 
-    const obj = this.el.object3D;
-    if (this.data.scaleAutoUpdate && this.prevScale && !almostEqualsVector3(0.001, obj.scale, this.prevScale)) {
-      this.prevScale.copy(obj.scale);
-      updated = true;
+      const obj = this.el.object3D;
+      if (this.data.scaleAutoUpdate && this.prevScale && !almostEqualsVector3(0.001, obj.scale, this.prevScale)) {
+        this.prevScale.copy(obj.scale);
+        updated = true;
 
-      this.localScaling.setValue(this.prevScale.x, this.prevScale.y, this.prevScale.z);
-      this.compoundShape.setLocalScaling(this.localScaling);
-    }
+        this.localScaling.setValue(this.prevScale.x, this.prevScale.y, this.prevScale.z);
+        this.compoundShape.setLocalScaling(this.localScaling);
+      }
 
-    if (this.shapeComponentsChanged) {
-      this.shapeComponentsChanged = false;
-      updated = true;
-      for (let i = 0; i < this.shapeComponents.length; i++) {
-        const shapeComponent = this.shapeComponents[i];
-        if (shapeComponent.getShapes().length === 0) {
-          this._createCollisionShape(shapeComponent);
-        }
-        const collisionShapes = shapeComponent.getShapes();
-        for (let j = 0; j < collisionShapes.length; j++) {
-          const collisionShape = collisionShapes[j];
-          if (!collisionShape.added) {
-            this.compoundShape.addChildShape(collisionShape.localTransform, collisionShape);
-            collisionShape.added = true;
+      if (this.shapeComponentsChanged) {
+        this.shapeComponentsChanged = false;
+        updated = true;
+        for (let i = 0; i < this.shapeComponents.length; i++) {
+          const shapeComponent = this.shapeComponents[i];
+          if (shapeComponent.getShapes().length === 0) {
+            this._createCollisionShape(shapeComponent);
+          }
+          const collisionShapes = shapeComponent.getShapes();
+          for (let j = 0; j < collisionShapes.length; j++) {
+            const collisionShape = collisionShapes[j];
+            if (!collisionShape.added) {
+              this.compoundShape.addChildShape(collisionShape.localTransform, collisionShape);
+              collisionShape.added = true;
+            }
           }
         }
+
+        if (this.data.type === TYPE.DYNAMIC) {
+          this.updateMass();
+        }
+
+        this.system.driver.updateBody(this.body);
       }
 
-      if (this.data.type === TYPE.DYNAMIC) {
-        this.updateMass();
-      }
-
-      this.system.driver.updateBody(this.body);
-    }
-
-    //call initializePolyhedralFeatures for hull shapes if debug is turned on and/or scale changes
-    if (this.system.debug && (updated || !this.polyHedralFeaturesInitialized)) {
-      for (let i = 0; i < this.shapeComponents.length; i++) {
-        const collisionShapes = this.shapeComponents[i].getShapes();
-        for (let j = 0; j < collisionShapes.length; j++) {
-          const collisionShape = collisionShapes[j];
-          if (collisionShape.type === SHAPE.HULL) {
-            collisionShape.initializePolyhedralFeatures(0);
+      //call initializePolyhedralFeatures for hull shapes if debug is turned on and/or scale changes
+      if (this.system.debug && (updated || !this.polyHedralFeaturesInitialized)) {
+        for (let i = 0; i < this.shapeComponents.length; i++) {
+          const collisionShapes = this.shapeComponents[i].getShapes();
+          for (let j = 0; j < collisionShapes.length; j++) {
+            const collisionShape = collisionShapes[j];
+            if (needsPolyhedralInitialization.indexOf(collisionShape.type) !== -1) {
+              collisionShape.initializePolyhedralFeatures(0);
+            }
           }
         }
+        this.polyHedralFeaturesInitialized = true;
       }
-      this.polyHedralFeaturesInitialized = true;
-    }
-  },
+    };
+  })(),
 
   _createCollisionShape: function(shapeComponent) {
     const data = shapeComponent.data;

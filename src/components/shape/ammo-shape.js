@@ -10,7 +10,7 @@ var AmmoShape = {
       default: SHAPE.HULL,
       oneOf: [SHAPE.BOX, SHAPE.CYLINDER, SHAPE.SPHERE, SHAPE.CAPSULE, SHAPE.CONE, SHAPE.HULL, SHAPE.MESH]
     },
-    fit: { default: FIT.ALL, oneOf: [FIT.ALL, FIT.COMPOUND, FIT.MANUAL] },
+    fit: { default: FIT.ALL, oneOf: [FIT.ALL, FIT.MANUAL] },
     halfExtents: { type: "vec3", default: { x: 1, y: 1, z: 1 } },
     minHalfExtent: { default: 0 },
     maxHalfExtent: { default: Number.POSITIVE_INFINITY },
@@ -41,7 +41,7 @@ var AmmoShape = {
     }
     if (this.data.fit !== FIT.MANUAL) {
       if (!this.el.object3DMap.mesh) {
-        console.error("Cannot use all or compound fit without object3DMap.mesh");
+        console.error("Cannot use FIT.ALL without object3DMap.mesh");
         return;
       }
       this.mesh = this.el.object3DMap.mesh;

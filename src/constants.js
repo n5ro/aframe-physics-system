@@ -38,11 +38,12 @@ module.exports = {
     CAPSULE: "capsule",
     CONE: "cone",
     HULL: "hull",
+    HACD: "hacd",
+    VHACD: "vhacd",
     MESH: "mesh"
   },
   FIT: {
     ALL: "all",
-    COMPOUND: "compound",
     MANUAL: "manual"
   },
   CONSTRAINT: {
