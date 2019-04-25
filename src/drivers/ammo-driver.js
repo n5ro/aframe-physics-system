@@ -1,7 +1,10 @@
 /* global THREE */
 const Driver = require("./driver");
-window.AmmoModule = window.Ammo;
-window.Ammo = null;
+
+if (typeof window !== 'undefined') {
+  window.AmmoModule = window.Ammo;
+  window.Ammo = null;
+}
 
 const EPS = 10e-6;
 
