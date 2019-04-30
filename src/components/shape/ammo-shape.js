@@ -8,7 +8,17 @@ var AmmoShape = {
   schema: {
     type: {
       default: SHAPE.HULL,
-      oneOf: [SHAPE.BOX, SHAPE.CYLINDER, SHAPE.SPHERE, SHAPE.CAPSULE, SHAPE.CONE, SHAPE.HULL, SHAPE.MESH]
+      oneOf: [
+        SHAPE.BOX,
+        SHAPE.CYLINDER,
+        SHAPE.SPHERE,
+        SHAPE.CAPSULE,
+        SHAPE.CONE,
+        SHAPE.HULL,
+        SHAPE.HACD,
+        SHAPE.VHACD,
+        SHAPE.MESH
+      ]
     },
     fit: { default: FIT.ALL, oneOf: [FIT.ALL, FIT.MANUAL] },
     halfExtents: { type: "vec3", default: { x: 1, y: 1, z: 1 } },

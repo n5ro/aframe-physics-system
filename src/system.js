@@ -40,7 +40,11 @@ module.exports = AFRAME.registerSystem('physics', {
     debug:                          { default: false },
 
     // If using ammo, set the default rendering mode for debug
-    debugDrawMode: { default: THREE.AmmoDebugConstants.NoDebug }
+    debugDrawMode: { default: THREE.AmmoDebugConstants.NoDebug },
+    // If using ammo, set the max number of steps per frame 
+    maxSubSteps: { default: 4 },
+    // If using ammo, set the framerate of the simulation
+    fixedTimeStep: { default: 1 / 60 }
   },
 
   /**
@@ -84,15 +88,13 @@ module.exports = AFRAME.registerSystem('physics', {
         throw new Error('[physics] Driver not recognized: "%s".', data.driver);
     }
 
-    await this.driver.init({
-      quatNormalizeSkip: 0,
-      quatNormalizeFast: false,
-      solverIterations: data.iterations,
-      gravity: data.gravity,
-      debugDrawMode: data.debugDrawMode
-    });
-
     if (data.driver !== 'ammo') {
+      await this.driver.init({
+        quatNormalizeSkip: 0,
+        quatNormalizeFast: false,
+        solverIterations: data.iterations,
+        gravity: data.gravity,
+      });
       this.driver.addMaterial({name: 'defaultMaterial'});
       this.driver.addMaterial({name: 'staticMaterial'});
       this.driver.addContactMaterial('defaultMaterial', 'defaultMaterial', {
@@ -111,6 +113,14 @@ module.exports = AFRAME.registerSystem('physics', {
         frictionEquationStiffness: data.frictionEquationStiffness,
         frictionEquationRegularization: data.frictionEquationRegularization
       });
+    } else {
+      await this.driver.init({
+      gravity: data.gravity,
+      debugDrawMode: data.debugDrawMode,
+      solverIterations: data.iterations,
+      maxSubSteps: data.maxSubSteps,
+      fixedTimeStep: data.fixedTimeStep
+    });
     }
 
     this.initialized = true;

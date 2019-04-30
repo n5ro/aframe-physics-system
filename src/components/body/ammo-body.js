@@ -49,7 +49,7 @@ let AmmoBody = {
     },
     type: { default: "dynamic", oneOf: [TYPE.STATIC, TYPE.DYNAMIC, TYPE.KINEMATIC] },
     emitCollisionEvents: { default: false },
-    collisionFlags: { default: 0 }, //32-bit mask
+    disableCollision: { default: false },
     collisionFilterGroup: { default: 1 }, //32-bit mask,
     collisionFilterMask: { default: 1 }, //32-bit mask
     scaleAutoUpdate: { default: true }
@@ -257,7 +257,7 @@ let AmmoBody = {
         this.hasUpdated = true;
         return;
       }
-      if (prevData.type !== this.data.type || prevData.collisionFlags !== this.data.collisionFlags) {
+      if (prevData.type !== this.data.type || prevData.disableCollision !== this.data.disableCollision) {
         this.updateCollisionFlags();
       }
 
@@ -425,7 +425,7 @@ let AmmoBody = {
   },
 
   updateCollisionFlags: function() {
-    let flags = this.data.collisionFlags;
+    let flags = this.data.disableCollision ? 4 : 0;
     switch (this.data.type) {
       case TYPE.STATIC:
         flags |= COLLISION_FLAG.STATIC_OBJECT;
