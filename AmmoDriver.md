@@ -177,18 +177,18 @@ See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators
 ### `ammo-shape`
 
 Any entity with an `ammo-body` component can also have 1 or more `ammo-shape` components. The `ammo-shape` component is what defines the collision shape of the entity. `ammo-shape` components can be added and removed at any time.
-| Property | Dependencies | Default | Description |
+
+| Property      | Dependencies | Default | Description |
 |---------------|-----------------------------------------------------------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| type | — | `hull` | Options: `box`, `cylinder`, `sphere`, `capsule`, `cone`, `hull`, `hacd`, `vhacd`, `mesh`. see [Shape Types](#shape-types). |
-| fit | — | `all` | Options: `all`, `manual`. Use `manual` if defining `halfExtents` or `sphereRadius` below. See [Shape Fit](#shape-fit). |
-| halfExtents | `fit: manual` and `type: box, cylinder, capsule, cone` | `1 1 1` | The halfExtents to use when using `fit: manual` for `box`, `cylinder`, `capsule`, and `cone` types. |
-| minHalfExtent | `fit: all` and `type: box, cylinder, capsule, cone` | `0` | The minimum value for any axis of the halfExtents. |
-| maxHalfExtent | `fit: all` and `type: box, cylinder, capsule, cone` | `Number.POSITIVE_INFINITY` | The maximum value for any axis of the halfExtents. |
-| sphereRadius | `fit: manual` and `type: sphere` | `NaN` | Set the radius used for for . |
-| cylinderAxis | — | `y` | Options: `x`, `y`, `z`. Override default axis for `cylinder`, `capsule`, and `cone` types. |
-| margin | — | `0.01` | The amount of 'padding' to add around the shape. Larger values have better performance but reduce collision shape precision. |
-| offset | — | `0 0 0` | Where to position the shape relative to the origin of the entity. |
-| orientation | — | `0 0 0 1` | How to rotate the shape relative to the rotation of the entity. |
+| type          | —                                                         | `hull`                        | Options: `box`, `cylinder`, `sphere`, `capsule`, `cone`, `hull`, `hacd`, `vhacd`, `mesh`. see [Shape Types](#shape-types).    |
+| fit           | —                                                         | `all`                         | Options: `all`, `manual`. Use `manual` if defining `halfExtents` or `sphereRadius` below. See [Shape Fit](#shape-fit).        |
+| halfExtents   | `fit: manual` and `type: box, cylinder, capsule, cone`    | `1 1 1`                       | Set the halfExtents to use.                                                                                                   |
+| minHalfExtent | `fit: all` and `type: box, cylinder, capsule, cone`       | `0`                           | The minimum value for any axis of the halfExtents.                                                                            |
+| maxHalfExtent | `fit: all` and `type: box, cylinder, capsule, cone`       | `Number.POSITIVE_INFINITY`    | The maximum value for any axis of the halfExtents.                                                                            |
+| sphereRadius  | `fit: manual` and `type: sphere`                          | `NaN`                         | Set the radius for spheres.                                                                                                   |
+| cylinderAxis  | —                                                         | `y`                           | Options: `x`, `y`, `z`. Override default axis for `cylinder`, `capsule`, and `cone` types.                                    |
+| margin        | —                                                         | `0.01`                        | The amount of 'padding' to add around the shape. Larger values have better performance but reduce collision shape precision.  |
+| offset        | —                                                         | `0 0 0`                       | Where to position the shape relative to the origin of the entity.                                                             |
 
 #### Shape Types
 
