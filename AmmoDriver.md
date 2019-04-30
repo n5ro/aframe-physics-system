@@ -140,13 +140,13 @@ The `type` of an ammo body can be one of the following:
 
 Activation states are only used for `type: dynamic` bodies (. Most objects should be left at the default `activationState: active` so that they can go to sleep (sleeping bodies are very cheap). It can be useful to set bodies to `activatioState: disable_deactivation` if also using an `ammo-constrant` as constraints will stop functioning if the body goes to sleep, however they should be used sparingly. Each activation state has a color used for wireframe rendering when debug is enabled.
 
-| state                   | debug rendering color | description                                                                                                                                                                           |
-| ----------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `active`                | white                 | Waking state. Objects will enter this state if collisions with other bodies occur. This is the default state.                                                                         |
-| `island_sleeping`       | green                 | Sleeping state. Objects will enter this state if they fall below `linearSleepingThreshold` and `angularSleepingThreshold` and no other `active` or `disable_deactivation` are nearby. |
-| `wants_deactivation`    | cyan                  | Intermediary state between `active` and `island_sleeping`. Objects will enter this state if they fall below `linearSleepingThreshold` and `angularSleepingThreshold`.                 |
-| `disable_deactivation`  | red                   | Forced `active` state. Objects set to this state will never enter `island_sleeping` or `wants_deactivation`.                                                                          |
-| `disable_simulation`    | yellow                | Objects in this state will be completely ignored by the physics system.                                                                                                               |
+| state                   | debug rendering color | description                                                                                                                                                                                   |
+| ----------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `active`                | white                 | Waking state. Objects will enter this state if collisions with other bodies occur. This is the default state.                                                                                 |
+| `island_sleeping`       | green                 | Sleeping state. Objects will enter this state if they fall below `linearSleepingThreshold` and `angularSleepingThreshold` and no other `active` or `disable_deactivation` bodies are nearby.  |
+| `wants_deactivation`    | cyan                  | Intermediary state between `active` and `island_sleeping`. Objects will enter this state if they fall below `linearSleepingThreshold` and `angularSleepingThreshold`.                         |
+| `disable_deactivation`  | red                   | Forced `active` state. Objects set to this state will never enter `island_sleeping` or `wants_deactivation`.                                                                                  |
+| `disable_simulation`    | yellow                | Objects in this state will be completely ignored by the physics system.                                                                                                                       |
 
 #### Collision Filtering
 
