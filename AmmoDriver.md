@@ -132,25 +132,25 @@ An `ammo-body` component may be added to any entity in a scene. While having onl
 
 The `type` of an ammo body can be one of the following:
 
-- `dynamic`: A freely-moving object. Dynamic bodies have mass, collide with other objects, bounce or slow during collisions, and fall if gravity is enabled.
-- `static`: A fixed-position object. Other objects may collide with static bodies, but static bodies themselves are unaffected by gravity and collisions. These objects should typically not be moved after initialization as they cannot impart forces on `dynamic` objects.
-- `kinematic`: Like a `static` body, except that they can be moved via updating the position of the entity. Unlike a `static` body, they impart forces on `dynamic` objects when moved. Useful for animated or remote (networked) objects.
+- `dynamic`: A freely-moving object. Dynamic bodies have mass, collide with other bodies, bounce or slow during collisions, and fall if gravity is enabled.
+- `static`: A fixed-position object. Other bodies may collide with static bodies, but static bodies themselves are unaffected by gravity and collisions. These bodies should typically not be moved after initialization as they cannot impart forces on `dynamic` bodies.
+- `kinematic`: Like a `static` body, except that they can be moved via updating the position of the entity. Unlike a `static` body, they impart forces on `dynamic` bodies when moved. Useful for animated or remote (networked) objects.
 
 #### Activation States
 
-Activation states are only used for `type: dynamic` bodies (. Most objects should be left at the default `activationState: active` so that they can go to sleep (sleeping bodies are very cheap). It can be useful to set bodies to `activatioState: disable_deactivation` if also using an `ammo-constrant` as constraints will stop functioning if the body goes to sleep, however they should be used sparingly. Each activation state has a color used for wireframe rendering when debug is enabled.
+Activation states are only used for `type: dynamic` bodies (. Most bodies should be left at the default `activationState: active` so that they can go to sleep (sleeping bodies are very cheap). It can be useful to set bodies to `activatioState: disable_deactivation` if also using an `ammo-constrant` as constraints will stop functioning if the body goes to sleep, however they should be used sparingly. Each activation state has a color used for wireframe rendering when debug is enabled.
 
-| state                   | debug rendering color | description                                                                                                                                                                                   |
-| ----------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `active`                | white                 | Waking state. Objects will enter this state if collisions with other bodies occur. This is the default state.                                                                                 |
-| `island_sleeping`       | green                 | Sleeping state. Objects will enter this state if they fall below `linearSleepingThreshold` and `angularSleepingThreshold` and no other `active` or `disable_deactivation` bodies are nearby.  |
-| `wants_deactivation`    | cyan                  | Intermediary state between `active` and `island_sleeping`. Objects will enter this state if they fall below `linearSleepingThreshold` and `angularSleepingThreshold`.                         |
-| `disable_deactivation`  | red                   | Forced `active` state. Objects set to this state will never enter `island_sleeping` or `wants_deactivation`.                                                                                  |
-| `disable_simulation`    | yellow                | Objects in this state will be completely ignored by the physics system.                                                                                                                       |
+| state                   | debug rendering color | description                                                                                                                                                                                 |
+| ----------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `active`                | white                 | Waking state. Bodies will enter this state if collisions with other bodies occur. This is the default state.                                                                                |
+| `island_sleeping`       | green                 | Sleeping state. Bodies will enter this state if they fall below `linearSleepingThreshold` and `angularSleepingThreshold` and no other `active` or `disable_deactivation` bodies are nearby. |
+| `wants_deactivation`    | cyan                  | Intermediary state between `active` and `island_sleeping`. Bodies will enter this state if they fall below `linearSleepingThreshold` and `angularSleepingThreshold`.                        |
+| `disable_deactivation`  | red                   | Forced `active` state. Bodies set to this state will never enter `island_sleeping` or `wants_deactivation`.                                                                                 |
+| `disable_simulation`    | yellow                | Bodies in this state will be completely ignored by the physics system.                                                                                                                      |
 
 #### Collision Filtering
 
-Collision filtering allows you to control what objects are allowed to collide with others. For Ammo.js, they are represented as two 32-bit bitmasks, `collisionFilterGroup` and `collisionFilterMask`.
+Collision filtering allows you to control what bodies are allowed to collide with others. For Ammo.js, they are represented as two 32-bit bitmasks, `collisionFilterGroup` and `collisionFilterMask`.
 Example:
 Imagine 3 groups of objects, `A`, `B`, and `C`. We will say their bit values are as follows:
 
@@ -282,11 +282,11 @@ Ammo.destroy(pos);
 
 ## Events
 
-| event         | description                                                                                        |
-| ------------- | -------------------------------------------------------------------------------------------------- |
-| `body-loaded` | Fired when physics body (`el.body`) has been created.                                              |
-| `collide`     | Fired when two objects collide. `emitCollisionEvents: true` must be set on the `ammo-body`.        |
-| `collide-end` | Fired when two objects stop colliding. `emitCollisionEvents: true` must be set on the `ammo-body`. |
+| event         | description                                                                                         |
+| ------------- | --------------------------------------------------------------------------------------------------- |
+| `body-loaded` | Fired when physics body (`el.body`) has been created.                                               |
+| `collide`     | Fired when two bodies collide. `emitCollisionEvents: true` must be set on the `ammo-body`.          |
+| `collide-end` | Fired when two bodies stop colliding. `emitCollisionEvents: true` must be set on the `ammo-body`.   |
 
 ### Collisions
 
@@ -303,20 +303,6 @@ playerEl.addEventListener("collide", function(e) {
 The current map of collisions can be accessed via `AFRAME.scenes[0].systems.physics.driver.collisions`. This will return a map keyed by each `btRigidBody` (by pointer) with value of an array of each other `btRigidBody` it is currently colliding with.
 
 ## System Configuration
-
-Contact materials define what happens when two objects meet, including physical properties such as friction and restitution (bounciness). The default, scene-wide contact materials may be configured on the scene element:
-
-```html
-<a-scene physics="friction: 0.1; restitution: 0.5">
-  <!-- ... -->
-</a-scene>
-```
-
-> NOTE: It is possible to run physics on a Web Worker using the `physics="driver: worker"` option.
-> Using a worker is helpful for maintaining a smooth framerate, because physics simulation does
-> not block the main thread. However, scenes needing highly-responsive interaction (for example,
-> tossing and catching objects) may prefer to run physics locally, where feedback from the physics
-> system will be immediate.
 
 | Property      | Default   | Description                                                                                                                                 |
 | ------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
