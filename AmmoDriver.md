@@ -110,23 +110,23 @@ See [examples/ammo.html](/examples/ammo.html) for a working sample.
 
 An `ammo-body` component may be added to any entity in a scene. While having only an `ammo-body` will technically give you a valid physics body in the scene, only after adding an `ammo-shape` will your entity begin to collide with other objects.
 
-| Property                 | Default    | Description                                                                                                                             |
-| ------------------------ | ---------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| type                     | `dynamic`  | Options: `dynamic`, `static`, `kinematic`. See [ammo-body type](#ammo-body-type).                                                       |
-| loadedEvent              | —          | Optional event to wait for before the body attempt to initialize.                                                                       |
-| mass                     | `1`        | Simulated mass of the object, >= 0.                                                                                                     |
-| gravity                  | `0 -9.8 0` | Set the gravity for this specific object.                                                                                               |
-| linearDamping            | `0.01`     | Resistance to movement.                                                                                                                 |
-| angularDamping           | `0.01`     | Resistance to rotation.                                                                                                                 |
-| linearSleepingThreshold  | `1.6`      | Minimum movement cutoff before object is considered sleeping.                                                                           |
-| angularSleepingThreshold | `2.5`      | Minimum rotation cutoff before object is considered sleeping.                                                                           |
-| angularFactor            | `1 1 1`    | Constrains how much the body is allowed to rotate on an axis. E.g. `1 0 1` will prevent rotation around y axis.                         |
-| activationState          | `active`   | Options: `active`, `island_sleeping`, `wants_deactivation`, `disable_deactivation`, `disable_simulation`.                               |
-| emitCollisionEvents      | `false`    | Set to true to enable firing of `collision` and `collision-end` events on this entity. See [Events](#events).                           |
-| disableCollision         | `false`    | Set to true to disable object from colliding with all others.                                                                           |
-| collisionFilterGroup     | `1`        | 32-bit bitmask to determine what collision "group" this object belongs to. See: [Collision Filtering](#collision-filtering).            |
-| collisionFilterMask      | `1`        | 32-bit bitmask to determine what collision ""groups" this object should collide with. See: [Collision Filtering](#collision-filtering). |
-| scaleAutoUpdate          | `true`     | Should the shapes of the objecct be automatically scaled to match the scale of the entity.                                              |
+| Property                 | Default    | Description                                                                                                                                             |
+| ------------------------ |----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| type                     | `dynamic`  | Options: `dynamic`, `static`, `kinematic`. See [ammo-body type](#ammo-body-type).                                                                       |
+| loadedEvent              | —          | Optional event to wait for before the body attempt to initialize.                                                                                       |
+| mass                     | `1`        | Simulated mass of the object, >= 0.                                                                                                                     |
+| gravity                  | `0 -9.8 0` | Set the gravity for this specific object.                                                                                                               |
+| linearDamping            | `0.01`     | Resistance to movement.                                                                                                                                 |
+| angularDamping           | `0.01`     | Resistance to rotation.                                                                                                                                 |
+| linearSleepingThreshold  | `1.6`      | Minimum movement cutoff before a body can enter `activationState: wants_deactivation`                                                                   |
+| angularSleepingThreshold | `2.5`      | Minimum rotation cutoff before a body can enter `activationState: wants_deactivation`                                                                   |
+| angularFactor            | `1 1 1`    | Constrains how much the body is allowed to rotate on an axis. E.g. `1 0 1` will prevent rotation around y axis.                                         |
+| activationState          | `active`   | Options: `active`, `island_sleeping`, `wants_deactivation`, `disable_deactivation`, `disable_simulation`. See [Activation States](#activation-states)   |
+| emitCollisionEvents      | `false`    | Set to true to enable firing of `collision` and `collision-end` events on this entity. See [Events](#events).                                           |
+| disableCollision         | `false`    | Set to true to disable object from colliding with all others.                                                                                           |
+| collisionFilterGroup     | `1`        | 32-bit bitmask to determine what collision "group" this object belongs to. See: [Collision Filtering](#collision-filtering).                            |
+| collisionFilterMask      | `1`        | 32-bit bitmask to determine what collision ""groups" this object should collide with. See: [Collision Filtering](#collision-filtering).                 |
+| scaleAutoUpdate          | `true`     | Should the shapes of the objecct be automatically scaled to match the scale of the entity.                                                              |
 
 #### `ammo-body` type
 
@@ -135,6 +135,18 @@ The `type` of an ammo body can be one of the following:
 - `dynamic`: A freely-moving object. Dynamic bodies have mass, collide with other objects, bounce or slow during collisions, and fall if gravity is enabled.
 - `static`: A fixed-position object. Other objects may collide with static bodies, but static bodies themselves are unaffected by gravity and collisions. These objects should typically not be moved after initialization as they cannot impart forces on `dynamic` objects.
 - `kinematic`: Like a `static` body, except that they can be moved via updating the position of the entity. Unlike a `static` body, they impart forces on `dynamic` objects when moved. Useful for animated or remote (networked) objects.
+
+#### Activation States
+
+Activation states are only used for `type: dynamic` bodies (. Most objects should be left at the default `activationState: active` so that they can go to sleep (sleeping bodies are very cheap). It can be useful to set bodies to `activatioState: disable_deactivation` if also using an `ammo-constrant` as constraints will stop functioning if the body goes to sleep, however they should be used sparingly. Each activation state has a color used for wireframe rendering when debug is enabled.
+
+| state                   | debug rendering color | description                                                                                                                                                                           |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `active`                | white                 | Waking state. Objects will enter this state if collisions with other bodies occur. This is the default state.                                                                         |
+| `island_sleeping`       | green                 | Sleeping state. Objects will enter this state if they fall below `linearSleepingThreshold` and `angularSleepingThreshold` and no other `active` or `disable_deactivation` are nearby. |
+| `wants_deactivation`    | cyan                  | Intermediary state between `active` and `island_sleeping`. Objects will enter this state if they fall below `linearSleepingThreshold` and `angularSleepingThreshold`.                 |
+| `disable_deactivation`  | red                   | Forced `active` state. Objects set to this state will never enter `island_sleeping` or `wants_deactivation`.                                                                          |
+| `disable_simulation`    | yellow                | Objects in this state will be completely ignored by the physics system.                                                                                                               |
 
 #### Collision Filtering
 
@@ -179,7 +191,7 @@ See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators
 Any entity with an `ammo-body` component can also have 1 or more `ammo-shape` components. The `ammo-shape` component is what defines the collision shape of the entity. `ammo-shape` components can be added and removed at any time.
 
 | Property      | Dependencies | Default | Description |
-|---------------|-----------------------------------------------------------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| ------------- | --------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | type          | —                                                         | `hull`                        | Options: `box`, `cylinder`, `sphere`, `capsule`, `cone`, `hull`, `hacd`, `vhacd`, `mesh`. see [Shape Types](#shape-types).    |
 | fit           | —                                                         | `all`                         | Options: `all`, `manual`. Use `manual` if defining `halfExtents` or `sphereRadius` below. See [Shape Fit](#shape-fit).        |
 | halfExtents   | `fit: manual` and `type: box, cylinder, capsule, cone`    | `1 1 1`                       | Set the halfExtents to use.                                                                                                   |
