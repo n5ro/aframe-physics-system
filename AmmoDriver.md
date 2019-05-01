@@ -300,7 +300,6 @@ var el = sceneEl.querySelector('#nyan');
 const force = new Ammo.btVector3(0, 1, -0);
 const pos = new Ammo.btVector3(el.object3D.position.x, el.object3D.position.y, el.object3D.position.z);
 el.body.applyForce(force, pos);
-);
 Ammo.destroy(force);
 Ammo.destroy(pos);
 ```
