@@ -21,7 +21,7 @@ The Ammo.js driver provides many features and new functionality that the existin
 
 - The Ammo.js binaries are not a dependency of `Aframe-Physics-System`. You will need to include this into your project yourself. See: [Including the Ammo.js Build](#including-the-ammojs-build).
 - The Ammo.js binaries are several times larger than the Cannon.js binary. This shouldn't matter for most usages unless working in very memory sensitive environments.
-- new Ammo specific components provide a simple interface for interacting with the Ammo.js code, however it is possible to directly use Ammo.js classes and functions. It is recommended to familiarize yourself with [Emscripten](https://emscripten.org/) if you do so. See: [Advanced Usage](#advanced-usage).
+- new Ammo specific components provide a simple interface for interacting with the Ammo.js code, however it is possible to directly use Ammo.js classes and functions. It is recommended to familiarize yourself with [Emscripten](https://emscripten.org/) if you do so. See: [Using the Ammo.js API](#using-the-ammojs-api).
 
 ## Installation
 
@@ -151,11 +151,14 @@ Activation states are only used for `type: dynamic` bodies (. Most bodies should
 #### Collision Filtering
 
 Collision filtering allows you to control what bodies are allowed to collide with others. For Ammo.js, they are represented as two 32-bit bitmasks, `collisionFilterGroup` and `collisionFilterMask`.
+
+Using collision filtering requires basic understanding of the [bitwise `OR` (`a | b`)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_Operators#(Bitwise_OR) and [bitwise `AND` (`a & b`)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_Operators#(Bitwise_AND) operations.
+
 Example:
 Imagine 3 groups of objects, `A`, `B`, and `C`. We will say their bit values are as follows:
 
 ```js
-{
+collisionGroups: {
     A: 1,
     B: 2,
     C: 4
@@ -166,29 +169,51 @@ Assume all A objects should only collide with other A objects, and only B object
 
 ```html
 <!-- All A objects will look like this -->
-<a-entity ammo-body="collisionFilterGroup: 1; collisionFilterMask: 1;"></a-entity>
+<a-entity id="alpha" ammo-body="collisionFilterGroup: 1; collisionFilterMask: 1;"></a-entity>
 <!-- All B objects will look like this -->
-<a-entity ammo-body="collisionFilterGroup: 2; collisionFilterMask: 2;"></a-entity>
+<a-entity id="beta" ammo-body="collisionFilterGroup: 2; collisionFilterMask: 2;"></a-entity>
 ```
 
 Now Assume all C objects can collide with either A or B objects.
 
 ```html
 <!-- All A objects will look like this -->
-<a-entity ammo-body="collisionFilterGroup: 1; collisionFilterMask: 5;"></a-entity>
+<a-entity id="alpha" ammo-body="collisionFilterGroup: 1; collisionFilterMask: 5;"></a-entity>
 <!-- All B objects will look like this -->
-<a-entity ammo-body="collisionFilterGroup: 2; collisionFilterMask: 6;"></a-entity>
+<a-entity id="beta" ammo-body="collisionFilterGroup: 2; collisionFilterMask: 6;"></a-entity>
 <!-- All C objects will look like this -->
-<a-entity ammo-body="collisionFilterGroup: 4; collisionFilterMask: 7;"></a-entity>
+<a-entity id="gamma" ammo-body="collisionFilterGroup: 4; collisionFilterMask: 7;"></a-entity>
 ```
 
-Note that the `collisionFilterMask` for `A` and `B` changed to `5` and `6` respectively. This is because `1 | 4 = 5` and `2 | 4 = 6`. The `collisionFilterMask` for `C` is `7` because `1 | 2 | 4 = 7`.
+Note that the `collisionFilterMask` for `A` and `B` changed to `5` and `6` respectively. This is because the bitwise `OR` of collision groups `A` and `C` is  `1 | 4 = 5` and for `B` and `C` is  `2 | 4 = 6` . The `collisionFilterMask` for `C` is `7` because `1 | 2 | 4 = 7`. When two bodies collide, both bodies compare their `collisionFilterMask` with the colliding body's `collisionFilterGroup` using the bitwise `AND` operator and checks for equality with `0`. If the result of the `AND` for either pair is equal to `0`, the objects are not allowed to collide.
+
+```js
+// Object α (alpha) in group A and object β (beta) in group B overlap.
+
+// α checks if it can collide with β. (α's collisionFilterMask AND β's collisionFilterGroup)
+(5 & 2) = 0;
+
+// β checks if it can collide with α. (β's collisionFilterMask AND α's collisionFilterGroup)
+(6 & 1) = 0;
+
+// Both checks equal 0; α and β do not collide.
+
+// Now, object γ (gamma) in group C is overlapping with object β.
+
+// β checks if it can collide with γ. (β's collisionFilterMask AND γ's collisionFilterGroup)
+(6 & 7) = 6;
+
+// γ checks if it can collide with β. (γ's collisionFilterMask AND β's collisionFilterGroup)
+(7 & 2) = 2;
+
+// Neither check equals 0; β and γ collide.
+````
 
 See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_Operators#Flags_and_bitmasks for more information about bitmasks.
 
 ### `ammo-shape`
 
-Any entity with an `ammo-body` component can also have 1 or more `ammo-shape` components. The `ammo-shape` component is what defines the collision shape of the entity. `ammo-shape` components can be added and removed at any time.
+Any entity with an `ammo-body` component can also have 1 or more `ammo-shape` components. The `ammo-shape` component is what defines the collision shape of the entity. `ammo-shape` components can be added and removed at any time. The actual work of generating a `btCollisionShape` is done via an external library, [Three-to-Ammo](#https://github.com/infinitelee/three-to-ammo).
 
 | Property      | Dependencies | Default | Description |
 | ------------- | --------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
