@@ -152,7 +152,7 @@ Activation states are only used for `type: dynamic` bodies (. Most bodies should
 
 Collision filtering allows you to control what bodies are allowed to collide with others. For Ammo.js, they are represented as two 32-bit bitmasks, `collisionFilterGroup` and `collisionFilterMask`.
 
-Using collision filtering requires basic understanding of the [bitwise `OR` (`a | b`)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_Operators#(Bitwise_OR) and [bitwise `AND` (`a & b`)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_Operators#(Bitwise_AND) operations.
+Using collision filtering requires basic understanding of the [bitwise OR](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_Operators#(Bitwise_OR)) (`a | b`) and [bitwise AND](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Bitwise_Operators#(Bitwise_AND)) (`a & b`) operations.
 
 Example:
 Imagine 3 groups of objects, `A`, `B`, and `C`. We will say their bit values are as follows:
