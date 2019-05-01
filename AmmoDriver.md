@@ -213,7 +213,7 @@ See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators
 
 ### `ammo-shape`
 
-Any entity with an `ammo-body` component can also have 1 or more `ammo-shape` components. The `ammo-shape` component is what defines the collision shape of the entity. `ammo-shape` components can be added and removed at any time. The actual work of generating a `btCollisionShape` is done via an external library, [Three-to-Ammo](#https://github.com/infinitelee/three-to-ammo).
+Any entity with an `ammo-body` component can also have 1 or more `ammo-shape` components. The `ammo-shape` component is what defines the collision shape of the entity. `ammo-shape` components can be added and removed at any time. The actual work of generating a `btCollisionShape` is done via an external library, [Three-to-Ammo](https://github.com/infinitelee/three-to-ammo).
 
 | Property      | Dependencies | Default | Description |
 | ------------- | --------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
