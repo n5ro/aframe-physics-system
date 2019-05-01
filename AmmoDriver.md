@@ -284,7 +284,7 @@ Ammo.destroy(vector3);
 
 - Exposed properties on classes can be accessed via specially generated `get_<property>()` and `set_<property>()` functions. E.g. `rayResultCallback.get_m_collisionObject();`
 - Sometimes when calling certain functions you will receive a pointer object instead of an instance of the class you are epecting. Use `Ammo.wrapPointer` to "wrap" the pointer in the class you expected. E.g. `Ammo.wrapPointer(ptr, Ammo.btRigidBody);`
-- Conversely, sometimes you need the pointer of an object. Use `Ammo.getPointer`. E.g. `Ammo.getPointer(object)`.
+- Conversely, sometimes you need the pointer of an object. Use `Ammo.getPointer`. E.g. `const ptr = Ammo.getPointer(object);`.
 
 In A-Frame, each entity's `btRigidBody` instance is exposed on the `el.body` property. To apply a quick push to an object, you might do the following:
 
