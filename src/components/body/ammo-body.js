@@ -16,8 +16,17 @@ const ACTIVATION_STATES = [
   ACTIVATION_STATE.DISABLE_SIMULATION
 ];
 
+const RIGID_BODY_FLAGS = {
+  NONE: 0,
+  DISABLE_WORLD_GRAVITY: 1
+};
+
 function almostEqualsVector3(epsilon, u, v) {
   return Math.abs(u.x - v.x) < epsilon && Math.abs(u.y - v.y) < epsilon && Math.abs(u.z - v.z) < epsilon;
+}
+
+function almostEqualsBtVector3(epsilon, u, v) {
+  return Math.abs(u.x() - v.x()) < epsilon && Math.abs(u.y() - v.y()) < epsilon && Math.abs(u.z() - v.z()) < epsilon;
 }
 
 function almostEqualsQuaternion(epsilon, u, v) {
@@ -131,7 +140,12 @@ let AmmoBody = {
       this.body.setAngularFactor(angularFactor);
       Ammo.destroy(angularFactor);
 
-      this.body.getGravity().setValue(data.gravity.x, data.gravity.y, data.gravity.z);
+      const gravity = new Ammo.btVector3(data.gravity.x, data.gravity.y, data.gravity.z);
+      if (!almostEqualsBtVector3(0.001, gravity, this.system.driver.physicsWorld.getGravity())) {
+        this.body.setGravity(gravity);
+        this.body.setFlags(RIGID_BODY_FLAGS.DISABLE_WORLD_GRAVITY);
+      }
+      Ammo.destroy(gravity);
 
       this.updateCollisionFlags();
 
@@ -275,6 +289,38 @@ let AmmoBody = {
         this.system.driver.broadphase
           .getOverlappingPairCache()
           .removeOverlappingPairsContainingProxy(broadphaseProxy, this.system.driver.dispatcher);
+      }
+
+      if (prevData.linearDamping != this.data.linearDamping || prevData.angularDamping != this.data.angularDamping) {
+        this.body.setDamping(data.linearDamping, data.angularDamping);
+      }
+
+      if (!almostEqualsVector3(0.001, prevData.gravity, this.data.gravity)) {
+        const gravity = new Ammo.btVector3(this.data.gravity.x, this.data.gravity.y, this.data.gravity.z);
+        if (!almostEqualsBtVector3(0.001, gravity, this.system.driver.physicsWorld.getGravity())) {
+          this.body.setGravity(gravity);
+          this.body.setFlags(RIGID_BODY_FLAGS.DISABLE_WORLD_GRAVITY);
+        } else {
+          this.body.setFlags(RIGID_BODY_FLAGS.NONE);
+        }
+        Ammo.destroy(gravity);
+      }
+
+      if (
+        prevData.linearSleepingThreshold != this.data.linearSleepingThreshold ||
+        prevData.angularSleepingThreshold != this.data.angularSleepingThreshold
+      ) {
+        this.body.setSleepingThresholds(this.data.linearSleepingThreshold, this.data.angularSleepingThreshold);
+      }
+
+      if (!almostEqualsVector3(0.001, prevData.angularFactor, this.data.angularFactor)) {
+        const angularFactor = new Ammo.btVector3(
+          this.data.angularFactor.x,
+          this.data.angularFactor.y,
+          this.data.angularFactor.z
+        );
+        this.body.setAngularFactor(angularFactor);
+        Ammo.destroy(angularFactor);
       }
 
       //TODO: support dynamic update for other properties
