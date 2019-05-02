@@ -271,32 +271,35 @@ let AmmoBody = {
         this.hasUpdated = true;
         return;
       }
-      if (prevData.type !== this.data.type || prevData.disableCollision !== this.data.disableCollision) {
+
+      const data = this.data;
+
+      if (prevData.type !== data.type || prevData.disableCollision !== data.disableCollision) {
         this.updateCollisionFlags();
       }
 
-      if (prevData.activationState !== this.data.activationState) {
-        this.body.forceActivationState(ACTIVATION_STATES.indexOf(this.data.activationState) + 1);
+      if (prevData.activationState !== data.activationState) {
+        this.body.forceActivationState(ACTIVATION_STATES.indexOf(data.activationState) + 1);
       }
 
       if (
-        prevData.collisionFilterGroup !== this.data.collisionFilterGroup ||
-        prevData.collisionFilterMask !== this.data.collisionFilterMask
+        prevData.collisionFilterGroup !== data.collisionFilterGroup ||
+        prevData.collisionFilterMask !== data.collisionFilterMask
       ) {
         const broadphaseProxy = this.body.getBroadphaseProxy();
-        broadphaseProxy.set_m_collisionFilterGroup(this.data.collisionFilterGroup);
-        broadphaseProxy.set_m_collisionFilterMask(this.data.collisionFilterMask);
+        broadphaseProxy.set_m_collisionFilterGroup(data.collisionFilterGroup);
+        broadphaseProxy.set_m_collisionFilterMask(data.collisionFilterMask);
         this.system.driver.broadphase
           .getOverlappingPairCache()
           .removeOverlappingPairsContainingProxy(broadphaseProxy, this.system.driver.dispatcher);
       }
 
-      if (prevData.linearDamping != this.data.linearDamping || prevData.angularDamping != this.data.angularDamping) {
+      if (prevData.linearDamping != data.linearDamping || prevData.angularDamping != data.angularDamping) {
         this.body.setDamping(data.linearDamping, data.angularDamping);
       }
 
-      if (!almostEqualsVector3(0.001, prevData.gravity, this.data.gravity)) {
-        const gravity = new Ammo.btVector3(this.data.gravity.x, this.data.gravity.y, this.data.gravity.z);
+      if (!almostEqualsVector3(0.001, prevData.gravity, data.gravity)) {
+        const gravity = new Ammo.btVector3(data.gravity.x, data.gravity.y, data.gravity.z);
         if (!almostEqualsBtVector3(0.001, gravity, this.system.driver.physicsWorld.getGravity())) {
           this.body.setGravity(gravity);
           this.body.setFlags(RIGID_BODY_FLAGS.DISABLE_WORLD_GRAVITY);
@@ -307,18 +310,14 @@ let AmmoBody = {
       }
 
       if (
-        prevData.linearSleepingThreshold != this.data.linearSleepingThreshold ||
-        prevData.angularSleepingThreshold != this.data.angularSleepingThreshold
+        prevData.linearSleepingThreshold != data.linearSleepingThreshold ||
+        prevData.angularSleepingThreshold != data.angularSleepingThreshold
       ) {
-        this.body.setSleepingThresholds(this.data.linearSleepingThreshold, this.data.angularSleepingThreshold);
+        this.body.setSleepingThresholds(data.linearSleepingThreshold, data.angularSleepingThreshold);
       }
 
-      if (!almostEqualsVector3(0.001, prevData.angularFactor, this.data.angularFactor)) {
-        const angularFactor = new Ammo.btVector3(
-          this.data.angularFactor.x,
-          this.data.angularFactor.y,
-          this.data.angularFactor.z
-        );
+      if (!almostEqualsVector3(0.001, prevData.angularFactor, data.angularFactor)) {
+        const angularFactor = new Ammo.btVector3(data.angularFactor.x, data.angularFactor.y, data.angularFactor.z);
         this.body.setAngularFactor(angularFactor);
         Ammo.destroy(angularFactor);
       }
