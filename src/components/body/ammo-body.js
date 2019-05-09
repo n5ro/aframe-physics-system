@@ -280,6 +280,9 @@ let AmmoBody = {
 
       if (prevData.activationState !== data.activationState) {
         this.body.forceActivationState(ACTIVATION_STATES.indexOf(data.activationState) + 1);
+        if (data.activationState === ACTIVATION_STATE.ACTIVE_TAG) {
+          this.body.activate(true);
+        }
       }
 
       if (
@@ -301,11 +304,11 @@ let AmmoBody = {
       if (!almostEqualsVector3(0.001, prevData.gravity, data.gravity)) {
         const gravity = new Ammo.btVector3(data.gravity.x, data.gravity.y, data.gravity.z);
         if (!almostEqualsBtVector3(0.001, gravity, this.system.driver.physicsWorld.getGravity())) {
-          this.body.setGravity(gravity);
           this.body.setFlags(RIGID_BODY_FLAGS.DISABLE_WORLD_GRAVITY);
         } else {
           this.body.setFlags(RIGID_BODY_FLAGS.NONE);
         }
+        this.body.setGravity(gravity);
         Ammo.destroy(gravity);
       }
 
