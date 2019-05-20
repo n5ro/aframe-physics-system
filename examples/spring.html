@@ -4,7 +4,7 @@
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,maximum-scale=1">
     <title>Examples • Spring</title>
-    <script type="text/javascript" src="https://aframe.io/releases/0.8.2/aframe.min.js"></script>
+    <script type="text/javascript" src="https://aframe.io/releases/0.9.1/aframe.min.js"></script>
     <script src="../bundle.js"></script>
   </head>
   <body>
@@ -15,7 +15,7 @@
              color="green"
              dynamic-body
              spring="target: #one; damping: 0.25; stiffness: 25"></a-box>
-      
+
       <a-text color="black" position="-0.5 3 -3" value="damping: 0.75\nstiffness: 75"></a-text>
       <a-box id="two" position="0 2 -3" color="blue" static-body></a-box>
       <a-box id="onespring"
@@ -31,7 +31,7 @@
              color="green"
              dynamic-body
              spring="target: #three;"></a-box>
-      
+
       <a-text color="black" position="4.5 3 -3" value="localAnchorB:1 0 0"></a-text>
       <a-box id="four" position="5 2 -3" color="blue" static-body></a-box>
       <a-box id="threespring"
