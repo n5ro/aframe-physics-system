@@ -4,7 +4,13 @@
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/donmccurdy/aframe-physics-system/master/LICENSE)
 [![Build Status](https://travis-ci.org/donmccurdy/aframe-physics-system.svg?branch=master)](https://travis-ci.org/donmccurdy/aframe-physics-system)
 
-Components for A-Frame physics integration, built on [CANNON.js](http://schteppe.github.io/cannon.js/).
+Components for A-Frame physics integration.
+Supports [CANNON.js](http://schteppe.github.io/cannon.js/) and [Ammo.js](https://github.com/kripken/ammo.js/)
+
+
+## New Features
+
+Ammo.js driver support has been added. Please see [Ammo Driver](/AmmoDriver.md) for documentation. CANNON.js support may be deprecated in the future.
 
 ## Contents
 

@@ -25,7 +25,7 @@ suite('velocity', function () {
       el.setAttribute('velocity', {x: 1, y: 2, z: 3});
       delete component.system;
       component.tick(100, 0.1);
-      var position = el.getAttribute('position');
+      var position = el.object3D.position;
       expect(position.x).to.be.closeTo(0.0001, EPS);
       expect(position.y).to.be.closeTo(0.0002, EPS);
       expect(position.z).to.be.closeTo(0.0003, EPS);
@@ -69,15 +69,15 @@ suite('velocity', function () {
 
     test('defaults to 0 0 0', function () {
       component.update();
-      expect(el.getAttribute('position')).to.shallowDeepEqual({x: 0, y: 0, z: 0});
+      expect(el.object3D.position).to.shallowDeepEqual({x: 0, y: 0, z: 0});
     });
 
     test('updates position', function () {
       el.setAttribute('velocity', {x: 1, y: 2, z: 3});
       component.tick(100, 0.1);
-      expect(el.getAttribute('position')).to.shallowDeepEqual({x: 0, y: 0, z: 0});
+      expect(el.object3D.position).to.shallowDeepEqual({x: 0, y: 0, z: 0});
       component.afterStep(100, 0.1 /* overridden by maxInterval */);
-      var position = el.getAttribute('position');
+      var position = el.object3D.position;
       expect(position.x).to.be.closeTo(0.00005, EPS);
       expect(position.y).to.be.closeTo(0.00010, EPS);
       expect(position.z).to.be.closeTo(0.00015, EPS);

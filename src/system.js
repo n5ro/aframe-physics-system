@@ -1,3 +1,4 @@
+/* global THREE */
 var CANNON = require('cannon'),
     CONSTANTS = require('./constants'),
     C_GRAV = CONSTANTS.GRAVITY,
@@ -37,12 +38,19 @@ module.exports = AFRAME.registerSystem('physics', {
 
     // If true, show wireframes around physics bodies.
     debug:                          { default: false },
+
+    // If using ammo, set the default rendering mode for debug
+    debugDrawMode: { default: THREE.AmmoDebugConstants.NoDebug },
+    // If using ammo, set the max number of steps per frame 
+    maxSubSteps: { default: 4 },
+    // If using ammo, set the framerate of the simulation
+    fixedTimeStep: { default: 1 / 60 }
   },
 
   /**
    * Initializes the physics system.
    */
-  init: function () {
+  async init() {
     var data = this.data;
 
     // If true, show wireframes around physics bodies.
@@ -56,6 +64,10 @@ module.exports = AFRAME.registerSystem('physics', {
     switch (data.driver) {
       case 'local':
         this.driver = new LocalDriver();
+        break;
+
+      case 'ammo':
+        this.driver = new AmmoDriver();
         break;
 
       case 'network':
@@ -76,31 +88,46 @@ module.exports = AFRAME.registerSystem('physics', {
         throw new Error('[physics] Driver not recognized: "%s".', data.driver);
     }
 
-    this.driver.init({
-      quatNormalizeSkip: 0,
-      quatNormalizeFast: false,
+    if (data.driver !== 'ammo') {
+      await this.driver.init({
+        quatNormalizeSkip: 0,
+        quatNormalizeFast: false,
+        solverIterations: data.iterations,
+        gravity: data.gravity,
+      });
+      this.driver.addMaterial({name: 'defaultMaterial'});
+      this.driver.addMaterial({name: 'staticMaterial'});
+      this.driver.addContactMaterial('defaultMaterial', 'defaultMaterial', {
+        friction: data.friction,
+        restitution: data.restitution,
+        contactEquationStiffness: data.contactEquationStiffness,
+        contactEquationRelaxation: data.contactEquationRelaxation,
+        frictionEquationStiffness: data.frictionEquationStiffness,
+        frictionEquationRegularization: data.frictionEquationRegularization
+      });
+      this.driver.addContactMaterial('staticMaterial', 'defaultMaterial', {
+        friction: 1.0,
+        restitution: 0.0,
+        contactEquationStiffness: data.contactEquationStiffness,
+        contactEquationRelaxation: data.contactEquationRelaxation,
+        frictionEquationStiffness: data.frictionEquationStiffness,
+        frictionEquationRegularization: data.frictionEquationRegularization
+      });
+    } else {
+      await this.driver.init({
+      gravity: data.gravity,
+      debugDrawMode: data.debugDrawMode,
       solverIterations: data.iterations,
-      gravity: data.gravity
+      maxSubSteps: data.maxSubSteps,
+      fixedTimeStep: data.fixedTimeStep
     });
+    }
 
-    this.driver.addMaterial({name: 'defaultMaterial'});
-    this.driver.addMaterial({name: 'staticMaterial'});
-    this.driver.addContactMaterial('defaultMaterial', 'defaultMaterial', {
-      friction: data.friction,
-      restitution: data.restitution,
-      contactEquationStiffness: data.contactEquationStiffness,
-      contactEquationRelaxation: data.contactEquationRelaxation,
-      frictionEquationStiffness: data.frictionEquationStiffness,
-      frictionEquationRegularization: data.frictionEquationRegularization
-    });
-    this.driver.addContactMaterial('staticMaterial', 'defaultMaterial', {
-      friction: 1.0,
-      restitution: 0.0,
-      contactEquationStiffness: data.contactEquationStiffness,
-      contactEquationRelaxation: data.contactEquationRelaxation,
-      frictionEquationStiffness: data.frictionEquationStiffness,
-      frictionEquationRegularization: data.frictionEquationRegularization
-    });
+    this.initialized = true;
+
+    if (this.debug) {
+      this.setDebug(true);
+    }
   },
 
   /**
@@ -112,7 +139,7 @@ module.exports = AFRAME.registerSystem('physics', {
    * @param  {number} dt
    */
   tick: function (t, dt) {
-    if (!dt) return;
+    if (!this.initialized || !dt) return;
 
     var i;
     var callbacks = this.callbacks;
@@ -122,7 +149,7 @@ module.exports = AFRAME.registerSystem('physics', {
     }
 
     this.driver.step(Math.min(dt / 1000, this.data.maxInterval));
-
+    
     for (i = 0; i < callbacks.step.length; i++) {
       callbacks.step[i].step(t, dt);
     }
@@ -132,31 +159,46 @@ module.exports = AFRAME.registerSystem('physics', {
     }
   },
 
+  setDebug: function(debug) {
+    this.debug = debug;
+    if (this.data.driver === 'ammo' && this.initialized) {
+      if (debug && !this.debugDrawer) {
+        this.debugDrawer = this.driver.getDebugDrawer(this.el.object3D);
+        this.debugDrawer.enable();
+      } else if (this.debugDrawer) {
+        this.debugDrawer.disable();
+        this.debugDrawer = null;
+      }
+    }
+  },
+
   /**
    * Adds a body to the scene, and binds proxied methods to the driver.
    * @param {CANNON.Body} body
    */
-  addBody: function (body) {
+  addBody: function (body, group, mask) {
     var driver = this.driver;
 
-    body.__applyImpulse = body.applyImpulse;
-    body.applyImpulse = function () {
-      driver.applyBodyMethod(body, 'applyImpulse', arguments);
-    };
+    if (this.data.driver === 'local') {
+      body.__applyImpulse = body.applyImpulse;
+      body.applyImpulse = function () {
+        driver.applyBodyMethod(body, 'applyImpulse', arguments);
+      };
 
-    body.__applyForce = body.applyForce;
-    body.applyForce = function () {
-      driver.applyBodyMethod(body, 'applyForce', arguments);
-    };
+      body.__applyForce = body.applyForce;
+      body.applyForce = function () {
+        driver.applyBodyMethod(body, 'applyForce', arguments);
+      };
 
-    body.updateProperties = function () {
-      driver.updateBodyProperties(body);
-    };
+      body.updateProperties = function () {
+        driver.updateBodyProperties(body);
+      };
 
-    this.listeners[body.id] = function (e) { body.el.emit('collide', e); };
-    body.addEventListener('collide', this.listeners[body.id]);
+      this.listeners[body.id] = function (e) { body.el.emit('collide', e); };
+      body.addEventListener('collide', this.listeners[body.id]);
+    }
 
-    this.driver.addBody(body);
+    this.driver.addBody(body, group, mask);
   },
 
   /**
@@ -166,37 +208,26 @@ module.exports = AFRAME.registerSystem('physics', {
   removeBody: function (body) {
     this.driver.removeBody(body);
 
-    body.removeEventListener('collide', this.listeners[body.id]);
-    delete this.listeners[body.id];
+    if (this.data.driver === 'local' || this.data.driver === 'worker') {
+      body.removeEventListener('collide', this.listeners[body.id]);
+      delete this.listeners[body.id];
 
-    body.applyImpulse = body.__applyImpulse;
-    delete body.__applyImpulse;
+      body.applyImpulse = body.__applyImpulse;
+      delete body.__applyImpulse;
 
-    body.applyForce = body.__applyForce;
-    delete body.__applyForce;
+      body.applyForce = body.__applyForce;
+      delete body.__applyForce;
 
-    delete body.updateProperties;
+      delete body.updateProperties;
+    }
   },
 
-  /** @param {CANNON.Constraint} constraint */
+  /** @param {CANNON.Constraint or Ammo.btTypedConstraint} constraint */
   addConstraint: function (constraint) {
-    if (!constraint.type) {
-      if (constraint instanceof CANNON.LockConstraint) {
-        constraint.type = 'LockConstraint';
-      } else if (constraint instanceof CANNON.DistanceConstraint) {
-        constraint.type = 'DistanceConstraint';
-      } else if (constraint instanceof CANNON.HingeConstraint) {
-        constraint.type = 'HingeConstraint';
-      } else if (constraint instanceof CANNON.ConeTwistConstraint) {
-        constraint.type = 'ConeTwistConstraint';
-      } else if (constraint instanceof CANNON.PointToPointConstraint) {
-        constraint.type = 'PointToPointConstraint';
-      }
-    }
     this.driver.addConstraint(constraint);
   },
 
-  /** @param {CANNON.Constraint} constraint */
+  /** @param {CANNON.Constraint or Ammo.btTypedConstraint} constraint */
   removeConstraint: function (constraint) {
     this.driver.removeConstraint(constraint);
   },

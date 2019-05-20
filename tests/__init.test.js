@@ -12,6 +12,19 @@ setup(function () {
   this.sinon.stub(AScene.prototype, 'render');
   this.sinon.stub(AScene.prototype, 'resize');
   this.sinon.stub(AScene.prototype, 'setupRenderer');
+  // Mock renderer.
+  AScene.prototype.renderer = {
+    vr: {
+      getDevice: function () { return {requestPresent: function () {}}; },
+      setDevice: function () {},
+      setPoseTarget: function () {},
+      enabled: false
+    },
+    getContext: function () { return undefined; },
+    setAnimationLoop: function () {},
+    setSize: function () {},
+    shadowMap: {}
+  };
 });
 
 teardown(function () {
