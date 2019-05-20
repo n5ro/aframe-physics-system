@@ -40,7 +40,8 @@ module.exports = {
     HULL: "hull",
     HACD: "hacd",
     VHACD: "vhacd",
-    MESH: "mesh"
+    MESH: "mesh",
+    HEIGHTFIELD: "heightfield"
   },
   FIT: {
     ALL: "all",
