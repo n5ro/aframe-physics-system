@@ -110,10 +110,10 @@ AmmoDriver.prototype.step = function(deltaTime) {
       if (this.collisions.get(body0ptr).indexOf(body1ptr) === -1) {
         this.collisions.get(body0ptr).push(body1ptr);
         if (this.eventListeners.indexOf(body0ptr) !== -1) {
-          this.els.get(body0ptr).emit("collide", { targetEl: this.els.get(body1ptr) });
+          this.els.get(body0ptr).emit("collidestart", { targetEl: this.els.get(body1ptr) });
         }
         if (this.eventListeners.indexOf(body1ptr) !== -1) {
-          this.els.get(body1ptr).emit("collide", { targetEl: this.els.get(body0ptr) });
+          this.els.get(body1ptr).emit("collidestart", { targetEl: this.els.get(body0ptr) });
         }
       }
       if (!this.currentCollisions.has(body0ptr)) {
@@ -132,10 +132,10 @@ AmmoDriver.prototype.step = function(deltaTime) {
         continue;
       }
       if (this.eventListeners.indexOf(body0ptr) !== -1) {
-        this.els.get(body0ptr).emit("collide-end", { targetEl: this.els.get(body1ptr) });
+        this.els.get(body0ptr).emit("collideend", { targetEl: this.els.get(body1ptr) });
       }
       if (this.eventListeners.indexOf(body1ptr) !== -1) {
-        this.els.get(body1ptr).emit("collide-end", { targetEl: this.els.get(body0ptr) });
+        this.els.get(body1ptr).emit("collideend", { targetEl: this.els.get(body0ptr) });
       }
       body1ptrs.splice(j, 1);
     }

@@ -12,10 +12,10 @@ module.exports = {
   },
   ACTIVATION_STATE: {
     ACTIVE_TAG: "active",
-    ISLAND_SLEEPING: "island_sleeping",
-    WANTS_DEACTIVATION: "wants_deactivation",
-    DISABLE_DEACTIVATION: "disable_deactivation",
-    DISABLE_SIMULATION: "disable_simulation"
+    ISLAND_SLEEPING: "islandSleeping",
+    WANTS_DEACTIVATION: "wantsDeactivation",
+    DISABLE_DEACTIVATION: "disableDeactivation",
+    DISABLE_SIMULATION: "disableSimulation"
   },
   COLLISION_FLAG: {
     STATIC_OBJECT: 1,

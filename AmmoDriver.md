@@ -118,11 +118,11 @@ An `ammo-body` component may be added to any entity in a scene. While having onl
 | gravity                  | `0 -9.8 0` | Set the gravity for this specific object.                                                                                                               |
 | linearDamping            | `0.01`     | Resistance to movement.                                                                                                                                 |
 | angularDamping           | `0.01`     | Resistance to rotation.                                                                                                                                 |
-| linearSleepingThreshold  | `1.6`      | Minimum movement cutoff before a body can enter `activationState: wants_deactivation`                                                                   |
-| angularSleepingThreshold | `2.5`      | Minimum rotation cutoff before a body can enter `activationState: wants_deactivation`                                                                   |
+| linearSleepingThreshold  | `1.6`      | Minimum movement cutoff before a body can enter `activationState: wantsDeactivation`                                                                   |
+| angularSleepingThreshold | `2.5`      | Minimum rotation cutoff before a body can enter `activationState: wantsDeactivation`                                                                   |
 | angularFactor            | `1 1 1`    | Constrains how much the body is allowed to rotate on an axis. E.g. `1 0 1` will prevent rotation around y axis.                                         |
-| activationState          | `active`   | Options: `active`, `island_sleeping`, `wants_deactivation`, `disable_deactivation`, `disable_simulation`. See [Activation States](#activation-states)   |
-| emitCollisionEvents      | `false`    | Set to true to enable firing of `collision` and `collision-end` events on this entity. See [Events](#events).                                           |
+| activationState          | `active`   | Options: `active`, `islandSleeping`, `wantsDeactivation`, `disableDeactivation`, `disableSimulation`. See [Activation States](#activation-states)   |
+| emitCollisionEvents      | `false`    | Set to true to enable firing of `collidestart` and `collideend` events on this entity. See [Events](#events).                                           |
 | disableCollision         | `false`    | Set to true to disable object from colliding with all others.                                                                                           |
 | collisionFilterGroup     | `1`        | 32-bit bitmask to determine what collision "group" this object belongs to. See: [Collision Filtering](#collision-filtering).                            |
 | collisionFilterMask      | `1`        | 32-bit bitmask to determine what collision ""groups" this object should collide with. See: [Collision Filtering](#collision-filtering).                 |
@@ -138,15 +138,15 @@ The `type` of an ammo body can be one of the following:
 
 #### Activation States
 
-Activation states are only used for `type: dynamic` bodies (. Most bodies should be left at the default `activationState: active` so that they can go to sleep (sleeping bodies are very cheap). It can be useful to set bodies to `activatioState: disable_deactivation` if also using an `ammo-constrant` as constraints will stop functioning if the body goes to sleep, however they should be used sparingly. Each activation state has a color used for wireframe rendering when debug is enabled.
+Activation states are only used for `type: dynamic` bodies. Most bodies should be left at the default `activationState: active` so that they can go to sleep (sleeping bodies are very cheap). It can be useful to set bodies to `activationState: disableDeactivation` if also using an `ammo-constraint` as constraints will stop functioning if the body goes to sleep, however they should be used sparingly. Each activation state has a color used for wireframe rendering when debug is enabled.
 
 | state                   | debug rendering color | description                                                                                                                                                                                 |
 | ----------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `active`                | white                 | Waking state. Bodies will enter this state if collisions with other bodies occur. This is the default state.                                                                                |
-| `island_sleeping`       | green                 | Sleeping state. Bodies will enter this state if they fall below `linearSleepingThreshold` and `angularSleepingThreshold` and no other `active` or `disable_deactivation` bodies are nearby. |
-| `wants_deactivation`    | cyan                  | Intermediary state between `active` and `island_sleeping`. Bodies will enter this state if they fall below `linearSleepingThreshold` and `angularSleepingThreshold`.                        |
-| `disable_deactivation`  | red                   | Forced `active` state. Bodies set to this state will never enter `island_sleeping` or `wants_deactivation`.                                                                                 |
-| `disable_simulation`    | yellow                | Bodies in this state will be completely ignored by the physics system.                                                                                                                      |
+| `islandSleeping`       | green                 | Sleeping state. Bodies will enter this state if they fall below `linearSleepingThreshold` and `angularSleepingThreshold` and no other `active` or `disableDeactivation` bodies are nearby. |
+| `wantsDeactivation`    | cyan                  | Intermediary state between `active` and `islandSleeping`. Bodies will enter this state if they fall below `linearSleepingThreshold` and `angularSleepingThreshold`.                        |
+| `disableDeactivation`  | red                   | Forced `active` state. Bodies set to this state will never enter `islandSleeping` or `wantsDeactivation`.                                                                                 |
+| `disableSimulation`    | yellow                | Bodies in this state will be completely ignored by the physics system.                                                                                                                      |
 
 #### Collision Filtering
 
@@ -309,8 +309,8 @@ Ammo.destroy(pos);
 | event         | description                                                                                         |
 | ------------- | --------------------------------------------------------------------------------------------------- |
 | `body-loaded` | Fired when physics body (`el.body`) has been created.                                               |
-| `collide`     | Fired when two bodies collide. `emitCollisionEvents: true` must be set on the `ammo-body`.          |
-| `collide-end` | Fired when two bodies stop colliding. `emitCollisionEvents: true` must be set on the `ammo-body`.   |
+| `collidestart`     | Fired when two bodies collide. `emitCollisionEvents: true` must be set on the `ammo-body`.          |
+| `collideend` | Fired when two bodies stop colliding. `emitCollisionEvents: true` must be set on the `ammo-body`.   |
 
 ### Collisions
 
