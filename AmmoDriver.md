@@ -215,17 +215,20 @@ See: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators
 
 Any entity with an `ammo-body` component can also have 1 or more `ammo-shape` components. The `ammo-shape` component is what defines the collision shape of the entity. `ammo-shape` components can be added and removed at any time. The actual work of generating a `btCollisionShape` is done via an external library, [Three-to-Ammo](https://github.com/infinitelee/three-to-ammo).
 
-| Property      | Dependencies | Default | Description |
-| ------------- | --------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| type          | —                                                         | `hull`                        | Options: `box`, `cylinder`, `sphere`, `capsule`, `cone`, `hull`, `hacd`, `vhacd`, `mesh`. see [Shape Types](#shape-types).    |
-| fit           | —                                                         | `all`                         | Options: `all`, `manual`. Use `manual` if defining `halfExtents` or `sphereRadius` below. See [Shape Fit](#shape-fit).        |
-| halfExtents   | `fit: manual` and `type: box, cylinder, capsule, cone`    | `1 1 1`                       | Set the halfExtents to use.                                                                                                   |
-| minHalfExtent | `fit: all` and `type: box, cylinder, capsule, cone`       | `0`                           | The minimum value for any axis of the halfExtents.                                                                            |
-| maxHalfExtent | `fit: all` and `type: box, cylinder, capsule, cone`       | `Number.POSITIVE_INFINITY`    | The maximum value for any axis of the halfExtents.                                                                            |
-| sphereRadius  | `fit: manual` and `type: sphere`                          | `NaN`                         | Set the radius for spheres.                                                                                                   |
-| cylinderAxis  | —                                                         | `y`                           | Options: `x`, `y`, `z`. Override default axis for `cylinder`, `capsule`, and `cone` types.                                    |
-| margin        | —                                                         | `0.01`                        | The amount of 'padding' to add around the shape. Larger values have better performance but reduce collision shape precision.  |
-| offset        | —                                                         | `0 0 0`                       | Where to position the shape relative to the origin of the entity.                                                             |
+| Property            | Dependencies                                              | Default                       | Description                                                                                                                               |
+| ------------------- | --------------------------------------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| type                | —                                                         | `hull`                        | Options: `box`, `cylinder`, `sphere`, `capsule`, `cone`, `hull`, `hacd`, `vhacd`, `mesh`, `heightfield`. see [Shape Types](#shape-types). |
+| fit                 | —                                                         | `all`                         | Options: `all`, `manual`. Use `manual` if defining `halfExtents` or `sphereRadius` below. See [Shape Fit](#shape-fit).                    |
+| halfExtents         | `fit: manual` and `type: box, cylinder, capsule, cone`    | `1 1 1`                       | Set the halfExtents to use.                                                                                                               |
+| minHalfExtent       | `fit: all` and `type: box, cylinder, capsule, cone`       | `0`                           | The minimum value for any axis of the halfExtents.                                                                                        |
+| maxHalfExtent       | `fit: all` and `type: box, cylinder, capsule, cone`       | `Number.POSITIVE_INFINITY`    | The maximum value for any axis of the halfExtents.                                                                                        |
+| sphereRadius        | `fit: manual` and `type: sphere`                          | `NaN`                         | Set the radius for spheres.                                                                                                               |
+| cylinderAxis        | —                                                         | `y`                           | Options: `x`, `y`, `z`. Override default axis for `cylinder`, `capsule`, and `cone` types.                                                |
+| margin              | —                                                         | `0.01`                        | The amount of 'padding' to add around the shape. Larger values have better performance but reduce collision shape precision.              |
+| offset              | —                                                         | `0 0 0`                       | Where to position the shape relative to the origin of the entity.                                                                         |
+| heightfieldData     | `fit: manual` and `type: heightfield`                     | `[]`                          | An array of arrays of float values that represent a height at a fixed interval `heightfieldDistance`                                      |
+| heightfieldDistance | `fit: manual` and `type: heightfield`                     | `1`                           | The distance between each height value in both the x and z direction in `heightfieldData`                                                 |
+| includeInvisible    | `fit: all`                                                | `false`                       | Should invisible meshes be included when using `fit: all`                                                                                 |
 
 #### Shape Types
 
@@ -241,6 +244,7 @@ Any entity with an `ammo-body` component can also have 1 or more `ammo-shape` co
 - **Mesh** (`mesh`) – Creates a 1:1 concave collision shape with the triangles of the meshes of the entity. May only be used on `static` bodies. This is the least performant shape, however they can work very well for static environments if the following is observed:
   - Avoid using meshes with very high triangle density relative to size of convex objects (primitives and hulls) colliding with the mesh. E.g. avoid meshes where an object could collide with dozens or more triangles in a single spot.
   - Avoid very high poly meshes in general and use mesh decimation (simplification) if possible.
+- **Heightfield** (`heightfield`) – Similar to a mesh shape, but you must provide an array of heights and the distance between those values. E.g. `heightfieldData: [[0, 0, 0], [0, 1, 0], [0, 0, 0]]` and `heightfieldDistance: 1` will create a 3x3 meter heightfield with a height of 0 except for the center with a height of 1.
 
 #### Shape Fit
 
