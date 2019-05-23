@@ -30,7 +30,6 @@ var AmmoShape = {
     margin: { default: 0.01 },
     offset: { type: "vec3", default: { x: 0, y: 0, z: 0 } },
     orientation: { type: "vec4", default: { x: 0, y: 0, z: 0, w: 1 } },
-    heightfieldDistance: { default: 0.1 },
     heightfieldData: { default: [] },
     heightfieldDistance: { default: 1 },
     includeInvisible: { default: false }
