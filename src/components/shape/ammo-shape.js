@@ -17,7 +17,8 @@ var AmmoShape = {
         SHAPE.HULL,
         SHAPE.HACD,
         SHAPE.VHACD,
-        SHAPE.MESH
+        SHAPE.MESH,
+        SHAPE.HEIGHTFIELD
       ]
     },
     fit: { default: FIT.ALL, oneOf: [FIT.ALL, FIT.MANUAL] },
@@ -28,7 +29,10 @@ var AmmoShape = {
     cylinderAxis: { default: "y", oneOf: ["x", "y", "z"] },
     margin: { default: 0.01 },
     offset: { type: "vec3", default: { x: 0, y: 0, z: 0 } },
-    orientation: { type: "vec4", default: { x: 0, y: 0, z: 0, w: 1 } }
+    orientation: { type: "vec4", default: { x: 0, y: 0, z: 0, w: 1 } },
+    heightfieldData: { default: [] },
+    heightfieldDistance: { default: 1 },
+    includeInvisible: { default: false }
   },
 
   multiple: true,
