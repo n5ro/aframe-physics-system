@@ -1,11 +1,14 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+(function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 var CANNON = require('cannon');
 
 require('./src/components/math');
+require('./src/components/body/ammo-body');
 require('./src/components/body/body');
 require('./src/components/body/dynamic-body');
 require('./src/components/body/static-body');
-require('./src/components/shape/shape')
+require('./src/components/shape/shape');
+require('./src/components/shape/ammo-shape')
+require('./src/components/ammo-constraint');
 require('./src/components/constraint');
 require('./src/components/spring');
 require('./src/system');
@@ -19,7 +22,7 @@ module.exports = {
 // Export CANNON.js.
 window.CANNON = window.CANNON || CANNON;
 
-},{"./src/components/body/body":63,"./src/components/body/dynamic-body":64,"./src/components/body/static-body":65,"./src/components/constraint":66,"./src/components/math":67,"./src/components/shape/shape":69,"./src/components/spring":70,"./src/system":80,"cannon":4}],2:[function(require,module,exports){
+},{"./src/components/ammo-constraint":65,"./src/components/body/ammo-body":66,"./src/components/body/body":67,"./src/components/body/dynamic-body":68,"./src/components/body/static-body":69,"./src/components/constraint":70,"./src/components/math":71,"./src/components/shape/ammo-shape":73,"./src/components/shape/shape":74,"./src/components/spring":75,"./src/system":85,"cannon":5}],2:[function(require,module,exports){
 /**
  * CANNON.shape2mesh
  *
@@ -179,7 +182,173 @@ CANNON.shape2mesh = function(body){
 
 module.exports = CANNON.shape2mesh;
 
-},{"cannon":4}],3:[function(require,module,exports){
+},{"cannon":5}],3:[function(require,module,exports){
+/* global Ammo,THREE */
+
+THREE.AmmoDebugConstants = {
+  NoDebug: 0,
+  DrawWireframe: 1,
+  DrawAabb: 2,
+  DrawFeaturesText: 4,
+  DrawContactPoints: 8,
+  NoDeactivation: 16,
+  NoHelpText: 32,
+  DrawText: 64,
+  ProfileTimings: 128,
+  EnableSatComparison: 256,
+  DisableBulletLCP: 512,
+  EnableCCD: 1024,
+  DrawConstraints: 1 << 11, //2048
+  DrawConstraintLimits: 1 << 12, //4096
+  FastWireframe: 1 << 13, //8192
+  DrawNormals: 1 << 14, //16384
+  DrawOnTop: 1 << 15, //32768
+  MAX_DEBUG_DRAW_MODE: 0xffffffff
+};
+
+/**
+ * An implementation of the btIDebugDraw interface in Ammo.js, for debug rendering of Ammo shapes
+ * @class AmmoDebugDrawer
+ * @param {THREE.Scene} scene
+ * @param {Ammo.btCollisionWorld} world
+ * @param {object} [options]
+ */
+THREE.AmmoDebugDrawer = function(scene, world, options) {
+  this.scene = scene;
+  this.world = world;
+  options = options || {};
+
+  this.debugDrawMode = options.debugDrawMode || THREE.AmmoDebugConstants.DrawWireframe;
+  var drawOnTop = this.debugDrawMode & THREE.AmmoDebugConstants.DrawOnTop || false;
+  var maxBufferSize = options.maxBufferSize || 1000000;
+
+  this.geometry = new THREE.BufferGeometry();
+  var vertices = new Float32Array(maxBufferSize * 3);
+  var colors = new Float32Array(maxBufferSize * 3);
+
+  this.geometry.addAttribute("position", new THREE.BufferAttribute(vertices, 3).setDynamic(true));
+  this.geometry.addAttribute("color", new THREE.BufferAttribute(colors, 3).setDynamic(true));
+
+  this.index = 0;
+
+  var material = new THREE.LineBasicMaterial({
+    vertexColors: THREE.VertexColors,
+    depthTest: !drawOnTop
+  });
+
+  this.mesh = new THREE.LineSegments(this.geometry, material);
+  if (drawOnTop) this.mesh.renderOrder = 999;
+  this.mesh.frustumCulled = false;
+
+  this.enabled = false;
+
+  this.debugDrawer = new Ammo.DebugDrawer();
+  this.debugDrawer.drawLine = this.drawLine.bind(this);
+  this.debugDrawer.drawContactPoint = this.drawContactPoint.bind(this);
+  this.debugDrawer.reportErrorWarning = this.reportErrorWarning.bind(this);
+  this.debugDrawer.draw3dText = this.draw3dText.bind(this);
+  this.debugDrawer.setDebugMode = this.setDebugMode.bind(this);
+  this.debugDrawer.getDebugMode = this.getDebugMode.bind(this);
+  this.debugDrawer.enable = this.enable.bind(this);
+  this.debugDrawer.disable = this.disable.bind(this);
+  this.debugDrawer.update = this.update.bind(this);
+
+  this.world.setDebugDrawer(this.debugDrawer);
+};
+
+THREE.AmmoDebugDrawer.prototype = function() {
+  return this.debugDrawer;
+};
+
+THREE.AmmoDebugDrawer.prototype.enable = function() {
+  this.enabled = true;
+  this.scene.add(this.mesh);
+};
+
+THREE.AmmoDebugDrawer.prototype.disable = function() {
+  this.enabled = false;
+  this.scene.remove(this.mesh);
+};
+
+THREE.AmmoDebugDrawer.prototype.update = function() {
+  if (!this.enabled) {
+    return;
+  }
+
+  if (this.index != 0) {
+    this.geometry.attributes.position.needsUpdate = true;
+    this.geometry.attributes.color.needsUpdate = true;
+  }
+
+  this.index = 0;
+
+  this.world.debugDrawWorld();
+
+  this.geometry.setDrawRange(0, this.index);
+};
+
+THREE.AmmoDebugDrawer.prototype.drawLine = function(from, to, color) {
+  const heap = Ammo.HEAPF32;
+  const r = heap[(color + 0) / 4];
+  const g = heap[(color + 4) / 4];
+  const b = heap[(color + 8) / 4];
+
+  const fromX = heap[(from + 0) / 4];
+  const fromY = heap[(from + 4) / 4];
+  const fromZ = heap[(from + 8) / 4];
+  this.geometry.attributes.position.setXYZ(this.index, fromX, fromY, fromZ);
+  this.geometry.attributes.color.setXYZ(this.index++, r, g, b);
+
+  const toX = heap[(to + 0) / 4];
+  const toY = heap[(to + 4) / 4];
+  const toZ = heap[(to + 8) / 4];
+  this.geometry.attributes.position.setXYZ(this.index, toX, toY, toZ);
+  this.geometry.attributes.color.setXYZ(this.index++, r, g, b);
+};
+
+//TODO: figure out how to make lifeTime work
+THREE.AmmoDebugDrawer.prototype.drawContactPoint = function(pointOnB, normalOnB, distance, lifeTime, color) {
+  const heap = Ammo.HEAPF32;
+  const r = heap[(color + 0) / 4];
+  const g = heap[(color + 4) / 4];
+  const b = heap[(color + 8) / 4];
+
+  const x = heap[(pointOnB + 0) / 4];
+  const y = heap[(pointOnB + 4) / 4];
+  const z = heap[(pointOnB + 8) / 4];
+  this.geometry.attributes.position.setXYZ(this.index, x, y, z);
+  this.geometry.attributes.color.setXYZ(this.index++, r, g, b);
+
+  const dx = heap[(normalOnB + 0) / 4] * distance;
+  const dy = heap[(normalOnB + 4) / 4] * distance;
+  const dz = heap[(normalOnB + 8) / 4] * distance;
+  this.geometry.attributes.position.setXYZ(this.index, x + dx, y + dy, z + dz);
+  this.geometry.attributes.color.setXYZ(this.index++, r, g, b);
+};
+
+THREE.AmmoDebugDrawer.prototype.reportErrorWarning = function(warningString) {
+  if (Ammo.hasOwnProperty("Pointer_stringify")) {
+    console.warn(Ammo.Pointer_stringify(warningString));
+  } else if (!this.warnedOnce) {
+    this.warnedOnce = true;
+    console.warn("Cannot print warningString, please rebuild Ammo.js using 'debug' flag");
+  }
+};
+
+THREE.AmmoDebugDrawer.prototype.draw3dText = function(location, textString) {
+  //TODO
+  console.warn("TODO: draw3dText");
+};
+
+THREE.AmmoDebugDrawer.prototype.setDebugMode = function(debugMode) {
+  this.debugDrawMode = debugMode;
+};
+
+THREE.AmmoDebugDrawer.prototype.getDebugMode = function() {
+  return this.debugDrawMode;
+};
+
+},{}],4:[function(require,module,exports){
 module.exports={
   "_from": "github:donmccurdy/cannon.js#v0.6.2-dev1",
   "_id": "cannon@0.6.2",
@@ -253,7 +422,7 @@ module.exports={
   "version": "0.6.2"
 }
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 // Export classes
 module.exports = {
     version :                       require('../package.json').version,
@@ -308,7 +477,7 @@ module.exports = {
     World :                         require('./world/World'),
 };
 
-},{"../package.json":3,"./collision/AABB":5,"./collision/ArrayCollisionMatrix":6,"./collision/Broadphase":7,"./collision/GridBroadphase":8,"./collision/NaiveBroadphase":9,"./collision/ObjectCollisionMatrix":10,"./collision/Ray":12,"./collision/RaycastResult":13,"./collision/SAPBroadphase":14,"./constraints/ConeTwistConstraint":15,"./constraints/Constraint":16,"./constraints/DistanceConstraint":17,"./constraints/HingeConstraint":18,"./constraints/LockConstraint":19,"./constraints/PointToPointConstraint":20,"./equations/ContactEquation":22,"./equations/Equation":23,"./equations/FrictionEquation":24,"./equations/RotationalEquation":25,"./equations/RotationalMotorEquation":26,"./material/ContactMaterial":27,"./material/Material":28,"./math/Mat3":30,"./math/Quaternion":31,"./math/Transform":32,"./math/Vec3":33,"./objects/Body":34,"./objects/RaycastVehicle":35,"./objects/RigidVehicle":36,"./objects/SPHSystem":37,"./objects/Spring":38,"./shapes/Box":40,"./shapes/ConvexPolyhedron":41,"./shapes/Cylinder":42,"./shapes/Heightfield":43,"./shapes/Particle":44,"./shapes/Plane":45,"./shapes/Shape":46,"./shapes/Sphere":47,"./shapes/Trimesh":48,"./solver/GSSolver":49,"./solver/Solver":50,"./solver/SplitSolver":51,"./utils/EventTarget":52,"./utils/Pool":54,"./utils/Vec3Pool":57,"./world/Narrowphase":58,"./world/World":59}],5:[function(require,module,exports){
+},{"../package.json":4,"./collision/AABB":6,"./collision/ArrayCollisionMatrix":7,"./collision/Broadphase":8,"./collision/GridBroadphase":9,"./collision/NaiveBroadphase":10,"./collision/ObjectCollisionMatrix":11,"./collision/Ray":13,"./collision/RaycastResult":14,"./collision/SAPBroadphase":15,"./constraints/ConeTwistConstraint":16,"./constraints/Constraint":17,"./constraints/DistanceConstraint":18,"./constraints/HingeConstraint":19,"./constraints/LockConstraint":20,"./constraints/PointToPointConstraint":21,"./equations/ContactEquation":23,"./equations/Equation":24,"./equations/FrictionEquation":25,"./equations/RotationalEquation":26,"./equations/RotationalMotorEquation":27,"./material/ContactMaterial":28,"./material/Material":29,"./math/Mat3":31,"./math/Quaternion":32,"./math/Transform":33,"./math/Vec3":34,"./objects/Body":35,"./objects/RaycastVehicle":36,"./objects/RigidVehicle":37,"./objects/SPHSystem":38,"./objects/Spring":39,"./shapes/Box":41,"./shapes/ConvexPolyhedron":42,"./shapes/Cylinder":43,"./shapes/Heightfield":44,"./shapes/Particle":45,"./shapes/Plane":46,"./shapes/Shape":47,"./shapes/Sphere":48,"./shapes/Trimesh":49,"./solver/GSSolver":50,"./solver/Solver":51,"./solver/SplitSolver":52,"./utils/EventTarget":53,"./utils/Pool":55,"./utils/Vec3Pool":58,"./world/Narrowphase":59,"./world/World":60}],6:[function(require,module,exports){
 var Vec3 = require('../math/Vec3');
 var Utils = require('../utils/Utils');
 
@@ -631,7 +800,7 @@ AABB.prototype.overlapsRay = function(ray){
 
     return true;
 };
-},{"../math/Vec3":33,"../utils/Utils":56}],6:[function(require,module,exports){
+},{"../math/Vec3":34,"../utils/Utils":57}],7:[function(require,module,exports){
 module.exports = ArrayCollisionMatrix;
 
 /**
@@ -704,7 +873,7 @@ ArrayCollisionMatrix.prototype.setNumObjects = function(n) {
     this.matrix.length = n*(n-1)>>1;
 };
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 var Body = require('../objects/Body');
 var Vec3 = require('../math/Vec3');
 var Quaternion = require('../math/Quaternion');
@@ -912,7 +1081,7 @@ Broadphase.prototype.aabbQuery = function(world, aabb, result){
     console.warn('.aabbQuery is not implemented in this Broadphase subclass.');
     return [];
 };
-},{"../math/Quaternion":31,"../math/Vec3":33,"../objects/Body":34,"../shapes/Plane":45,"../shapes/Shape":46}],8:[function(require,module,exports){
+},{"../math/Quaternion":32,"../math/Vec3":34,"../objects/Body":35,"../shapes/Plane":46,"../shapes/Shape":47}],9:[function(require,module,exports){
 module.exports = GridBroadphase;
 
 var Broadphase = require('./Broadphase');
@@ -1142,7 +1311,7 @@ GridBroadphase.prototype.collisionPairs = function(world,pairs1,pairs2){
     this.makePairsUnique(pairs1,pairs2);
 };
 
-},{"../math/Vec3":33,"../shapes/Shape":46,"./Broadphase":7}],9:[function(require,module,exports){
+},{"../math/Vec3":34,"../shapes/Shape":47,"./Broadphase":8}],10:[function(require,module,exports){
 module.exports = NaiveBroadphase;
 
 var Broadphase = require('./Broadphase');
@@ -1217,7 +1386,7 @@ NaiveBroadphase.prototype.aabbQuery = function(world, aabb, result){
 
     return result;
 };
-},{"./AABB":5,"./Broadphase":7}],10:[function(require,module,exports){
+},{"./AABB":6,"./Broadphase":8}],11:[function(require,module,exports){
 module.exports = ObjectCollisionMatrix;
 
 /**
@@ -1290,7 +1459,7 @@ ObjectCollisionMatrix.prototype.reset = function() {
 ObjectCollisionMatrix.prototype.setNumObjects = function(n) {
 };
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 module.exports = OverlapKeeper;
 
 /**
@@ -1386,7 +1555,7 @@ OverlapKeeper.prototype.getDiff = function(additions, removals) {
         }
     }
 };
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 module.exports = Ray;
 
 var Vec3 = require('../math/Vec3');
@@ -2212,7 +2381,7 @@ function distanceFromIntersection(from, direction, position) {
 }
 
 
-},{"../collision/AABB":5,"../collision/RaycastResult":13,"../math/Quaternion":31,"../math/Transform":32,"../math/Vec3":33,"../shapes/Box":40,"../shapes/ConvexPolyhedron":41,"../shapes/Shape":46}],13:[function(require,module,exports){
+},{"../collision/AABB":6,"../collision/RaycastResult":14,"../math/Quaternion":32,"../math/Transform":33,"../math/Vec3":34,"../shapes/Box":41,"../shapes/ConvexPolyhedron":42,"../shapes/Shape":47}],14:[function(require,module,exports){
 var Vec3 = require('../math/Vec3');
 
 module.exports = RaycastResult;
@@ -2335,7 +2504,7 @@ RaycastResult.prototype.set = function(
 	this.body = body;
 	this.distance = distance;
 };
-},{"../math/Vec3":33}],14:[function(require,module,exports){
+},{"../math/Vec3":34}],15:[function(require,module,exports){
 var Shape = require('../shapes/Shape');
 var Broadphase = require('../collision/Broadphase');
 
@@ -2659,7 +2828,7 @@ SAPBroadphase.prototype.aabbQuery = function(world, aabb, result){
 
     return result;
 };
-},{"../collision/Broadphase":7,"../shapes/Shape":46}],15:[function(require,module,exports){
+},{"../collision/Broadphase":8,"../shapes/Shape":47}],16:[function(require,module,exports){
 module.exports = ConeTwistConstraint;
 
 var Constraint = require('./Constraint');
@@ -2750,7 +2919,7 @@ ConeTwistConstraint.prototype.update = function(){
 };
 
 
-},{"../equations/ConeEquation":21,"../equations/ContactEquation":22,"../equations/RotationalEquation":25,"../math/Vec3":33,"./Constraint":16,"./PointToPointConstraint":20}],16:[function(require,module,exports){
+},{"../equations/ConeEquation":22,"../equations/ContactEquation":23,"../equations/RotationalEquation":26,"../math/Vec3":34,"./Constraint":17,"./PointToPointConstraint":21}],17:[function(require,module,exports){
 module.exports = Constraint;
 
 var Utils = require('../utils/Utils');
@@ -2843,7 +3012,7 @@ Constraint.prototype.disable = function(){
 
 Constraint.idCounter = 0;
 
-},{"../utils/Utils":56}],17:[function(require,module,exports){
+},{"../utils/Utils":57}],18:[function(require,module,exports){
 module.exports = DistanceConstraint;
 
 var Constraint = require('./Constraint');
@@ -2900,7 +3069,7 @@ DistanceConstraint.prototype.update = function(){
     normal.mult(halfDist, eq.ri);
     normal.mult(-halfDist, eq.rj);
 };
-},{"../equations/ContactEquation":22,"./Constraint":16}],18:[function(require,module,exports){
+},{"../equations/ContactEquation":23,"./Constraint":17}],19:[function(require,module,exports){
 module.exports = HingeConstraint;
 
 var Constraint = require('./Constraint');
@@ -3036,7 +3205,7 @@ HingeConstraint.prototype.update = function(){
 };
 
 
-},{"../equations/ContactEquation":22,"../equations/RotationalEquation":25,"../equations/RotationalMotorEquation":26,"../math/Vec3":33,"./Constraint":16,"./PointToPointConstraint":20}],19:[function(require,module,exports){
+},{"../equations/ContactEquation":23,"../equations/RotationalEquation":26,"../equations/RotationalMotorEquation":27,"../math/Vec3":34,"./Constraint":17,"./PointToPointConstraint":21}],20:[function(require,module,exports){
 module.exports = LockConstraint;
 
 var Constraint = require('./Constraint');
@@ -3130,7 +3299,7 @@ LockConstraint.prototype.update = function(){
 };
 
 
-},{"../equations/ContactEquation":22,"../equations/RotationalEquation":25,"../equations/RotationalMotorEquation":26,"../math/Vec3":33,"./Constraint":16,"./PointToPointConstraint":20}],20:[function(require,module,exports){
+},{"../equations/ContactEquation":23,"../equations/RotationalEquation":26,"../equations/RotationalMotorEquation":27,"../math/Vec3":34,"./Constraint":17,"./PointToPointConstraint":21}],21:[function(require,module,exports){
 module.exports = PointToPointConstraint;
 
 var Constraint = require('./Constraint');
@@ -3223,7 +3392,7 @@ PointToPointConstraint.prototype.update = function(){
     z.ri.copy(x.ri);
     z.rj.copy(x.rj);
 };
-},{"../equations/ContactEquation":22,"../math/Vec3":33,"./Constraint":16}],21:[function(require,module,exports){
+},{"../equations/ContactEquation":23,"../math/Vec3":34,"./Constraint":17}],22:[function(require,module,exports){
 module.exports = ConeEquation;
 
 var Vec3 = require('../math/Vec3');
@@ -3302,7 +3471,7 @@ ConeEquation.prototype.computeB = function(h){
 };
 
 
-},{"../math/Mat3":30,"../math/Vec3":33,"./Equation":23}],22:[function(require,module,exports){
+},{"../math/Mat3":31,"../math/Vec3":34,"./Equation":24}],23:[function(require,module,exports){
 module.exports = ContactEquation;
 
 var Equation = require('./Equation');
@@ -3439,7 +3608,7 @@ ContactEquation.prototype.getImpactVelocityAlongNormal = function(){
 };
 
 
-},{"../math/Mat3":30,"../math/Vec3":33,"./Equation":23}],23:[function(require,module,exports){
+},{"../math/Mat3":31,"../math/Vec3":34,"./Equation":24}],24:[function(require,module,exports){
 module.exports = Equation;
 
 var JacobianElement = require('../math/JacobianElement'),
@@ -3703,7 +3872,7 @@ Equation.prototype.computeC = function(){
     return this.computeGiMGt() + this.eps;
 };
 
-},{"../math/JacobianElement":29,"../math/Vec3":33}],24:[function(require,module,exports){
+},{"../math/JacobianElement":30,"../math/Vec3":34}],25:[function(require,module,exports){
 module.exports = FrictionEquation;
 
 var Equation = require('./Equation');
@@ -3764,7 +3933,7 @@ FrictionEquation.prototype.computeB = function(h){
     return B;
 };
 
-},{"../math/Mat3":30,"../math/Vec3":33,"./Equation":23}],25:[function(require,module,exports){
+},{"../math/Mat3":31,"../math/Vec3":34,"./Equation":24}],26:[function(require,module,exports){
 module.exports = RotationalEquation;
 
 var Vec3 = require('../math/Vec3');
@@ -3835,7 +4004,7 @@ RotationalEquation.prototype.computeB = function(h){
 };
 
 
-},{"../math/Mat3":30,"../math/Vec3":33,"./Equation":23}],26:[function(require,module,exports){
+},{"../math/Mat3":31,"../math/Vec3":34,"./Equation":24}],27:[function(require,module,exports){
 module.exports = RotationalMotorEquation;
 
 var Vec3 = require('../math/Vec3');
@@ -3907,7 +4076,7 @@ RotationalMotorEquation.prototype.computeB = function(h){
     return B;
 };
 
-},{"../math/Mat3":30,"../math/Vec3":33,"./Equation":23}],27:[function(require,module,exports){
+},{"../math/Mat3":31,"../math/Vec3":34,"./Equation":24}],28:[function(require,module,exports){
 var Utils = require('../utils/Utils');
 
 module.exports = ContactMaterial;
@@ -3988,7 +4157,7 @@ function ContactMaterial(m1, m2, options){
 
 ContactMaterial.idCounter = 0;
 
-},{"../utils/Utils":56}],28:[function(require,module,exports){
+},{"../utils/Utils":57}],29:[function(require,module,exports){
 module.exports = Material;
 
 /**
@@ -4038,7 +4207,7 @@ function Material(options){
 
 Material.idCounter = 0;
 
-},{}],29:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 module.exports = JacobianElement;
 
 var Vec3 = require('./Vec3');
@@ -4082,7 +4251,7 @@ JacobianElement.prototype.multiplyVectors = function(spatial,rotational){
     return spatial.dot(this.spatial) + rotational.dot(this.rotational);
 };
 
-},{"./Vec3":33}],30:[function(require,module,exports){
+},{"./Vec3":34}],31:[function(require,module,exports){
 module.exports = Mat3;
 
 var Vec3 = require('./Vec3');
@@ -4506,7 +4675,7 @@ Mat3.prototype.transpose = function( target ) {
     return target;
 };
 
-},{"./Vec3":33}],31:[function(require,module,exports){
+},{"./Vec3":34}],32:[function(require,module,exports){
 module.exports = Quaternion;
 
 var Vec3 = require('./Vec3');
@@ -4996,7 +5165,7 @@ Quaternion.prototype.integrate = function(angularVelocity, dt, angularFactor, ta
 
     return target;
 };
-},{"./Vec3":33}],32:[function(require,module,exports){
+},{"./Vec3":34}],33:[function(require,module,exports){
 var Vec3 = require('./Vec3');
 var Quaternion = require('./Quaternion');
 
@@ -5101,7 +5270,7 @@ Transform.vectorToLocalFrame = function(position, quaternion, worldVector, resul
     return result;
 };
 
-},{"./Quaternion":31,"./Vec3":33}],33:[function(require,module,exports){
+},{"./Quaternion":32,"./Vec3":34}],34:[function(require,module,exports){
 module.exports = Vec3;
 
 var Mat3 = require('./Mat3');
@@ -5585,7 +5754,7 @@ Vec3.prototype.isAntiparallelTo = function(v,precision){
 Vec3.prototype.clone = function(){
     return new Vec3(this.x, this.y, this.z);
 };
-},{"./Mat3":30}],34:[function(require,module,exports){
+},{"./Mat3":31}],35:[function(require,module,exports){
 module.exports = Body;
 
 var EventTarget = require('../utils/EventTarget');
@@ -6501,7 +6670,7 @@ Body.prototype.integrate = function(dt, quatNormalize, quatNormalizeFast){
     this.updateInertiaWorld();
 };
 
-},{"../collision/AABB":5,"../material/Material":28,"../math/Mat3":30,"../math/Quaternion":31,"../math/Vec3":33,"../shapes/Box":40,"../shapes/Shape":46,"../utils/EventTarget":52}],35:[function(require,module,exports){
+},{"../collision/AABB":6,"../material/Material":29,"../math/Mat3":31,"../math/Quaternion":32,"../math/Vec3":34,"../shapes/Box":41,"../shapes/Shape":47,"../utils/EventTarget":53}],36:[function(require,module,exports){
 var Body = require('./Body');
 var Vec3 = require('../math/Vec3');
 var Quaternion = require('../math/Quaternion');
@@ -7205,7 +7374,7 @@ function resolveSingleBilateral(body1, pos1, body2, pos2, normal, impulse){
 
     return impulse;
 }
-},{"../collision/Ray":12,"../collision/RaycastResult":13,"../math/Quaternion":31,"../math/Vec3":33,"../objects/WheelInfo":39,"./Body":34}],36:[function(require,module,exports){
+},{"../collision/Ray":13,"../collision/RaycastResult":14,"../math/Quaternion":32,"../math/Vec3":34,"../objects/WheelInfo":40,"./Body":35}],37:[function(require,module,exports){
 var Body = require('./Body');
 var Sphere = require('../shapes/Sphere');
 var Box = require('../shapes/Box');
@@ -7427,7 +7596,7 @@ RigidVehicle.prototype.getWheelSpeed = function(wheelIndex){
     return w.dot(worldAxis);
 };
 
-},{"../constraints/HingeConstraint":18,"../math/Vec3":33,"../shapes/Box":40,"../shapes/Sphere":47,"./Body":34}],37:[function(require,module,exports){
+},{"../constraints/HingeConstraint":19,"../math/Vec3":34,"../shapes/Box":41,"../shapes/Sphere":48,"./Body":35}],38:[function(require,module,exports){
 module.exports = SPHSystem;
 
 var Shape = require('../shapes/Shape');
@@ -7642,7 +7811,7 @@ SPHSystem.prototype.nablaw = function(r){
     return nabla;
 };
 
-},{"../material/Material":28,"../math/Quaternion":31,"../math/Vec3":33,"../objects/Body":34,"../shapes/Particle":44,"../shapes/Shape":46}],38:[function(require,module,exports){
+},{"../material/Material":29,"../math/Quaternion":32,"../math/Vec3":34,"../objects/Body":35,"../shapes/Particle":45,"../shapes/Shape":47}],39:[function(require,module,exports){
 var Vec3 = require('../math/Vec3');
 
 module.exports = Spring;
@@ -7837,7 +8006,7 @@ Spring.prototype.applyForce = function(){
     bodyB.torque.vadd(rj_x_f,bodyB.torque);
 };
 
-},{"../math/Vec3":33}],39:[function(require,module,exports){
+},{"../math/Vec3":34}],40:[function(require,module,exports){
 var Vec3 = require('../math/Vec3');
 var Transform = require('../math/Transform');
 var RaycastResult = require('../collision/RaycastResult');
@@ -8120,7 +8289,7 @@ WheelInfo.prototype.updateWheel = function(chassis){
         this.clippedInvContactDotSuspension = 1.0;
     }
 };
-},{"../collision/RaycastResult":13,"../math/Transform":32,"../math/Vec3":33,"../utils/Utils":56}],40:[function(require,module,exports){
+},{"../collision/RaycastResult":14,"../math/Transform":33,"../math/Vec3":34,"../utils/Utils":57}],41:[function(require,module,exports){
 module.exports = Box;
 
 var Shape = require('./Shape');
@@ -8357,7 +8526,7 @@ Box.prototype.calculateWorldAABB = function(pos,quat,min,max){
     // });
 };
 
-},{"../math/Vec3":33,"./ConvexPolyhedron":41,"./Shape":46}],41:[function(require,module,exports){
+},{"../math/Vec3":34,"./ConvexPolyhedron":42,"./Shape":47}],42:[function(require,module,exports){
 module.exports = ConvexPolyhedron;
 
 var Shape = require('./Shape');
@@ -9285,7 +9454,7 @@ ConvexPolyhedron.project = function(hull, axis, pos, quat, result){
     result[1] = min;
 };
 
-},{"../math/Quaternion":31,"../math/Transform":32,"../math/Vec3":33,"./Shape":46}],42:[function(require,module,exports){
+},{"../math/Quaternion":32,"../math/Transform":33,"../math/Vec3":34,"./Shape":47}],43:[function(require,module,exports){
 module.exports = Cylinder;
 
 var Shape = require('./Shape');
@@ -9367,7 +9536,7 @@ function Cylinder( radiusTop, radiusBottom, height , numSegments ) {
 
 Cylinder.prototype = new ConvexPolyhedron();
 
-},{"../math/Quaternion":31,"../math/Vec3":33,"./ConvexPolyhedron":41,"./Shape":46}],43:[function(require,module,exports){
+},{"../math/Quaternion":32,"../math/Vec3":34,"./ConvexPolyhedron":42,"./Shape":47}],44:[function(require,module,exports){
 var Shape = require('./Shape');
 var ConvexPolyhedron = require('./ConvexPolyhedron');
 var Vec3 = require('../math/Vec3');
@@ -10052,7 +10221,7 @@ Heightfield.prototype.setHeightsFromImage = function(image, scale){
     this.updateMinValue();
     this.update();
 };
-},{"../math/Vec3":33,"../utils/Utils":56,"./ConvexPolyhedron":41,"./Shape":46}],44:[function(require,module,exports){
+},{"../math/Vec3":34,"../utils/Utils":57,"./ConvexPolyhedron":42,"./Shape":47}],45:[function(require,module,exports){
 module.exports = Particle;
 
 var Shape = require('./Shape');
@@ -10099,7 +10268,7 @@ Particle.prototype.calculateWorldAABB = function(pos,quat,min,max){
     max.copy(pos);
 };
 
-},{"../math/Vec3":33,"./Shape":46}],45:[function(require,module,exports){
+},{"../math/Vec3":34,"./Shape":47}],46:[function(require,module,exports){
 module.exports = Plane;
 
 var Shape = require('./Shape');
@@ -10162,7 +10331,7 @@ Plane.prototype.calculateWorldAABB = function(pos, quat, min, max){
 Plane.prototype.updateBoundingSphereRadius = function(){
     this.boundingSphereRadius = Number.MAX_VALUE;
 };
-},{"../math/Vec3":33,"./Shape":46}],46:[function(require,module,exports){
+},{"../math/Vec3":34,"./Shape":47}],47:[function(require,module,exports){
 module.exports = Shape;
 
 var Shape = require('./Shape');
@@ -10266,7 +10435,7 @@ Shape.types = {
 };
 
 
-},{"../material/Material":28,"../math/Quaternion":31,"../math/Vec3":33,"./Shape":46}],47:[function(require,module,exports){
+},{"../material/Material":29,"../math/Quaternion":32,"../math/Vec3":34,"./Shape":47}],48:[function(require,module,exports){
 module.exports = Sphere;
 
 var Shape = require('./Shape');
@@ -10325,7 +10494,7 @@ Sphere.prototype.calculateWorldAABB = function(pos,quat,min,max){
     }
 };
 
-},{"../math/Vec3":33,"./Shape":46}],48:[function(require,module,exports){
+},{"../math/Vec3":34,"./Shape":47}],49:[function(require,module,exports){
 module.exports = Trimesh;
 
 var Shape = require('./Shape');
@@ -10887,7 +11056,7 @@ Trimesh.createTorus = function (radius, tube, radialSegments, tubularSegments, a
     return new Trimesh(vertices, indices);
 };
 
-},{"../collision/AABB":5,"../math/Quaternion":31,"../math/Transform":32,"../math/Vec3":33,"../utils/Octree":53,"./Shape":46}],49:[function(require,module,exports){
+},{"../collision/AABB":6,"../math/Quaternion":32,"../math/Transform":33,"../math/Vec3":34,"../utils/Octree":54,"./Shape":47}],50:[function(require,module,exports){
 module.exports = GSSolver;
 
 var Vec3 = require('../math/Vec3');
@@ -11029,7 +11198,7 @@ GSSolver.prototype.solve = function(dt,world){
     return iter;
 };
 
-},{"../math/Quaternion":31,"../math/Vec3":33,"./Solver":50}],50:[function(require,module,exports){
+},{"../math/Quaternion":32,"../math/Vec3":34,"./Solver":51}],51:[function(require,module,exports){
 module.exports = Solver;
 
 /**
@@ -11090,7 +11259,7 @@ Solver.prototype.removeAllEquations = function(){
 };
 
 
-},{}],51:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 module.exports = SplitSolver;
 
 var Vec3 = require('../math/Vec3');
@@ -11245,7 +11414,7 @@ SplitSolver.prototype.solve = function(dt,world){
 function sortById(a, b){
     return b.id - a.id;
 }
-},{"../math/Quaternion":31,"../math/Vec3":33,"../objects/Body":34,"./Solver":50}],52:[function(require,module,exports){
+},{"../math/Quaternion":32,"../math/Vec3":34,"../objects/Body":35,"./Solver":51}],53:[function(require,module,exports){
 /**
  * Base class for objects that dispatches events.
  * @class EventTarget
@@ -11346,7 +11515,7 @@ EventTarget.prototype = {
     }
 };
 
-},{}],53:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 var AABB = require('../collision/AABB');
 var Vec3 = require('../math/Vec3');
 
@@ -11581,7 +11750,7 @@ OctreeNode.prototype.removeEmptyNodes = function() {
     }
 };
 
-},{"../collision/AABB":5,"../math/Vec3":33}],54:[function(require,module,exports){
+},{"../collision/AABB":6,"../math/Vec3":34}],55:[function(require,module,exports){
 module.exports = Pool;
 
 /**
@@ -11658,7 +11827,7 @@ Pool.prototype.resize = function (size) {
 };
 
 
-},{}],55:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 module.exports = TupleDictionary;
 
 /**
@@ -11725,7 +11894,7 @@ TupleDictionary.prototype.reset = function() {
     }
 };
 
-},{}],56:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 function Utils(){}
 
 module.exports = Utils;
@@ -11750,7 +11919,7 @@ Utils.defaults = function(options, defaults){
     return options;
 };
 
-},{}],57:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 module.exports = Vec3Pool;
 
 var Vec3 = require('../math/Vec3');
@@ -11776,7 +11945,7 @@ Vec3Pool.prototype.constructObject = function(){
     return new Vec3();
 };
 
-},{"../math/Vec3":33,"./Pool":54}],58:[function(require,module,exports){
+},{"../math/Vec3":34,"./Pool":55}],59:[function(require,module,exports){
 module.exports = Narrowphase;
 
 var AABB = require('../collision/AABB');
@@ -13638,7 +13807,7 @@ Narrowphase.prototype.sphereHeightfield = function (
     }
 };
 
-},{"../collision/AABB":5,"../collision/Ray":12,"../equations/ContactEquation":22,"../equations/FrictionEquation":24,"../math/Quaternion":31,"../math/Transform":32,"../math/Vec3":33,"../objects/Body":34,"../shapes/ConvexPolyhedron":41,"../shapes/Shape":46,"../solver/Solver":50,"../utils/Vec3Pool":57}],59:[function(require,module,exports){
+},{"../collision/AABB":6,"../collision/Ray":13,"../equations/ContactEquation":23,"../equations/FrictionEquation":25,"../math/Quaternion":32,"../math/Transform":33,"../math/Vec3":34,"../objects/Body":35,"../shapes/ConvexPolyhedron":42,"../shapes/Shape":47,"../solver/Solver":51,"../utils/Vec3Pool":58}],60:[function(require,module,exports){
 /* global performance */
 
 module.exports = World;
@@ -14672,7 +14841,664 @@ World.prototype.clearForces = function(){
     }
 };
 
-},{"../collision/AABB":5,"../collision/ArrayCollisionMatrix":6,"../collision/NaiveBroadphase":9,"../collision/OverlapKeeper":11,"../collision/Ray":12,"../collision/RaycastResult":13,"../equations/ContactEquation":22,"../equations/FrictionEquation":24,"../material/ContactMaterial":27,"../material/Material":28,"../math/Quaternion":31,"../math/Vec3":33,"../objects/Body":34,"../shapes/Shape":46,"../solver/GSSolver":49,"../utils/EventTarget":52,"../utils/TupleDictionary":55,"./Narrowphase":58}],60:[function(require,module,exports){
+},{"../collision/AABB":6,"../collision/ArrayCollisionMatrix":7,"../collision/NaiveBroadphase":10,"../collision/OverlapKeeper":12,"../collision/Ray":13,"../collision/RaycastResult":14,"../equations/ContactEquation":23,"../equations/FrictionEquation":25,"../material/ContactMaterial":28,"../material/Material":29,"../math/Quaternion":32,"../math/Vec3":34,"../objects/Body":35,"../shapes/Shape":47,"../solver/GSSolver":50,"../utils/EventTarget":53,"../utils/TupleDictionary":56,"./Narrowphase":59}],61:[function(require,module,exports){
+"use strict";
+/* global Ammo,THREE */
+
+const TYPE = (exports.TYPE = {
+  BOX: "box",
+  CYLINDER: "cylinder",
+  SPHERE: "sphere",
+  CAPSULE: "capsule",
+  CONE: "cone",
+  HULL: "hull",
+  HACD: "hacd", //Hierarchical Approximate Convex Decomposition
+  VHACD: "vhacd", //Volumetric Hierarchical Approximate Convex Decomposition
+  MESH: "mesh"
+});
+
+const FIT = (exports.FIT = {
+  ALL: "all", //A single shape is automatically sized to bound all meshes within the entity.
+  MANUAL: "manual" //A single shape is sized manually. Requires halfExtents or sphereRadius.
+});
+
+const hasUpdateMatricesFunction = THREE.Object3D.prototype.hasOwnProperty("updateMatrices");
+
+exports.createCollisionShapes = function(root, options) {
+  switch (options.type) {
+    case TYPE.BOX:
+      return [this.createBoxShape(root, options)];
+    case TYPE.CYLINDER:
+      return [this.createCylinderShape(root, options)];
+    case TYPE.CAPSULE:
+      return [this.createCapsuleShape(root, options)];
+    case TYPE.CONE:
+      return [this.createConeShape(root, options)];
+    case TYPE.SPHERE:
+      return [this.createSphereShape(root, options)];
+    case TYPE.HULL:
+      return [this.createHullShape(root, options)];
+    case TYPE.HACD:
+      return this.createHACDShapes(root, options);
+    case TYPE.VHACD:
+      return this.createVHACDShapes(root, options);
+    case TYPE.MESH:
+      return [this.createTriMeshShape(root, options)];
+    default:
+      console.warn(options.type + " is not currently supported");
+      return [];
+  }
+};
+
+//TODO: support gimpact (dynamic trimesh) and heightmap
+
+exports.createBoxShape = function(root, options) {
+  options.type = TYPE.BOX;
+  _setOptions(options);
+
+  if (options.fit === FIT.ALL) {
+    options.halfExtents = _computeHalfExtents(root, _computeBounds(root), options.minHalfExtent, options.maxHalfExtent);
+  }
+
+  const btHalfExtents = new Ammo.btVector3(options.halfExtents.x, options.halfExtents.y, options.halfExtents.z);
+  const collisionShape = new Ammo.btBoxShape(btHalfExtents);
+  Ammo.destroy(btHalfExtents);
+
+  _finishCollisionShape(collisionShape, options, _computeScale(root, options));
+  return collisionShape;
+};
+
+exports.createCylinderShape = function(root, options) {
+  options.type = TYPE.CYLINDER;
+  _setOptions(options);
+
+  if (options.fit === FIT.ALL) {
+    options.halfExtents = _computeHalfExtents(root, _computeBounds(root), options.minHalfExtent, options.maxHalfExtent);
+  }
+
+  const btHalfExtents = new Ammo.btVector3(options.halfExtents.x, options.halfExtents.y, options.halfExtents.z);
+  const collisionShape = (() => {
+    switch (options.cylinderAxis) {
+      case "y":
+        return new Ammo.btCylinderShape(btHalfExtents);
+      case "x":
+        return new Ammo.btCylinderShapeX(btHalfExtents);
+      case "z":
+        return new Ammo.btCylinderShapeZ(btHalfExtents);
+    }
+    return null;
+  })();
+  Ammo.destroy(btHalfExtents);
+
+  _finishCollisionShape(collisionShape, options, _computeScale(root, options));
+  return collisionShape;
+};
+
+exports.createCapsuleShape = function(root, options) {
+  options.type = TYPE.CAPSULE;
+  _setOptions(options);
+
+  if (options.fit === FIT.ALL) {
+    options.halfExtents = _computeHalfExtents(root, _computeBounds(root), options.minHalfExtent, options.maxHalfExtent);
+  }
+
+  const { x, y, z } = options.halfExtents;
+  const collisionShape = (() => {
+    switch (options.cylinderAxis) {
+      case "y":
+        return new Ammo.btCapsuleShape(Math.max(x, z), y * 2);
+      case "x":
+        return new Ammo.btCapsuleShapeX(Math.max(y, z), x * 2);
+      case "z":
+        return new Ammo.btCapsuleShapeZ(Math.max(x, y), z * 2);
+    }
+    return null;
+  })();
+
+  _finishCollisionShape(collisionShape, options, _computeScale(root, options));
+  return collisionShape;
+};
+
+exports.createConeShape = function(root, options) {
+  options.type = TYPE.CONE;
+  _setOptions(options);
+
+  if (options.fit === FIT.ALL) {
+    options.halfExtents = _computeHalfExtents(root, _computeBounds(root), options.minHalfExtent, options.maxHalfExtent);
+  }
+
+  const { x, y, z } = options.halfExtents;
+  const collisionShape = (() => {
+    switch (options.cylinderAxis) {
+      case "y":
+        return new Ammo.btConeShape(Math.max(x, z), y * 2);
+      case "x":
+        return new Ammo.btConeShapeX(Math.max(y, z), x * 2);
+      case "z":
+        return new Ammo.btConeShapeZ(Math.max(x, y), z * 2);
+    }
+    return null;
+  })();
+
+  _finishCollisionShape(collisionShape, options, _computeScale(root, options));
+  return collisionShape;
+};
+
+exports.createSphereShape = function(root, options) {
+  options.type = TYPE.SPHERE;
+  let radius;
+  if (options.fit === FIT.MANUAL && !isNaN(options.sphereRadius)) {
+    radius = options.sphereRadius;
+  } else {
+    radius = _computeRadius(root, _computeBounds(root));
+  }
+
+  const collisionShape = new Ammo.btSphereShape(radius);
+  _finishCollisionShape(collisionShape, options, _computeScale(root, options));
+
+  return collisionShape;
+};
+
+exports.createHullShape = (function() {
+  const vertex = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  return function(root, options) {
+    options.type = TYPE.HULL;
+    _setOptions(options);
+
+    if (options.fit === FIT.MANUAL) {
+      console.warn("cannot use fit: manual with type: hull");
+      return null;
+    }
+
+    const bounds = _computeBounds(root);
+
+    const btVertex = new Ammo.btVector3();
+    const originalHull = new Ammo.btConvexHullShape();
+    originalHull.setMargin(options.margin);
+    center.addVectors(bounds.max, bounds.min).multiplyScalar(0.5);
+
+    let vertexCount = 0;
+    _iterateGeometries(root, geo => {
+      vertexCount += geo.attributes.position.array.length / 3;
+    });
+
+    const maxVertices = options.hullMaxVertices || 100000;
+    // todo: might want to implement this in a deterministic way that doesn't do O(verts) calls to Math.random
+    if (vertexCount > maxVertices) {
+      console.warn(`too many vertices for hull shape; sampling ~${maxVertices} from ~${vertexCount} vertices`);
+    }
+    const p = Math.min(1, maxVertices / vertexCount);
+
+    _iterateGeometries(root, (geo, transform) => {
+      const components = geo.attributes.position.array;
+      for (let i = 0; i < components.length; i += 3) {
+        if (Math.random() <= p) {
+          vertex
+            .set(components[i], components[i + 1], components[i + 2])
+            .applyMatrix4(transform)
+            .sub(center);
+          btVertex.setValue(vertex.x, vertex.y, vertex.z);
+          originalHull.addPoint(btVertex, i === components.length - 3); // todo: better to recalc AABB only on last geometry
+        }
+      }
+    });
+
+    let collisionShape = originalHull;
+    if (originalHull.getNumVertices() >= 100) {
+      //Bullet documentation says don't use convexHulls with 100 verts or more
+      const shapeHull = new Ammo.btShapeHull(originalHull);
+      shapeHull.buildHull(options.margin);
+      Ammo.destroy(originalHull);
+      collisionShape = new Ammo.btConvexHullShape(
+        Ammo.getPointer(shapeHull.getVertexPointer()),
+        shapeHull.numVertices()
+      );
+      Ammo.destroy(shapeHull); // btConvexHullShape makes a copy
+    }
+
+    Ammo.destroy(btVertex);
+
+    _finishCollisionShape(collisionShape, options, _computeScale(root, options));
+    return collisionShape;
+  };
+})();
+
+exports.createHACDShapes = (function() {
+  const v = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  return function(root, options) {
+    options.type = TYPE.HACD;
+    _setOptions(options);
+
+    if (options.fit === FIT.MANUAL) {
+      console.warn("cannot use fit: manual with type: hacd");
+      return [];
+    }
+
+    if (!Ammo.hasOwnProperty("HACD")) {
+      console.warn(
+        "HACD unavailable in included build of Ammo.js. Visit https://github.com/mozillareality/ammo.js for the latest version."
+      );
+      return [];
+    }
+
+    const bounds = _computeBounds(root);
+    const scale = _computeScale(root, options);
+
+    let vertexCount = 0;
+    let triCount = 0;
+    center.addVectors(bounds.max, bounds.min).multiplyScalar(0.5);
+
+    _iterateGeometries(root, geo => {
+      vertexCount += geo.attributes.position.array.length / 3;
+      if (geo.index) {
+        triCount += geo.index.array.length / 3;
+      } else {
+        triCount += geo.attributes.position.array.length / 9;
+      }
+    });
+
+    const hacd = new Ammo.HACD();
+    if (options.hasOwnProperty("compacityWeight")) hacd.SetCompacityWeight(options.compacityWeight);
+    if (options.hasOwnProperty("volumeWeight")) hacd.SetVolumeWeight(options.volumeWeight);
+    if (options.hasOwnProperty("nClusters")) hacd.SetNClusters(options.nClusters);
+    if (options.hasOwnProperty("nVerticesPerCH")) hacd.SetNVerticesPerCH(options.nVerticesPerCH);
+    if (options.hasOwnProperty("concavity")) hacd.SetConcavity(options.concavity);
+
+    const points = Ammo._malloc(vertexCount * 3 * 8);
+    const triangles = Ammo._malloc(triCount * 3 * 4);
+    hacd.SetPoints(points);
+    hacd.SetTriangles(triangles);
+    hacd.SetNPoints(vertexCount);
+    hacd.SetNTriangles(triCount);
+
+    const pptr = points / 8,
+      tptr = triangles / 4;
+    _iterateGeometries(root, (geo, transform) => {
+      const components = geo.attributes.position.array;
+      const indices = geo.index ? geo.index.array : null;
+      for (let i = 0; i < components.length; i += 3) {
+        v.set(components[i + 0], components[i + 1], components[i + 2])
+          .applyMatrix4(transform)
+          .sub(center);
+        Ammo.HEAPF64[pptr + i + 0] = v.x;
+        Ammo.HEAPF64[pptr + i + 1] = v.y;
+        Ammo.HEAPF64[pptr + i + 2] = v.z;
+      }
+      if (indices) {
+        for (let i = 0; i < indices.length; i++) {
+          Ammo.HEAP32[tptr + i] = indices[i];
+        }
+      } else {
+        for (let i = 0; i < components.length / 3; i++) {
+          Ammo.HEAP32[tptr + i] = i;
+        }
+      }
+    });
+
+    hacd.Compute();
+    const nClusters = hacd.GetNClusters();
+
+    const shapes = [];
+    for (let i = 0; i < nClusters; i++) {
+      const hull = new Ammo.btConvexHullShape();
+      hull.setMargin(options.margin);
+      const nPoints = hacd.GetNPointsCH(i);
+      const nTriangles = hacd.GetNTrianglesCH(i);
+      const hullPoints = Ammo._malloc(nPoints * 3 * 8);
+      const hullTriangles = Ammo._malloc(nTriangles * 3 * 4);
+      hacd.GetCH(i, hullPoints, hullTriangles);
+
+      const pptr = hullPoints / 8;
+      for (let pi = 0; pi < nPoints; pi++) {
+        const btVertex = new Ammo.btVector3();
+        const px = Ammo.HEAPF64[pptr + pi * 3 + 0];
+        const py = Ammo.HEAPF64[pptr + pi * 3 + 1];
+        const pz = Ammo.HEAPF64[pptr + pi * 3 + 2];
+        btVertex.setValue(px, py, pz);
+        hull.addPoint(btVertex, pi === nPoints - 1);
+        Ammo.destroy(btVertex);
+      }
+
+      _finishCollisionShape(hull, options, scale);
+      shapes.push(hull);
+    }
+
+    return shapes;
+  };
+})();
+
+exports.createVHACDShapes = (function() {
+  const v = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  return function(root, options) {
+    options.type = TYPE.VHACD;
+    _setOptions(options);
+
+    if (options.fit === FIT.MANUAL) {
+      console.warn("cannot use fit: manual with type: vhacd");
+      return [];
+    }
+
+    if (!Ammo.hasOwnProperty("VHACD")) {
+      console.warn(
+        "VHACD unavailable in included build of Ammo.js. Visit https://github.com/mozillareality/ammo.js for the latest version."
+      );
+      return [];
+    }
+
+    const bounds = _computeBounds(root);
+    const scale = _computeScale(root, options);
+
+    let vertexCount = 0;
+    let triCount = 0;
+    center.addVectors(bounds.max, bounds.min).multiplyScalar(0.5);
+
+    _iterateGeometries(root, geo => {
+      vertexCount += geo.attributes.position.count;
+      if (geo.index) {
+        triCount += geo.index.count / 3;
+      } else {
+        triCount += geo.attributes.position.count / 3;
+      }
+    });
+
+    const vhacd = new Ammo.VHACD();
+    const params = new Ammo.Parameters();
+    //https://kmamou.blogspot.com/2014/12/v-hacd-20-parameters-description.html
+    if (options.hasOwnProperty("resolution")) params.set_m_resolution(options.resolution);
+    if (options.hasOwnProperty("depth")) params.set_m_depth(options.depth);
+    if (options.hasOwnProperty("concavity")) params.set_m_concavity(options.concavity);
+    if (options.hasOwnProperty("planeDownsampling")) params.set_m_planeDownsampling(options.planeDownsampling);
+    if (options.hasOwnProperty("convexhullDownsampling"))
+      params.set_m_convexhullDownsampling(options.convexhullDownsampling);
+    if (options.hasOwnProperty("alpha")) params.set_m_alpha(options.alpha);
+    if (options.hasOwnProperty("beta")) params.set_m_beta(options.beta);
+    if (options.hasOwnProperty("gamma")) params.set_m_gamma(options.gamma);
+    if (options.hasOwnProperty("pca")) params.set_m_pca(options.pca);
+    if (options.hasOwnProperty("mode")) params.set_m_mode(options.mode);
+    if (options.hasOwnProperty("maxNumVerticesPerCH")) params.set_m_maxNumVerticesPerCH(options.maxNumVerticesPerCH);
+    if (options.hasOwnProperty("minVolumePerCH")) params.set_m_minVolumePerCH(options.minVolumePerCH);
+    if (options.hasOwnProperty("convexhullApproximation"))
+      params.set_m_convexhullApproximation(options.convexhullApproximation);
+    if (options.hasOwnProperty("oclAcceleration")) params.set_m_oclAcceleration(options.oclAcceleration);
+
+    const points = Ammo._malloc(vertexCount * 3 * 8);
+    const triangles = Ammo._malloc(triCount * 3 * 4);
+
+    let pptr = points / 8,
+      tptr = triangles / 4;
+    _iterateGeometries(root, (geo, transform) => {
+      const components = geo.attributes.position.array;
+      const indices = geo.index ? geo.index.array : null;
+      for (let i = 0; i < components.length; i += 3) {
+        v.set(components[i + 0], components[i + 1], components[i + 2])
+          .applyMatrix4(transform)
+          .sub(center);
+        Ammo.HEAPF64[pptr + 0] = v.x;
+        Ammo.HEAPF64[pptr + 1] = v.y;
+        Ammo.HEAPF64[pptr + 2] = v.z;
+        pptr += 3;
+      }
+      if (indices) {
+        for (let i = 0; i < indices.length; i++) {
+          Ammo.HEAP32[tptr] = indices[i];
+          tptr++;
+        }
+      } else {
+        for (let i = 0; i < components.length / 3; i++) {
+          Ammo.HEAP32[tptr] = i;
+          tptr++;
+        }
+      }
+    });
+
+    vhacd.Compute(points, 3, vertexCount, triangles, 3, triCount, params);
+    Ammo._free(points);
+    Ammo._free(triangles);
+    const nHulls = vhacd.GetNConvexHulls();
+
+    const shapes = [];
+    const ch = new Ammo.ConvexHull();
+    for (let i = 0; i < nHulls; i++) {
+      vhacd.GetConvexHull(i, ch);
+      const nPoints = ch.get_m_nPoints();
+      const hullPoints = ch.get_m_points();
+
+      const hull = new Ammo.btConvexHullShape();
+      hull.setMargin(options.margin);
+
+      for (let pi = 0; pi < nPoints; pi++) {
+        const btVertex = new Ammo.btVector3();
+        const px = ch.get_m_points(pi * 3 + 0);
+        const py = ch.get_m_points(pi * 3 + 1);
+        const pz = ch.get_m_points(pi * 3 + 2);
+        btVertex.setValue(px, py, pz);
+        hull.addPoint(btVertex, pi === nPoints - 1);
+        Ammo.destroy(btVertex);
+      }
+
+      _finishCollisionShape(hull, options, scale);
+      shapes.push(hull);
+    }
+    Ammo.destroy(ch);
+    Ammo.destroy(vhacd);
+
+    return shapes;
+  };
+})();
+
+exports.createTriMeshShape = (function() {
+  const va = new THREE.Vector3();
+  const vb = new THREE.Vector3();
+  const vc = new THREE.Vector3();
+  return function(root, options) {
+    options.type = TYPE.MESH;
+    _setOptions(options);
+
+    if (options.fit === FIT.MANUAL) {
+      console.warn("cannot use fit: manual with type: mesh");
+      return null;
+    }
+
+    const scale = _computeScale(root, options);
+
+    const bta = new Ammo.btVector3();
+    const btb = new Ammo.btVector3();
+    const btc = new Ammo.btVector3();
+    const triMesh = new Ammo.btTriangleMesh(true, false);
+
+    _iterateGeometries(root, (geo, transform) => {
+      const components = geo.attributes.position.array;
+      if (geo.index) {
+        for (let i = 0; i < geo.index.count; i += 3) {
+          const ai = geo.index.array[i] * 3;
+          const bi = geo.index.array[i + 1] * 3;
+          const ci = geo.index.array[i + 2] * 3;
+          va.set(components[ai], components[ai + 1], components[ai + 2]).applyMatrix4(transform);
+          vb.set(components[bi], components[bi + 1], components[bi + 2]).applyMatrix4(transform);
+          vc.set(components[ci], components[ci + 1], components[ci + 2]).applyMatrix4(transform);
+          bta.setValue(va.x, va.y, va.z);
+          btb.setValue(vb.x, vb.y, vb.z);
+          btc.setValue(vc.x, vc.y, vc.z);
+          triMesh.addTriangle(bta, btb, btc, false);
+        }
+      } else {
+        for (let i = 0; i < components.length; i += 9) {
+          va.set(components[i + 0], components[i + 1], components[i + 2]).applyMatrix4(transform);
+          vb.set(components[i + 3], components[i + 4], components[i + 5]).applyMatrix4(transform);
+          vc.set(components[i + 6], components[i + 7], components[i + 8]).applyMatrix4(transform);
+          bta.setValue(va.x, va.y, va.z);
+          btb.setValue(vb.x, vb.y, vb.z);
+          btc.setValue(vc.x, vc.y, vc.z);
+          triMesh.addTriangle(bta, btb, btc, false);
+        }
+      }
+    });
+
+    const localScale = new Ammo.btVector3(scale.x, scale.y, scale.z);
+    triMesh.setScaling(localScale);
+    Ammo.destroy(localScale);
+
+    const collisionShape = new Ammo.btBvhTriangleMeshShape(triMesh, true, true);
+    collisionShape.resources = [triMesh];
+
+    Ammo.destroy(bta);
+    Ammo.destroy(btb);
+    Ammo.destroy(btc);
+
+    _finishCollisionShape(collisionShape, options);
+    return collisionShape;
+  };
+})();
+
+function _setOptions(options) {
+  options.fit = options.hasOwnProperty("fit") ? options.fit : FIT.ALL;
+  options.type = options.type || TYPE.HULL;
+  options.minHalfExtent = options.hasOwnProperty("minHalfExtent") ? options.minHalfExtent : 0;
+  options.maxHalfExtent = options.hasOwnProperty("maxHalfExtent") ? options.maxHalfExtent : Number.POSITIVE_INFINITY;
+  options.cylinderAxis = options.cylinderAxis || "y";
+  options.margin = options.hasOwnProperty("margin") ? options.margin : 0.01;
+
+  if (!options.offset) {
+    options.offset = new THREE.Vector3();
+  }
+
+  if (!options.orientation) {
+    options.orientation = new THREE.Quaternion();
+  }
+}
+
+const _finishCollisionShape = function(collisionShape, options, scale) {
+  collisionShape.type = options.type;
+  collisionShape.setMargin(options.margin);
+  collisionShape.destroy = () => {
+    for (let res of collisionShape.resources || []) {
+      Ammo.destroy(res);
+    }
+    Ammo.destroy(collisionShape);
+  };
+
+  const localTransform = new Ammo.btTransform();
+  const rotation = new Ammo.btQuaternion();
+  localTransform.setIdentity();
+
+  localTransform.getOrigin().setValue(options.offset.x, options.offset.y, options.offset.z);
+  rotation.setValue(options.orientation.x, options.orientation.y, options.orientation.z, options.orientation.w);
+
+  localTransform.setRotation(rotation);
+  Ammo.destroy(rotation);
+
+  if (scale) {
+    const localScale = new Ammo.btVector3(scale.x, scale.y, scale.z);
+    collisionShape.setLocalScaling(localScale);
+    Ammo.destroy(localScale);
+  }
+
+  collisionShape.localTransform = localTransform;
+};
+
+// Calls `cb(geo, transform)` for each geometry under `root` whose vertices we should take into account for the physics shape.
+// `transform` is the transform required to transform the given geometry's vertices into root-local space.
+const _iterateGeometries = (function() {
+  const transform = new THREE.Matrix4();
+  const inverse = new THREE.Matrix4();
+  const bufferGeometry = new THREE.BufferGeometry();
+  return function(root, cb) {
+    inverse.getInverse(root.matrixWorld);
+    root.traverse(mesh => {
+      if (mesh.isMesh && (!THREE.Sky || mesh.__proto__ != THREE.Sky.prototype)) {
+        if (mesh === root) {
+          transform.identity();
+        } else {
+          if (hasUpdateMatricesFunction) mesh.updateMatrices();
+          transform.multiplyMatrices(inverse, mesh.matrixWorld);
+        }
+        // todo: might want to return null xform if this is the root so that callers can avoid multiplying
+        // things by the identity matrix
+        cb(mesh.geometry.isBufferGeometry ? mesh.geometry : bufferGeometry.fromGeometry(mesh.geometry), transform);
+      }
+    });
+  };
+})();
+
+const _computeScale = function(root, options) {
+  const scale = new THREE.Vector3(1, 1, 1);
+  if (options.fit === FIT.ALL) {
+    scale.setFromMatrixScale(root.matrixWorld);
+  }
+  return scale;
+};
+
+const _computeRadius = (function() {
+  const v = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  return function(root, bounds) {
+    let maxRadiusSq = 0;
+    let { x: cx, y: cy, z: cz } = bounds.getCenter(center);
+    _iterateGeometries(root, (geo, transform) => {
+      const components = geo.attributes.position.array;
+      for (let i = 0; i < components.length; i += 3) {
+        v.set(components[i], components[i + 1], components[i + 2]).applyMatrix4(transform);
+        const dx = cx - v.x;
+        const dy = cy - v.y;
+        const dz = cz - v.z;
+        maxRadiusSq = Math.max(maxRadiusSq, dx * dx + dy * dy + dz * dz);
+      }
+    });
+    return Math.sqrt(maxRadiusSq);
+  };
+})();
+
+const _computeHalfExtents = function(root, bounds, minHalfExtent, maxHalfExtent) {
+  const halfExtents = new THREE.Vector3();
+  return halfExtents
+    .subVectors(bounds.max, bounds.min)
+    .multiplyScalar(0.5)
+    .clampScalar(minHalfExtent, maxHalfExtent);
+};
+
+const _computeLocalOffset = function(matrix, bounds, target) {
+  target
+    .addVectors(bounds.max, bounds.min)
+    .multiplyScalar(0.5)
+    .applyMatrix4(matrix);
+  return target;
+};
+
+// returns the bounding box for the geometries underneath `root`.
+const _computeBounds = (function() {
+  const v = new THREE.Vector3();
+  return function(root) {
+    const bounds = new THREE.Box3();
+    let minX = +Infinity;
+    let minY = +Infinity;
+    let minZ = +Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    let maxZ = -Infinity;
+    bounds.min.set(0, 0, 0);
+    bounds.max.set(0, 0, 0);
+    _iterateGeometries(root, (geo, transform) => {
+      const components = geo.attributes.position.array;
+      for (let i = 0; i < components.length; i += 3) {
+        v.set(components[i], components[i + 1], components[i + 2]).applyMatrix4(transform);
+        if (v.x < minX) minX = v.x;
+        if (v.y < minY) minY = v.y;
+        if (v.z < minZ) minZ = v.z;
+        if (v.x > maxX) maxX = v.x;
+        if (v.y > maxY) maxY = v.y;
+        if (v.z > maxZ) maxZ = v.z;
+      }
+    });
+    bounds.min.set(minX, minY, minZ);
+    bounds.max.set(maxX, maxY, maxZ);
+    return bounds;
+  };
+})();
+
+},{}],62:[function(require,module,exports){
 var CANNON = require('cannon'),
     quickhull = require('./lib/THREE.quickhull');
 
@@ -15045,7 +15871,7 @@ function getMeshes (object) {
   return meshes;
 }
 
-},{"./lib/THREE.quickhull":61,"cannon":4}],61:[function(require,module,exports){
+},{"./lib/THREE.quickhull":63,"cannon":5}],63:[function(require,module,exports){
 /**
 
   QuickHull
@@ -15497,7 +16323,7 @@ module.exports = (function(){
 
 }())
 
-},{}],62:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 var bundleFn = arguments[3];
 var sources = arguments[4];
 var cache = arguments[5];
@@ -15580,7 +16406,669 @@ module.exports = function (fn, options) {
     return worker;
 };
 
-},{}],63:[function(require,module,exports){
+},{}],65:[function(require,module,exports){
+/* global Ammo */
+const CONSTRAINT = require("../constants").CONSTRAINT;
+
+module.exports = AFRAME.registerComponent("ammo-constraint", {
+  multiple: true,
+
+  schema: {
+    // Type of constraint.
+    type: {
+      default: CONSTRAINT.LOCK,
+      oneOf: [
+        CONSTRAINT.LOCK,
+        CONSTRAINT.FIXED,
+        CONSTRAINT.SPRING,
+        CONSTRAINT.SLIDER,
+        CONSTRAINT.HINGE,
+        CONSTRAINT.CONE_TWIST,
+        CONSTRAINT.POINT_TO_POINT
+      ]
+    },
+
+    // Target (other) body for the constraint.
+    target: { type: "selector" },
+
+    // Offset of the hinge or point-to-point constraint, defined locally in the body. Used for hinge, coneTwist pointToPoint constraints.
+    pivot: { type: "vec3" },
+    targetPivot: { type: "vec3" },
+
+    // An axis that each body can rotate around, defined locally to that body. Used for hinge constraints.
+    axis: { type: "vec3", default: { x: 0, y: 0, z: 1 } },
+    targetAxis: { type: "vec3", default: { x: 0, y: 0, z: 1 } }
+  },
+
+  init: function() {
+    this.system = this.el.sceneEl.systems.physics;
+    this.constraint = null;
+  },
+
+  remove: function() {
+    if (!this.constraint) return;
+
+    this.system.removeConstraint(this.constraint);
+    this.constraint = null;
+  },
+
+  update: function() {
+    const el = this.el,
+      data = this.data;
+
+    this.remove();
+
+    if (!el.body || !data.target.body) {
+      (el.body ? data.target : el).addEventListener("body-loaded", this.update.bind(this, {}), { once: true });
+      return;
+    }
+
+    this.constraint = this.createConstraint();
+    this.system.addConstraint(this.constraint);
+  },
+
+  /**
+   * @return {Ammo.btTypedConstraint}
+   */
+  createConstraint: function() {
+    let constraint;
+    const data = this.data,
+      body = this.el.body,
+      targetBody = data.target.body;
+
+    const bodyTransform = body
+      .getCenterOfMassTransform()
+      .inverse()
+      .op_mul(targetBody.getWorldTransform());
+    const targetTransform = new Ammo.btTransform();
+    targetTransform.setIdentity();
+
+    switch (data.type) {
+      case CONSTRAINT.LOCK: {
+        constraint = new Ammo.btGeneric6DofConstraint(body, targetBody, bodyTransform, targetTransform, true);
+        const zero = new Ammo.btVector3(0, 0, 0);
+        //TODO: allow these to be configurable
+        constraint.setLinearLowerLimit(zero);
+        constraint.setLinearUpperLimit(zero);
+        constraint.setAngularLowerLimit(zero);
+        constraint.setAngularUpperLimit(zero);
+        Ammo.destroy(zero);
+        break;
+      }
+      //TODO: test and verify all other constraint types
+      case CONSTRAINT.FIXED: {
+        //btFixedConstraint does not seem to debug render
+        bodyTransform.setRotation(body.getWorldTransform().getRotation());
+        targetTransform.setRotation(targetBody.getWorldTransform().getRotation());
+        constraint = new Ammo.btFixedConstraint(body, targetBody, bodyTransform, targetTransform);
+        break;
+      }
+      case CONSTRAINT.SPRING: {
+        constraint = new Ammo.btGeneric6DofSpringConstraint(body, targetBody, bodyTransform, targetTransform, true);
+        //TODO: enableSpring, setStiffness and setDamping
+        break;
+      }
+      case CONSTRAINT.SLIDER: {
+        //TODO: support setting linear and angular limits
+        constraint = new Ammo.btSliderConstraint(body, targetBody, bodyTransform, targetTransform, true);
+        constraint.setLowerLinLimit(-1);
+        constraint.setUpperLinLimit(1);
+        // constraint.setLowerAngLimit();
+        // constraint.setUpperAngLimit();
+        break;
+      }
+      case CONSTRAINT.HINGE: {
+        const pivot = new Ammo.btVector3(data.pivot.x, data.pivot.y, data.pivot.z);
+        const targetPivot = new Ammo.btVector3(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z);
+
+        const axis = new Ammo.btVector3(data.axis.x, data.axis.y, data.axis.z);
+        const targetAxis = new Ammo.btVector3(data.targetAxis.x, data.targetAxis.y, data.targetAxis.z);
+
+        constraint = new Ammo.btHingeConstraint(body, targetBody, pivot, targetPivot, axis, targetAxis, true);
+
+        Ammo.destroy(pivot);
+        Ammo.destroy(targetPivot);
+        Ammo.destroy(axis);
+        Ammo.destroy(targetAxis);
+        break;
+      }
+      case CONSTRAINT.CONE_TWIST: {
+        const pivotTransform = new Ammo.btTransform();
+        pivotTransform.setIdentity();
+        pivotTransform.getOrigin().setValue(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z);
+        constraint = new Ammo.btConeTwistConstraint(body, pivotTransform);
+        Ammo.destroy(pivotTransform);
+        break;
+      }
+      case CONSTRAINT.POINT_TO_POINT: {
+        const pivot = new Ammo.btVector3(data.pivot.x, data.pivot.y, data.pivot.z);
+        const targetPivot = new Ammo.btVector3(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z);
+
+        constraint = new Ammo.btPoint2PointConstraint(body, targetBody, pivot, targetPivot);
+
+        Ammo.destroy(pivot);
+        Ammo.destroy(targetPivot);
+        break;
+      }
+      default:
+        throw new Error("[constraint] Unexpected type: " + data.type);
+    }
+
+    Ammo.destroy(bodyTransform);
+    Ammo.destroy(targetTransform);
+
+    return constraint;
+  }
+});
+
+},{"../constants":76}],66:[function(require,module,exports){
+/* global Ammo,THREE */
+const AmmoDebugDrawer = require("ammo-debug-drawer");
+const threeToAmmo = require("three-to-ammo");
+const CONSTANTS = require("../../constants"),
+  ACTIVATION_STATE = CONSTANTS.ACTIVATION_STATE,
+  COLLISION_FLAG = CONSTANTS.COLLISION_FLAG,
+  SHAPE = CONSTANTS.SHAPE,
+  TYPE = CONSTANTS.TYPE,
+  FIT = CONSTANTS.FIT;
+
+const ACTIVATION_STATES = [
+  ACTIVATION_STATE.ACTIVE_TAG,
+  ACTIVATION_STATE.ISLAND_SLEEPING,
+  ACTIVATION_STATE.WANTS_DEACTIVATION,
+  ACTIVATION_STATE.DISABLE_DEACTIVATION,
+  ACTIVATION_STATE.DISABLE_SIMULATION
+];
+
+const RIGID_BODY_FLAGS = {
+  NONE: 0,
+  DISABLE_WORLD_GRAVITY: 1
+};
+
+function almostEqualsVector3(epsilon, u, v) {
+  return Math.abs(u.x - v.x) < epsilon && Math.abs(u.y - v.y) < epsilon && Math.abs(u.z - v.z) < epsilon;
+}
+
+function almostEqualsBtVector3(epsilon, u, v) {
+  return Math.abs(u.x() - v.x()) < epsilon && Math.abs(u.y() - v.y()) < epsilon && Math.abs(u.z() - v.z()) < epsilon;
+}
+
+function almostEqualsQuaternion(epsilon, u, v) {
+  return (
+    (Math.abs(u.x - v.x) < epsilon &&
+      Math.abs(u.y - v.y) < epsilon &&
+      Math.abs(u.z - v.z) < epsilon &&
+      Math.abs(u.w - v.w) < epsilon) ||
+    (Math.abs(u.x + v.x) < epsilon &&
+      Math.abs(u.y + v.y) < epsilon &&
+      Math.abs(u.z + v.z) < epsilon &&
+      Math.abs(u.w + v.w) < epsilon)
+  );
+}
+
+let AmmoBody = {
+  schema: {
+    loadedEvent: { default: "" },
+    mass: { default: 1 },
+    gravity: { type: "vec3", default: { x: 0, y: -9.8, z: 0 } },
+    linearDamping: { default: 0.01 },
+    angularDamping: { default: 0.01 },
+    linearSleepingThreshold: { default: 1.6 },
+    angularSleepingThreshold: { default: 2.5 },
+    angularFactor: { type: "vec3", default: { x: 1, y: 1, z: 1 } },
+    activationState: {
+      default: ACTIVATION_STATE.ACTIVE_TAG,
+      oneOf: ACTIVATION_STATES
+    },
+    type: { default: "dynamic", oneOf: [TYPE.STATIC, TYPE.DYNAMIC, TYPE.KINEMATIC] },
+    emitCollisionEvents: { default: false },
+    disableCollision: { default: false },
+    collisionFilterGroup: { default: 1 }, //32-bit mask,
+    collisionFilterMask: { default: 1 }, //32-bit mask
+    scaleAutoUpdate: { default: true }
+  },
+
+  /**
+   * Initializes a body component, assigning it to the physics system and binding listeners for
+   * parsing the elements geometry.
+   */
+  init: function() {
+    this.system = this.el.sceneEl.systems.physics;
+    this.shapeComponents = [];
+
+    if (this.data.loadedEvent === "") {
+      this.loadedEventFired = true;
+    } else {
+      this.el.addEventListener(
+        this.data.loadedEvent,
+        () => {
+          this.loadedEventFired = true;
+        },
+        { once: true }
+      );
+    }
+
+    if (this.system.initialized && this.loadedEventFired) {
+      this.initBody();
+    }
+  },
+
+  /**
+   * Parses an element's geometry and component metadata to create an Ammo body instance for the
+   * component.
+   */
+  initBody: (function() {
+    const pos = new THREE.Vector3();
+    const quat = new THREE.Quaternion();
+    const boundingBox = new THREE.Box3();
+
+    return function() {
+      const el = this.el,
+        data = this.data;
+
+      this.localScaling = new Ammo.btVector3();
+
+      const obj = this.el.object3D;
+      obj.getWorldPosition(pos);
+      obj.getWorldQuaternion(quat);
+
+      this.prevScale = new THREE.Vector3(1, 1, 1);
+      this.prevNumChildShapes = 0;
+
+      this.msTransform = new Ammo.btTransform();
+      this.msTransform.setIdentity();
+      this.rotation = new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w);
+
+      this.msTransform.getOrigin().setValue(pos.x, pos.y, pos.z);
+      this.msTransform.setRotation(this.rotation);
+
+      this.motionState = new Ammo.btDefaultMotionState(this.msTransform);
+
+      this.localInertia = new Ammo.btVector3(0, 0, 0);
+
+      this.compoundShape = new Ammo.btCompoundShape(true);
+
+      this.rbInfo = new Ammo.btRigidBodyConstructionInfo(
+        data.mass,
+        this.motionState,
+        this.compoundShape,
+        this.localInertia
+      );
+      this.body = new Ammo.btRigidBody(this.rbInfo);
+      this.body.setActivationState(ACTIVATION_STATES.indexOf(data.activationState) + 1);
+      this.body.setSleepingThresholds(data.linearSleepingThreshold, data.angularSleepingThreshold);
+
+      this.body.setDamping(data.linearDamping, data.angularDamping);
+
+      const angularFactor = new Ammo.btVector3(data.angularFactor.x, data.angularFactor.y, data.angularFactor.z);
+      this.body.setAngularFactor(angularFactor);
+      Ammo.destroy(angularFactor);
+
+      const gravity = new Ammo.btVector3(data.gravity.x, data.gravity.y, data.gravity.z);
+      if (!almostEqualsBtVector3(0.001, gravity, this.system.driver.physicsWorld.getGravity())) {
+        this.body.setGravity(gravity);
+        this.body.setFlags(RIGID_BODY_FLAGS.DISABLE_WORLD_GRAVITY);
+      }
+      Ammo.destroy(gravity);
+
+      this.updateCollisionFlags();
+
+      this.el.body = this.body;
+      this.body.el = el;
+
+      this.isLoaded = true;
+
+      this.el.emit("body-loaded", { body: this.el.body });
+
+      this._addToSystem();
+    };
+  })(),
+
+  tick: function() {
+    if (this.system.initialized && !this.isLoaded && this.loadedEventFired) {
+      this.initBody();
+    }
+  },
+
+  _updateShapes: (function() {
+    const needsPolyhedralInitialization = [SHAPE.HULL, SHAPE.HACD, SHAPE.VHACD];
+    return function() {
+      let updated = false;
+
+      const obj = this.el.object3D;
+      if (this.data.scaleAutoUpdate && this.prevScale && !almostEqualsVector3(0.001, obj.scale, this.prevScale)) {
+        this.prevScale.copy(obj.scale);
+        updated = true;
+
+        this.localScaling.setValue(this.prevScale.x, this.prevScale.y, this.prevScale.z);
+        this.compoundShape.setLocalScaling(this.localScaling);
+      }
+
+      if (this.shapeComponentsChanged) {
+        this.shapeComponentsChanged = false;
+        updated = true;
+        for (let i = 0; i < this.shapeComponents.length; i++) {
+          const shapeComponent = this.shapeComponents[i];
+          if (shapeComponent.getShapes().length === 0) {
+            this._createCollisionShape(shapeComponent);
+          }
+          const collisionShapes = shapeComponent.getShapes();
+          for (let j = 0; j < collisionShapes.length; j++) {
+            const collisionShape = collisionShapes[j];
+            if (!collisionShape.added) {
+              this.compoundShape.addChildShape(collisionShape.localTransform, collisionShape);
+              collisionShape.added = true;
+            }
+          }
+        }
+
+        if (this.data.type === TYPE.DYNAMIC) {
+          this.updateMass();
+        }
+
+        this.system.driver.updateBody(this.body);
+      }
+
+      //call initializePolyhedralFeatures for hull shapes if debug is turned on and/or scale changes
+      if (this.system.debug && (updated || !this.polyHedralFeaturesInitialized)) {
+        for (let i = 0; i < this.shapeComponents.length; i++) {
+          const collisionShapes = this.shapeComponents[i].getShapes();
+          for (let j = 0; j < collisionShapes.length; j++) {
+            const collisionShape = collisionShapes[j];
+            if (needsPolyhedralInitialization.indexOf(collisionShape.type) !== -1) {
+              collisionShape.initializePolyhedralFeatures(0);
+            }
+          }
+        }
+        this.polyHedralFeaturesInitialized = true;
+      }
+    };
+  })(),
+
+  _createCollisionShape: function(shapeComponent) {
+    const data = shapeComponent.data;
+    const collisionShapes = threeToAmmo.createCollisionShapes(shapeComponent.getMesh(), data);
+    shapeComponent.addShapes(collisionShapes);
+    return;
+  },
+
+  /**
+   * Registers the component with the physics system.
+   */
+  play: function() {
+    if (this.isLoaded) {
+      this._addToSystem();
+    }
+  },
+
+  _addToSystem: function() {
+    if (!this.addedToSystem) {
+      this.system.addBody(this.body, this.data.collisionFilterGroup, this.data.collisionFilterMask);
+
+      if (this.data.emitCollisionEvents) {
+        this.system.driver.addEventListener(this.body);
+      }
+
+      this.system.addComponent(this);
+      this.addedToSystem = true;
+    }
+  },
+
+  /**
+   * Unregisters the component with the physics system.
+   */
+  pause: function() {
+    if (this.addedToSystem) {
+      this.system.removeComponent(this);
+      this.system.removeBody(this.body);
+      this.addedToSystem = false;
+    }
+  },
+
+  /**
+   * Updates the rigid body instance, where possible.
+   */
+  update: function(prevData) {
+    if (this.isLoaded) {
+      if (!this.hasUpdated) {
+        //skip the first update
+        this.hasUpdated = true;
+        return;
+      }
+
+      const data = this.data;
+
+      if (prevData.type !== data.type || prevData.disableCollision !== data.disableCollision) {
+        this.updateCollisionFlags();
+      }
+
+      if (prevData.activationState !== data.activationState) {
+        this.body.forceActivationState(ACTIVATION_STATES.indexOf(data.activationState) + 1);
+        if (data.activationState === ACTIVATION_STATE.ACTIVE_TAG) {
+          this.body.activate(true);
+        }
+      }
+
+      if (
+        prevData.collisionFilterGroup !== data.collisionFilterGroup ||
+        prevData.collisionFilterMask !== data.collisionFilterMask
+      ) {
+        const broadphaseProxy = this.body.getBroadphaseProxy();
+        broadphaseProxy.set_m_collisionFilterGroup(data.collisionFilterGroup);
+        broadphaseProxy.set_m_collisionFilterMask(data.collisionFilterMask);
+        this.system.driver.broadphase
+          .getOverlappingPairCache()
+          .removeOverlappingPairsContainingProxy(broadphaseProxy, this.system.driver.dispatcher);
+      }
+
+      if (prevData.linearDamping != data.linearDamping || prevData.angularDamping != data.angularDamping) {
+        this.body.setDamping(data.linearDamping, data.angularDamping);
+      }
+
+      if (!almostEqualsVector3(0.001, prevData.gravity, data.gravity)) {
+        const gravity = new Ammo.btVector3(data.gravity.x, data.gravity.y, data.gravity.z);
+        if (!almostEqualsBtVector3(0.001, gravity, this.system.driver.physicsWorld.getGravity())) {
+          this.body.setFlags(RIGID_BODY_FLAGS.DISABLE_WORLD_GRAVITY);
+        } else {
+          this.body.setFlags(RIGID_BODY_FLAGS.NONE);
+        }
+        this.body.setGravity(gravity);
+        Ammo.destroy(gravity);
+      }
+
+      if (
+        prevData.linearSleepingThreshold != data.linearSleepingThreshold ||
+        prevData.angularSleepingThreshold != data.angularSleepingThreshold
+      ) {
+        this.body.setSleepingThresholds(data.linearSleepingThreshold, data.angularSleepingThreshold);
+      }
+
+      if (!almostEqualsVector3(0.001, prevData.angularFactor, data.angularFactor)) {
+        const angularFactor = new Ammo.btVector3(data.angularFactor.x, data.angularFactor.y, data.angularFactor.z);
+        this.body.setAngularFactor(angularFactor);
+        Ammo.destroy(angularFactor);
+      }
+
+      //TODO: support dynamic update for other properties
+    }
+  },
+
+  /**
+   * Removes the component and all physics and scene side effects.
+   */
+  remove: function() {
+    if (this.triMesh) Ammo.destroy(this.triMesh);
+    if (this.localScaling) Ammo.destroy(this.localScaling);
+    if (this.compoundShape) Ammo.destroy(this.compoundShape);
+    if (this.body) {
+      Ammo.destroy(this.body);
+      delete this.body;
+    }
+    Ammo.destroy(this.rbInfo);
+    Ammo.destroy(this.msTransform);
+    Ammo.destroy(this.motionState);
+    Ammo.destroy(this.localInertia);
+    Ammo.destroy(this.rotation);
+  },
+
+  beforeStep: function() {
+    this._updateShapes();
+    if (this.data.type !== TYPE.DYNAMIC) {
+      this.syncToPhysics();
+    }
+  },
+
+  step: function() {
+    if (this.data.type === TYPE.DYNAMIC) {
+      this.syncFromPhysics();
+    }
+  },
+
+  /**
+   * Updates the rigid body's position, velocity, and rotation, based on the scene.
+   */
+  syncToPhysics: (function() {
+    const q = new THREE.Quaternion();
+    const v = new THREE.Vector3();
+    const q2 = new THREE.Vector3();
+    const v2 = new THREE.Vector3();
+    return function() {
+      const el = this.el,
+        parentEl = el.parentEl,
+        body = this.body;
+
+      if (!body) return;
+
+      this.motionState.getWorldTransform(this.msTransform);
+
+      if (parentEl.isScene) {
+        v.copy(el.object3D.position);
+        q.copy(el.object3D.quaternion);
+      } else {
+        el.object3D.getWorldPosition(v);
+        el.object3D.getWorldQuaternion(q);
+      }
+
+      const position = this.msTransform.getOrigin();
+      v2.set(position.x(), position.y(), position.z());
+
+      const quaternion = this.msTransform.getRotation();
+      q2.set(quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
+
+      if (!almostEqualsVector3(0.001, v, v2) || !almostEqualsQuaternion(0.001, q, q2)) {
+        if (!this.body.isActive()) {
+          this.body.activate(true);
+        }
+        this.msTransform.getOrigin().setValue(v.x, v.y, v.z);
+        this.rotation.setValue(q.x, q.y, q.z, q.w);
+        this.msTransform.setRotation(this.rotation);
+        this.motionState.setWorldTransform(this.msTransform);
+
+        if (this.data.type === TYPE.STATIC) {
+          this.body.setCenterOfMassTransform(this.msTransform);
+        }
+      }
+    };
+  })(),
+
+  /**
+   * Updates the scene object's position and rotation, based on the physics simulation.
+   */
+  syncFromPhysics: (function() {
+    const v = new THREE.Vector3(),
+      q1 = new THREE.Quaternion(),
+      q2 = new THREE.Quaternion();
+    return function() {
+      this.motionState.getWorldTransform(this.msTransform);
+      const position = this.msTransform.getOrigin();
+      const quaternion = this.msTransform.getRotation();
+
+      const el = this.el,
+        parentEl = el.parentEl,
+        body = this.body;
+
+      if (!body) return;
+      if (!parentEl) return;
+
+      if (parentEl.isScene) {
+        el.object3D.position.set(position.x(), position.y(), position.z());
+        el.object3D.quaternion.set(quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
+      } else {
+        q1.set(quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
+        parentEl.object3D.getWorldQuaternion(q2);
+        q1.multiply(q2.inverse());
+        el.object3D.quaternion.copy(q1);
+
+        v.set(position.x(), position.y(), position.z());
+        parentEl.object3D.worldToLocal(v);
+        el.object3D.position.copy(v);
+      }
+    };
+  })(),
+
+  addShapeComponent: function(shapeComponent) {
+    if (shapeComponent.data.type === SHAPE.MESH && this.data.type !== TYPE.STATIC) {
+      console.warn("non-static mesh colliders not supported");
+      return;
+    }
+
+    this.shapeComponents.push(shapeComponent);
+    this.shapeComponentsChanged = true;
+  },
+
+  removeShapeComponent: function(shapeComponent) {
+    const index = this.shapeComponents.indexOf(shapeComponent);
+    if (this.compoundShape && index !== -1 && this.body) {
+      const shapes = shapeComponent.getShapes();
+      for (var i = 0; i < shapes.length; i++) {
+        this.compoundShape.removeChildShape(shapes[i]);
+      }
+      this.shapeComponentsChanged = true;
+      this.shapeComponents.splice(index, 1);
+    }
+  },
+
+  updateMass: function() {
+    const shape = this.body.getCollisionShape();
+    const mass = this.data.type === TYPE.DYNAMIC ? this.data.mass : 0;
+    shape.calculateLocalInertia(mass, this.localInertia);
+    this.body.setMassProps(mass, this.localInertia);
+    this.body.updateInertiaTensor();
+  },
+
+  updateCollisionFlags: function() {
+    let flags = this.data.disableCollision ? 4 : 0;
+    switch (this.data.type) {
+      case TYPE.STATIC:
+        flags |= COLLISION_FLAG.STATIC_OBJECT;
+        break;
+      case TYPE.KINEMATIC:
+        flags |= COLLISION_FLAG.KINEMATIC_OBJECT;
+        break;
+      default:
+        this.body.applyGravity();
+        break;
+    }
+    this.body.setCollisionFlags(flags);
+
+    this.updateMass();
+
+    // TODO: enable CCD if dynamic?
+    // this.body.setCcdMotionThreshold(0.001);
+    // this.body.setCcdSweptSphereRadius(0.001);
+
+    this.system.driver.updateBody(this.body);
+  },
+
+  getVelocity: function() {
+    return this.body.getLinearVelocity();
+  }
+};
+
+module.exports.definition = AmmoBody;
+module.exports.Component = AFRAME.registerComponent("ammo-body", AmmoBody);
+
+},{"../../constants":76,"ammo-debug-drawer":3,"three-to-ammo":61}],67:[function(require,module,exports){
 var CANNON = require('cannon'),
     mesh2shape = require('three-to-cannon');
 
@@ -15928,7 +17416,7 @@ var Body = {
 module.exports.definition = Body;
 module.exports.Component = AFRAME.registerComponent('body', Body);
 
-},{"../../../lib/CANNON-shape2mesh":2,"cannon":4,"three-to-cannon":60}],64:[function(require,module,exports){
+},{"../../../lib/CANNON-shape2mesh":2,"cannon":5,"three-to-cannon":62}],68:[function(require,module,exports){
 var Body = require('./body');
 
 /**
@@ -15940,7 +17428,7 @@ var DynamicBody = AFRAME.utils.extend({}, Body.definition);
 
 module.exports = AFRAME.registerComponent('dynamic-body', DynamicBody);
 
-},{"./body":63}],65:[function(require,module,exports){
+},{"./body":67}],69:[function(require,module,exports){
 var Body = require('./body');
 
 /**
@@ -15958,61 +17446,60 @@ StaticBody.schema = AFRAME.utils.extend({}, Body.definition.schema, {
 
 module.exports = AFRAME.registerComponent('static-body', StaticBody);
 
-},{"./body":63}],66:[function(require,module,exports){
-var CANNON = require('cannon');
+},{"./body":67}],70:[function(require,module,exports){
+var CANNON = require("cannon");
 
-module.exports = AFRAME.registerComponent('constraint', {
-
+module.exports = AFRAME.registerComponent("constraint", {
   multiple: true,
 
   schema: {
     // Type of constraint.
-    type: {default: 'lock', oneOf: ['coneTwist', 'distance', 'hinge', 'lock', 'pointToPoint']},
+    type: { default: "lock", oneOf: ["coneTwist", "distance", "hinge", "lock", "pointToPoint"] },
 
     // Target (other) body for the constraint.
-    target: {type: 'selector'},
+    target: { type: "selector" },
 
     // Maximum force that should be applied to constraint the bodies.
-    maxForce: {default: 1e6, min: 0},
+    maxForce: { default: 1e6, min: 0 },
 
     // If true, bodies can collide when they are connected.
-    collideConnected: {default: true},
+    collideConnected: { default: true },
 
     // Wake up bodies when connected.
-    wakeUpBodies: {default: true},
+    wakeUpBodies: { default: true },
 
     // The distance to be kept between the bodies. If 0, will be set to current distance.
-    distance: {default: 0, min: 0},
+    distance: { default: 0, min: 0 },
 
     // Offset of the hinge or point-to-point constraint, defined locally in the body.
-    pivot: {type: 'vec3'},
-    targetPivot: {type: 'vec3'},
+    pivot: { type: "vec3" },
+    targetPivot: { type: "vec3" },
 
     // An axis that each body can rotate around, defined locally to that body.
-    axis: {type: 'vec3', default: { x: 0, y: 0, z: 1 }},
-    targetAxis: {type: 'vec3', default: { x: 0, y: 0, z: 1}}
+    axis: { type: "vec3", default: { x: 0, y: 0, z: 1 } },
+    targetAxis: { type: "vec3", default: { x: 0, y: 0, z: 1 } }
   },
 
-  init: function () {
+  init: function() {
     this.system = this.el.sceneEl.systems.physics;
     this.constraint = /* {CANNON.Constraint} */ null;
   },
 
-  remove: function () {
+  remove: function() {
     if (!this.constraint) return;
 
     this.system.removeConstraint(this.constraint);
     this.constraint = null;
   },
 
-  update: function () {
+  update: function() {
     var el = this.el,
-        data = this.data;
+      data = this.data;
 
     this.remove();
 
     if (!el.body || !data.target.body) {
-      (el.body ? data.target : el).addEventListener('body-loaded', this.update.bind(this, {}));
+      (el.body ? data.target : el).addEventListener("body-loaded", this.update.bind(this, {}));
       return;
     }
 
@@ -16026,74 +17513,62 @@ module.exports = AFRAME.registerComponent('constraint', {
    * `instanceof` checks are not reliable for some types. These types are needed for serialization.
    * @return {CANNON.Constraint}
    */
-  createConstraint: function () {
+  createConstraint: function() {
     var constraint,
-        data = this.data,
-        pivot = new CANNON.Vec3(data.pivot.x, data.pivot.y, data.pivot.z),
-        targetPivot = new CANNON.Vec3(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z),
-        axis = new CANNON.Vec3(data.axis.x, data.axis.y, data.axis.z),
-        targetAxis= new CANNON.Vec3(data.targetAxis.x, data.targetAxis.y, data.targetAxis.z);
+      data = this.data,
+      pivot = new CANNON.Vec3(data.pivot.x, data.pivot.y, data.pivot.z),
+      targetPivot = new CANNON.Vec3(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z),
+      axis = new CANNON.Vec3(data.axis.x, data.axis.y, data.axis.z),
+      targetAxis = new CANNON.Vec3(data.targetAxis.x, data.targetAxis.y, data.targetAxis.z);
 
     var constraint;
 
     switch (data.type) {
-      case 'lock':
-        constraint = new CANNON.LockConstraint(
-          this.el.body,
-          data.target.body,
-          {maxForce: data.maxForce}
-        );
-        constraint.type = 'LockConstraint';
+      case "lock":
+        constraint = new CANNON.LockConstraint(this.el.body, data.target.body, { maxForce: data.maxForce });
+        constraint.type = "LockConstraint";
         break;
 
-      case 'distance':
-        constraint = new CANNON.DistanceConstraint(
-          this.el.body,
-          data.target.body,
-          data.distance,
-          data.maxForce
-        );
-        constraint.type = 'DistanceConstraint';
+      case "distance":
+        constraint = new CANNON.DistanceConstraint(this.el.body, data.target.body, data.distance, data.maxForce);
+        constraint.type = "DistanceConstraint";
         break;
 
-      case 'hinge':
-        constraint = new CANNON.HingeConstraint(
-          this.el.body,
-          data.target.body, {
-            pivotA: pivot,
-            pivotB: targetPivot,
-            axisA: axis,
-            axisB: targetAxis,
-            maxForce: data.maxForce
-          });
-        constraint.type = 'HingeConstraint';
+      case "hinge":
+        constraint = new CANNON.HingeConstraint(this.el.body, data.target.body, {
+          pivotA: pivot,
+          pivotB: targetPivot,
+          axisA: axis,
+          axisB: targetAxis,
+          maxForce: data.maxForce
+        });
+        constraint.type = "HingeConstraint";
         break;
 
-      case 'coneTwist':
-        constraint = new CANNON.ConeTwistConstraint(
-          this.el.body,
-          data.target.body, {
-            pivotA: pivot,
-            pivotB: targetPivot,
-            axisA: axis,
-            axisB: targetAxis,
-            maxForce: data.maxForce
-          });
-        constraint.type = 'ConeTwistConstraint';
+      case "coneTwist":
+        constraint = new CANNON.ConeTwistConstraint(this.el.body, data.target.body, {
+          pivotA: pivot,
+          pivotB: targetPivot,
+          axisA: axis,
+          axisB: targetAxis,
+          maxForce: data.maxForce
+        });
+        constraint.type = "ConeTwistConstraint";
         break;
 
-      case 'pointToPoint':
+      case "pointToPoint":
         constraint = new CANNON.PointToPointConstraint(
           this.el.body,
           pivot,
           data.target.body,
           targetPivot,
-          data.maxForce);
-        constraint.type = 'PointToPointConstraint';
+          data.maxForce
+        );
+        constraint.type = "PointToPointConstraint";
         break;
 
       default:
-        throw new Error('[constraint] Unexpected type: ' + data.type);
+        throw new Error("[constraint] Unexpected type: " + data.type);
     }
 
     constraint.collideConnected = data.collideConnected;
@@ -16101,7 +17576,7 @@ module.exports = AFRAME.registerComponent('constraint', {
   }
 });
 
-},{"cannon":4}],67:[function(require,module,exports){
+},{"cannon":5}],71:[function(require,module,exports){
 module.exports = {
   'velocity':   require('./velocity'),
 
@@ -16116,7 +17591,7 @@ module.exports = {
   }
 };
 
-},{"./velocity":68}],68:[function(require,module,exports){
+},{"./velocity":72}],72:[function(require,module,exports){
 /**
  * Velocity, in m/s.
  */
@@ -16148,21 +17623,113 @@ module.exports = AFRAME.registerComponent('velocity', {
 
     var physics = this.el.sceneEl.systems.physics || {data: {maxInterval: 1 / 60}},
 
-        // TODO - There's definitely a bug with getComputedAttribute and el.data.
-        velocity = this.el.getAttribute('velocity') || {x: 0, y: 0, z: 0},
-        position = this.el.getAttribute('position') || {x: 0, y: 0, z: 0};
+    // TODO - There's definitely a bug with getComputedAttribute and el.data.
+    velocity = this.el.getAttribute('velocity') || {x: 0, y: 0, z: 0},
+    position = this.el.object3D.position || {x: 0, y: 0, z: 0};
 
     dt = Math.min(dt, physics.data.maxInterval * 1000);
 
-    this.el.setAttribute('position', {
-      x: position.x + velocity.x * dt / 1000,
-      y: position.y + velocity.y * dt / 1000,
-      z: position.z + velocity.z * dt / 1000
-    });
+    this.el.object3D.position.set(
+      position.x + velocity.x * dt / 1000,
+      position.y + velocity.y * dt / 1000,
+      position.z + velocity.z * dt / 1000
+    );
   }
 });
 
-},{}],69:[function(require,module,exports){
+},{}],73:[function(require,module,exports){
+/* global Ammo,THREE */
+const threeToAmmo = require("three-to-ammo");
+const CONSTANTS = require("../../constants"),
+  SHAPE = CONSTANTS.SHAPE,
+  FIT = CONSTANTS.FIT;
+
+var AmmoShape = {
+  schema: {
+    type: {
+      default: SHAPE.HULL,
+      oneOf: [
+        SHAPE.BOX,
+        SHAPE.CYLINDER,
+        SHAPE.SPHERE,
+        SHAPE.CAPSULE,
+        SHAPE.CONE,
+        SHAPE.HULL,
+        SHAPE.HACD,
+        SHAPE.VHACD,
+        SHAPE.MESH
+      ]
+    },
+    fit: { default: FIT.ALL, oneOf: [FIT.ALL, FIT.MANUAL] },
+    halfExtents: { type: "vec3", default: { x: 1, y: 1, z: 1 } },
+    minHalfExtent: { default: 0 },
+    maxHalfExtent: { default: Number.POSITIVE_INFINITY },
+    sphereRadius: { default: NaN },
+    cylinderAxis: { default: "y", oneOf: ["x", "y", "z"] },
+    margin: { default: 0.01 },
+    offset: { type: "vec3", default: { x: 0, y: 0, z: 0 } },
+    orientation: { type: "vec4", default: { x: 0, y: 0, z: 0, w: 1 } }
+  },
+
+  multiple: true,
+
+  init: function() {
+    this.system = this.el.sceneEl.systems.physics;
+    this.collisionShapes = [];
+
+    let bodyEl = this.el;
+    this.body = bodyEl.components["ammo-body"] || null;
+    while (!this.body && bodyEl.parentNode != this.el.sceneEl) {
+      bodyEl = bodyEl.parentNode;
+      if (bodyEl.components["ammo-body"]) {
+        this.body = bodyEl.components["ammo-body"];
+      }
+    }
+    if (!this.body) {
+      console.warn("body not found");
+      return;
+    }
+    if (this.data.fit !== FIT.MANUAL) {
+      if (!this.el.object3DMap.mesh) {
+        console.error("Cannot use FIT.ALL without object3DMap.mesh");
+        return;
+      }
+      this.mesh = this.el.object3DMap.mesh;
+    }
+    this.body.addShapeComponent(this);
+  },
+
+  getMesh: function() {
+    return this.mesh || null;
+  },
+
+  addShapes: function(collisionShapes) {
+    this.collisionShapes = collisionShapes;
+  },
+
+  getShapes: function() {
+    return this.collisionShapes;
+  },
+
+  remove: function() {
+    if (!this.body) {
+      return;
+    }
+
+    this.body.removeShapeComponent(this);
+
+    while (this.collisionShapes.length > 0) {
+      const collisionShape = this.collisionShapes.pop();
+      collisionShape.destroy();
+      Ammo.destroy(collisionShape.localTransform);
+    }
+  }
+};
+
+module.exports.definition = AmmoShape;
+module.exports.Component = AFRAME.registerComponent("ammo-shape", AmmoShape);
+
+},{"../../constants":76,"three-to-ammo":61}],74:[function(require,module,exports){
 var CANNON = require('cannon');
 
 var Shape = {
@@ -16286,7 +17853,7 @@ var Shape = {
 module.exports.definition = Shape;
 module.exports.Component = AFRAME.registerComponent('shape', Shape);
 
-},{"cannon":4}],70:[function(require,module,exports){
+},{"cannon":5}],75:[function(require,module,exports){
 var CANNON = require('cannon');
 
 module.exports = AFRAME.registerComponent('spring', {
@@ -16389,26 +17956,90 @@ module.exports = AFRAME.registerComponent('spring', {
   }
 })
 
-},{"cannon":4}],71:[function(require,module,exports){
+},{"cannon":5}],76:[function(require,module,exports){
 module.exports = {
   GRAVITY: -9.8,
   MAX_INTERVAL: 4 / 60,
   ITERATIONS: 10,
   CONTACT_MATERIAL: {
-    friction:     0.01,
-    restitution:  0.3,
+    friction: 0.01,
+    restitution: 0.3,
     contactEquationStiffness: 1e8,
     contactEquationRelaxation: 3,
     frictionEquationStiffness: 1e8,
     frictionEquationRegularization: 3
+  },
+  ACTIVATION_STATE: {
+    ACTIVE_TAG: "active",
+    ISLAND_SLEEPING: "islandSleeping",
+    WANTS_DEACTIVATION: "wantsDeactivation",
+    DISABLE_DEACTIVATION: "disableDeactivation",
+    DISABLE_SIMULATION: "disableSimulation"
+  },
+  COLLISION_FLAG: {
+    STATIC_OBJECT: 1,
+    KINEMATIC_OBJECT: 2,
+    NO_CONTACT_RESPONSE: 4,
+    CUSTOM_MATERIAL_CALLBACK: 8, //this allows per-triangle material (friction/restitution)
+    CHARACTER_OBJECT: 16,
+    DISABLE_VISUALIZE_OBJECT: 32, //disable debug drawing
+    DISABLE_SPU_COLLISION_PROCESSING: 64 //disable parallel/SPU processing
+  },
+  TYPE: {
+    STATIC: "static",
+    DYNAMIC: "dynamic",
+    KINEMATIC: "kinematic"
+  },
+  SHAPE: {
+    BOX: "box",
+    CYLINDER: "cylinder",
+    SPHERE: "sphere",
+    CAPSULE: "capsule",
+    CONE: "cone",
+    HULL: "hull",
+    HACD: "hacd",
+    VHACD: "vhacd",
+    MESH: "mesh"
+  },
+  FIT: {
+    ALL: "all",
+    MANUAL: "manual"
+  },
+  CONSTRAINT: {
+    LOCK: "lock",
+    FIXED: "fixed",
+    SPRING: "spring",
+    SLIDER: "slider",
+    HINGE: "hinge",
+    CONE_TWIST: "coneTwist",
+    POINT_TO_POINT: "pointToPoint"
   }
 };
 
-},{}],72:[function(require,module,exports){
-var Driver = require('./driver');
+},{}],77:[function(require,module,exports){
+/* global THREE */
+const Driver = require("./driver");
 
-function AmmoDriver () {
-  throw new Error('[AmmoDriver] Driver not implemented.');
+if (typeof window !== 'undefined') {
+  window.AmmoModule = window.Ammo;
+  window.Ammo = null;
+}
+
+const EPS = 10e-6;
+
+function AmmoDriver() {
+  this.collisionConfiguration = null;
+  this.dispatcher = null;
+  this.broadphase = null;
+  this.solver = null;
+  this.physicsWorld = null;
+  this.debugDrawer = null;
+
+  this.els = new Map();
+  this.eventListeners = [];
+  this.collisions = new Map();
+  this.collisionKeys = [];
+  this.currentCollisions = new Map();
 }
 
 AmmoDriver.prototype = new Driver();
@@ -16416,7 +18047,171 @@ AmmoDriver.prototype.constructor = AmmoDriver;
 
 module.exports = AmmoDriver;
 
-},{"./driver":73}],73:[function(require,module,exports){
+/* @param {object} worldConfig */
+AmmoDriver.prototype.init = function(worldConfig) {
+  //Emscripten doesn't use real promises, just a .then() callback, so it necessary to wrap in a real promise.
+  return new Promise(resolve => {
+    AmmoModule().then(result => {
+      Ammo = result;
+      this.epsilon = worldConfig.epsilon || EPS;
+      this.debugDrawMode = worldConfig.debugDrawMode || THREE.AmmoDebugConstants.NoDebug;
+      this.maxSubSteps = worldConfig.maxSubSteps || 4;
+      this.fixedTimeStep = worldConfig.fixedTimeStep || 1 / 60;
+      this.collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
+      this.dispatcher = new Ammo.btCollisionDispatcher(this.collisionConfiguration);
+      this.broadphase = new Ammo.btDbvtBroadphase();
+      this.solver = new Ammo.btSequentialImpulseConstraintSolver();
+      this.physicsWorld = new Ammo.btDiscreteDynamicsWorld(
+        this.dispatcher,
+        this.broadphase,
+        this.solver,
+        this.collisionConfiguration
+      );
+      this.physicsWorld.setForceUpdateAllAabbs(false);
+      this.physicsWorld.setGravity(
+        new Ammo.btVector3(0, worldConfig.hasOwnProperty("gravity") ? worldConfig.gravity : -9.8, 0)
+      );
+      this.physicsWorld.getSolverInfo().set_m_numIterations(worldConfig.solverIterations);
+      resolve();
+    });
+  });
+};
+
+/* @param {Ammo.btCollisionObject} body */
+AmmoDriver.prototype.addBody = function(body, group, mask) {
+  this.physicsWorld.addRigidBody(body, group, mask);
+  this.els.set(Ammo.getPointer(body), body.el);
+};
+
+/* @param {Ammo.btCollisionObject} body */
+AmmoDriver.prototype.removeBody = function(body) {
+  this.physicsWorld.removeRigidBody(body);
+  this.removeEventListener(body);
+  const bodyptr = Ammo.getPointer(body);
+  this.els.delete(bodyptr);
+  this.collisions.delete(bodyptr);
+  this.collisionKeys.splice(this.collisionKeys.indexOf(bodyptr), 1);
+  this.currentCollisions.delete(bodyptr);
+};
+
+AmmoDriver.prototype.updateBody = function(body) {
+  if (this.els.has(Ammo.getPointer(body))) {
+    this.physicsWorld.updateSingleAabb(body);
+  }
+};
+
+/* @param {number} deltaTime */
+AmmoDriver.prototype.step = function(deltaTime) {
+  this.physicsWorld.stepSimulation(deltaTime, this.maxSubSteps, this.fixedTimeStep);
+
+  const numManifolds = this.dispatcher.getNumManifolds();
+  for (let i = 0; i < numManifolds; i++) {
+    const persistentManifold = this.dispatcher.getManifoldByIndexInternal(i);
+    const numContacts = persistentManifold.getNumContacts();
+    const body0ptr = Ammo.getPointer(persistentManifold.getBody0());
+    const body1ptr = Ammo.getPointer(persistentManifold.getBody1());
+    let collided = false;
+
+    for (let j = 0; j < numContacts; j++) {
+      const manifoldPoint = persistentManifold.getContactPoint(j);
+      const distance = manifoldPoint.getDistance();
+      if (distance <= this.epsilon) {
+        collided = true;
+        break;
+      }
+    }
+
+    if (collided) {
+      if (!this.collisions.has(body0ptr)) {
+        this.collisions.set(body0ptr, []);
+        this.collisionKeys.push(body0ptr);
+      }
+      if (this.collisions.get(body0ptr).indexOf(body1ptr) === -1) {
+        this.collisions.get(body0ptr).push(body1ptr);
+        if (this.eventListeners.indexOf(body0ptr) !== -1) {
+          this.els.get(body0ptr).emit("collidestart", { targetEl: this.els.get(body1ptr) });
+        }
+        if (this.eventListeners.indexOf(body1ptr) !== -1) {
+          this.els.get(body1ptr).emit("collidestart", { targetEl: this.els.get(body0ptr) });
+        }
+      }
+      if (!this.currentCollisions.has(body0ptr)) {
+        this.currentCollisions.set(body0ptr, new Set());
+      }
+      this.currentCollisions.get(body0ptr).add(body1ptr);
+    }
+  }
+
+  for (let i = 0; i < this.collisionKeys.length; i++) {
+    const body0ptr = this.collisionKeys[i];
+    const body1ptrs = this.collisions.get(body0ptr);
+    for (let j = body1ptrs.length; j >= 0; j--) {
+      const body1ptr = body1ptrs[j];
+      if (this.currentCollisions.get(body0ptr).has(body1ptr)) {
+        continue;
+      }
+      if (this.eventListeners.indexOf(body0ptr) !== -1) {
+        this.els.get(body0ptr).emit("collideend", { targetEl: this.els.get(body1ptr) });
+      }
+      if (this.eventListeners.indexOf(body1ptr) !== -1) {
+        this.els.get(body1ptr).emit("collideend", { targetEl: this.els.get(body0ptr) });
+      }
+      body1ptrs.splice(j, 1);
+    }
+    this.currentCollisions.get(body0ptr).clear();
+  }
+
+  if (this.debugDrawer) {
+    this.debugDrawer.update();
+  }
+};
+
+/* @param {?} constraint */
+AmmoDriver.prototype.addConstraint = function(constraint) {
+  this.physicsWorld.addConstraint(constraint, false);
+};
+
+/* @param {?} constraint */
+AmmoDriver.prototype.removeConstraint = function(constraint) {
+  this.physicsWorld.removeConstraint(constraint);
+};
+
+/* @param {Ammo.btCollisionObject} body */
+AmmoDriver.prototype.addEventListener = function(body) {
+  this.eventListeners.push(Ammo.getPointer(body));
+};
+
+/* @param {Ammo.btCollisionObject} body */
+AmmoDriver.prototype.removeEventListener = function(body) {
+  const ptr = Ammo.getPointer(body);
+  if (this.eventListeners.indexOf(ptr) !== -1) {
+    this.eventListeners.splice(this.eventListeners.indexOf(ptr), 1);
+  }
+};
+
+AmmoDriver.prototype.destroy = function() {
+  Ammo.destroy(this.collisionConfiguration);
+  Ammo.destroy(this.dispatcher);
+  Ammo.destroy(this.broadphase);
+  Ammo.destroy(this.solver);
+  Ammo.destroy(this.physicsWorld);
+  Ammo.destroy(this.debugDrawer);
+};
+
+/**
+ * @param {THREE.Scene} scene
+ * @param {object} options
+ */
+AmmoDriver.prototype.getDebugDrawer = function(scene, options) {
+  if (!this.debugDrawer) {
+    options = options || {};
+    options.debugDrawMode = options.debugDrawMode || this.debugDrawMode;
+    this.debugDrawer = new THREE.AmmoDebugDrawer(scene, this.physicsWorld, options);
+  }
+  return this.debugDrawer;
+};
+
+},{"./driver":78}],78:[function(require,module,exports){
 /**
  * Driver - defines limited API to local and remote physics controllers.
  */
@@ -16494,7 +18289,7 @@ function abstractMethod () {
   throw new Error('Method not implemented.');
 }
 
-},{}],74:[function(require,module,exports){
+},{}],79:[function(require,module,exports){
 module.exports = {
   INIT: 'init',
   STEP: 'step',
@@ -16517,7 +18312,7 @@ module.exports = {
   COLLIDE: 'collide'
 };
 
-},{}],75:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 var CANNON = require('cannon'),
     Driver = require('./driver');
 
@@ -16621,6 +18416,19 @@ LocalDriver.prototype.addContactMaterial = function (matName1, matName2, contact
 
 /* @param {CANNON.Constraint} constraint */
 LocalDriver.prototype.addConstraint = function (constraint) {
+  if (!constraint.type) {
+    if (constraint instanceof CANNON.LockConstraint) {
+      constraint.type = 'LockConstraint';
+    } else if (constraint instanceof CANNON.DistanceConstraint) {
+      constraint.type = 'DistanceConstraint';
+    } else if (constraint instanceof CANNON.HingeConstraint) {
+      constraint.type = 'HingeConstraint';
+    } else if (constraint instanceof CANNON.ConeTwistConstraint) {
+      constraint.type = 'ConeTwistConstraint';
+    } else if (constraint instanceof CANNON.PointToPointConstraint) {
+      constraint.type = 'PointToPointConstraint';
+    }
+  }
   this.world.addConstraint(constraint);
 };
 
@@ -16638,7 +18446,7 @@ LocalDriver.prototype.getContacts = function () {
   return this.world.contacts;
 };
 
-},{"./driver":73,"cannon":4}],76:[function(require,module,exports){
+},{"./driver":78,"cannon":5}],81:[function(require,module,exports){
 var Driver = require('./driver');
 
 function NetworkDriver () {
@@ -16650,7 +18458,7 @@ NetworkDriver.prototype.constructor = NetworkDriver;
 
 module.exports = NetworkDriver;
 
-},{"./driver":73}],77:[function(require,module,exports){
+},{"./driver":78}],82:[function(require,module,exports){
 /**
  * Stub version of webworkify, for debugging code outside of a webworker.
  */
@@ -16693,7 +18501,7 @@ EventTarget.prototype.postMessage = function (msg) {
   this.target.dispatchEvent('message', {data: msg});
 };
 
-},{}],78:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 /* global performance */
 
 var webworkify = require('webworkify'),
@@ -16910,6 +18718,19 @@ WorkerDriver.prototype.addContactMaterial = function (matName1, matName2, contac
 
 /* @param {CANNON.Constraint} constraint */
 WorkerDriver.prototype.addConstraint = function (constraint) {
+  if (!constraint.type) {
+    if (constraint instanceof CANNON.LockConstraint) {
+      constraint.type = 'LockConstraint';
+    } else if (constraint instanceof CANNON.DistanceConstraint) {
+      constraint.type = 'DistanceConstraint';
+    } else if (constraint instanceof CANNON.HingeConstraint) {
+      constraint.type = 'HingeConstraint';
+    } else if (constraint instanceof CANNON.ConeTwistConstraint) {
+      constraint.type = 'ConeTwistConstraint';
+    } else if (constraint instanceof CANNON.PointToPointConstraint) {
+      constraint.type = 'PointToPointConstraint';
+    }
+  }
   protocol.assignID('constraint', constraint);
   this.worker.postMessage({
     type: Event.ADD_CONSTRAINT,
@@ -16938,7 +18759,7 @@ WorkerDriver.prototype.getContacts = function () {
   });
 };
 
-},{"../utils/protocol":82,"./driver":73,"./event":74,"./webworkify-debug":77,"./worker":79,"webworkify":62}],79:[function(require,module,exports){
+},{"../utils/protocol":87,"./driver":78,"./event":79,"./webworkify-debug":82,"./worker":84,"webworkify":64}],84:[function(require,module,exports){
 var Event = require('./event'),
     LocalDriver = require('./local-driver'),
     AmmoDriver = require('./ammo-driver'),
@@ -17042,7 +18863,8 @@ module.exports = function (self) {
   }
 };
 
-},{"../utils/protocol":82,"./ammo-driver":72,"./event":74,"./local-driver":75}],80:[function(require,module,exports){
+},{"../utils/protocol":87,"./ammo-driver":77,"./event":79,"./local-driver":80}],85:[function(require,module,exports){
+/* global THREE */
 var CANNON = require('cannon'),
     CONSTANTS = require('./constants'),
     C_GRAV = CONSTANTS.GRAVITY,
@@ -17082,12 +18904,19 @@ module.exports = AFRAME.registerSystem('physics', {
 
     // If true, show wireframes around physics bodies.
     debug:                          { default: false },
+
+    // If using ammo, set the default rendering mode for debug
+    debugDrawMode: { default: THREE.AmmoDebugConstants.NoDebug },
+    // If using ammo, set the max number of steps per frame 
+    maxSubSteps: { default: 4 },
+    // If using ammo, set the framerate of the simulation
+    fixedTimeStep: { default: 1 / 60 }
   },
 
   /**
    * Initializes the physics system.
    */
-  init: function () {
+  async init() {
     var data = this.data;
 
     // If true, show wireframes around physics bodies.
@@ -17101,6 +18930,10 @@ module.exports = AFRAME.registerSystem('physics', {
     switch (data.driver) {
       case 'local':
         this.driver = new LocalDriver();
+        break;
+
+      case 'ammo':
+        this.driver = new AmmoDriver();
         break;
 
       case 'network':
@@ -17121,31 +18954,46 @@ module.exports = AFRAME.registerSystem('physics', {
         throw new Error('[physics] Driver not recognized: "%s".', data.driver);
     }
 
-    this.driver.init({
-      quatNormalizeSkip: 0,
-      quatNormalizeFast: false,
+    if (data.driver !== 'ammo') {
+      await this.driver.init({
+        quatNormalizeSkip: 0,
+        quatNormalizeFast: false,
+        solverIterations: data.iterations,
+        gravity: data.gravity,
+      });
+      this.driver.addMaterial({name: 'defaultMaterial'});
+      this.driver.addMaterial({name: 'staticMaterial'});
+      this.driver.addContactMaterial('defaultMaterial', 'defaultMaterial', {
+        friction: data.friction,
+        restitution: data.restitution,
+        contactEquationStiffness: data.contactEquationStiffness,
+        contactEquationRelaxation: data.contactEquationRelaxation,
+        frictionEquationStiffness: data.frictionEquationStiffness,
+        frictionEquationRegularization: data.frictionEquationRegularization
+      });
+      this.driver.addContactMaterial('staticMaterial', 'defaultMaterial', {
+        friction: 1.0,
+        restitution: 0.0,
+        contactEquationStiffness: data.contactEquationStiffness,
+        contactEquationRelaxation: data.contactEquationRelaxation,
+        frictionEquationStiffness: data.frictionEquationStiffness,
+        frictionEquationRegularization: data.frictionEquationRegularization
+      });
+    } else {
+      await this.driver.init({
+      gravity: data.gravity,
+      debugDrawMode: data.debugDrawMode,
       solverIterations: data.iterations,
-      gravity: data.gravity
+      maxSubSteps: data.maxSubSteps,
+      fixedTimeStep: data.fixedTimeStep
     });
+    }
 
-    this.driver.addMaterial({name: 'defaultMaterial'});
-    this.driver.addMaterial({name: 'staticMaterial'});
-    this.driver.addContactMaterial('defaultMaterial', 'defaultMaterial', {
-      friction: data.friction,
-      restitution: data.restitution,
-      contactEquationStiffness: data.contactEquationStiffness,
-      contactEquationRelaxation: data.contactEquationRelaxation,
-      frictionEquationStiffness: data.frictionEquationStiffness,
-      frictionEquationRegularization: data.frictionEquationRegularization
-    });
-    this.driver.addContactMaterial('staticMaterial', 'defaultMaterial', {
-      friction: 1.0,
-      restitution: 0.0,
-      contactEquationStiffness: data.contactEquationStiffness,
-      contactEquationRelaxation: data.contactEquationRelaxation,
-      frictionEquationStiffness: data.frictionEquationStiffness,
-      frictionEquationRegularization: data.frictionEquationRegularization
-    });
+    this.initialized = true;
+
+    if (this.debug) {
+      this.setDebug(true);
+    }
   },
 
   /**
@@ -17157,7 +19005,7 @@ module.exports = AFRAME.registerSystem('physics', {
    * @param  {number} dt
    */
   tick: function (t, dt) {
-    if (!dt) return;
+    if (!this.initialized || !dt) return;
 
     var i;
     var callbacks = this.callbacks;
@@ -17167,7 +19015,7 @@ module.exports = AFRAME.registerSystem('physics', {
     }
 
     this.driver.step(Math.min(dt / 1000, this.data.maxInterval));
-
+    
     for (i = 0; i < callbacks.step.length; i++) {
       callbacks.step[i].step(t, dt);
     }
@@ -17177,31 +19025,46 @@ module.exports = AFRAME.registerSystem('physics', {
     }
   },
 
+  setDebug: function(debug) {
+    this.debug = debug;
+    if (this.data.driver === 'ammo' && this.initialized) {
+      if (debug && !this.debugDrawer) {
+        this.debugDrawer = this.driver.getDebugDrawer(this.el.object3D);
+        this.debugDrawer.enable();
+      } else if (this.debugDrawer) {
+        this.debugDrawer.disable();
+        this.debugDrawer = null;
+      }
+    }
+  },
+
   /**
    * Adds a body to the scene, and binds proxied methods to the driver.
    * @param {CANNON.Body} body
    */
-  addBody: function (body) {
+  addBody: function (body, group, mask) {
     var driver = this.driver;
 
-    body.__applyImpulse = body.applyImpulse;
-    body.applyImpulse = function () {
-      driver.applyBodyMethod(body, 'applyImpulse', arguments);
-    };
+    if (this.data.driver === 'local') {
+      body.__applyImpulse = body.applyImpulse;
+      body.applyImpulse = function () {
+        driver.applyBodyMethod(body, 'applyImpulse', arguments);
+      };
 
-    body.__applyForce = body.applyForce;
-    body.applyForce = function () {
-      driver.applyBodyMethod(body, 'applyForce', arguments);
-    };
+      body.__applyForce = body.applyForce;
+      body.applyForce = function () {
+        driver.applyBodyMethod(body, 'applyForce', arguments);
+      };
 
-    body.updateProperties = function () {
-      driver.updateBodyProperties(body);
-    };
+      body.updateProperties = function () {
+        driver.updateBodyProperties(body);
+      };
 
-    this.listeners[body.id] = function (e) { body.el.emit('collide', e); };
-    body.addEventListener('collide', this.listeners[body.id]);
+      this.listeners[body.id] = function (e) { body.el.emit('collide', e); };
+      body.addEventListener('collide', this.listeners[body.id]);
+    }
 
-    this.driver.addBody(body);
+    this.driver.addBody(body, group, mask);
   },
 
   /**
@@ -17211,37 +19074,26 @@ module.exports = AFRAME.registerSystem('physics', {
   removeBody: function (body) {
     this.driver.removeBody(body);
 
-    body.removeEventListener('collide', this.listeners[body.id]);
-    delete this.listeners[body.id];
+    if (this.data.driver === 'local' || this.data.driver === 'worker') {
+      body.removeEventListener('collide', this.listeners[body.id]);
+      delete this.listeners[body.id];
 
-    body.applyImpulse = body.__applyImpulse;
-    delete body.__applyImpulse;
+      body.applyImpulse = body.__applyImpulse;
+      delete body.__applyImpulse;
 
-    body.applyForce = body.__applyForce;
-    delete body.__applyForce;
+      body.applyForce = body.__applyForce;
+      delete body.__applyForce;
 
-    delete body.updateProperties;
+      delete body.updateProperties;
+    }
   },
 
-  /** @param {CANNON.Constraint} constraint */
+  /** @param {CANNON.Constraint or Ammo.btTypedConstraint} constraint */
   addConstraint: function (constraint) {
-    if (!constraint.type) {
-      if (constraint instanceof CANNON.LockConstraint) {
-        constraint.type = 'LockConstraint';
-      } else if (constraint instanceof CANNON.DistanceConstraint) {
-        constraint.type = 'DistanceConstraint';
-      } else if (constraint instanceof CANNON.HingeConstraint) {
-        constraint.type = 'HingeConstraint';
-      } else if (constraint instanceof CANNON.ConeTwistConstraint) {
-        constraint.type = 'ConeTwistConstraint';
-      } else if (constraint instanceof CANNON.PointToPointConstraint) {
-        constraint.type = 'PointToPointConstraint';
-      }
-    }
     this.driver.addConstraint(constraint);
   },
 
-  /** @param {CANNON.Constraint} constraint */
+  /** @param {CANNON.Constraint or Ammo.btTypedConstraint} constraint */
   removeConstraint: function (constraint) {
     this.driver.removeConstraint(constraint);
   },
@@ -17287,7 +19139,7 @@ module.exports = AFRAME.registerSystem('physics', {
   }
 });
 
-},{"./constants":71,"./drivers/ammo-driver":72,"./drivers/local-driver":75,"./drivers/network-driver":76,"./drivers/worker-driver":78,"cannon":4}],81:[function(require,module,exports){
+},{"./constants":76,"./drivers/ammo-driver":77,"./drivers/local-driver":80,"./drivers/network-driver":81,"./drivers/worker-driver":83,"cannon":5}],86:[function(require,module,exports){
 module.exports.slerp = function ( a, b, t ) {
   if ( t <= 0 ) return a;
   if ( t >= 1 ) return b;
@@ -17352,7 +19204,7 @@ module.exports.slerp = function ( a, b, t ) {
 
 };
 
-},{}],82:[function(require,module,exports){
+},{}],87:[function(require,module,exports){
 var CANNON = require('cannon');
 var mathUtils = require('./math');
 
@@ -17679,4 +19531,4 @@ function deserializeQuaternion (message) {
   return new CANNON.Quaternion(message[0], message[1], message[2], message[3]);
 }
 
-},{"./math":81,"cannon":4}]},{},[1]);
+},{"./math":86,"cannon":5}]},{},[1]);
