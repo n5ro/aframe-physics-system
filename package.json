@@ -47,7 +47,7 @@
     "aframe": ">=0.5.0"
   },
   "devDependencies": {
-    "aframe": ">=0.5.0",
+    "aframe": "^0.9.2",
     "browserify": "^14.3.0",
     "budo": "^10.0.3",
     "chai": "^3.5.0",
