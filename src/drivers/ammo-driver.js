@@ -1,5 +1,6 @@
 /* global THREE */
-const Driver = require("./driver");
+const Driver = require('./driver');
+const Pool = require('../utils/pool');
 
 if (typeof window !== 'undefined') {
   window.AmmoModule = window.Ammo;
@@ -17,10 +18,18 @@ function AmmoDriver() {
   this.debugDrawer = null;
 
   this.els = new Map();
-  this.eventListeners = [];
-  this.collisions = new Map();
-  this.collisionKeys = [];
-  this.currentCollisions = new Map();
+  this.eventListeners = new Set();
+
+  /** Collision mapping (collision key to body pointer pair) from previous step. */
+  this.prevCollisions = {};
+
+  // Resource pools for temporary objects.
+  this.collisionStatePool = new Pool(() => ({}), (map) => {
+    for (let k in map) delete map[k];
+  });
+  this.collisionPairPool = new Pool(() => ([]), (pair) => {
+    pair.length = 0;
+  });
 }
 
 AmmoDriver.prototype = new Driver();
@@ -70,9 +79,6 @@ AmmoDriver.prototype.removeBody = function(body) {
   this.removeEventListener(body);
   const bodyptr = Ammo.getPointer(body);
   this.els.delete(bodyptr);
-  this.collisions.delete(bodyptr);
-  this.collisionKeys.splice(this.collisionKeys.indexOf(bodyptr), 1);
-  this.currentCollisions.delete(bodyptr);
 };
 
 AmmoDriver.prototype.updateBody = function(body) {
@@ -85,12 +91,16 @@ AmmoDriver.prototype.updateBody = function(body) {
 AmmoDriver.prototype.step = function(deltaTime) {
   this.physicsWorld.stepSimulation(deltaTime, this.maxSubSteps, this.fixedTimeStep);
 
+  const collisions = this.collisionStatePool.obtain();
+  const prevCollisions = this.prevCollisions;
+
   const numManifolds = this.dispatcher.getNumManifolds();
   for (let i = 0; i < numManifolds; i++) {
     const persistentManifold = this.dispatcher.getManifoldByIndexInternal(i);
     const numContacts = persistentManifold.getNumContacts();
     const body0ptr = Ammo.getPointer(persistentManifold.getBody0());
     const body1ptr = Ammo.getPointer(persistentManifold.getBody1());
+    const collisionKey = body0ptr + ':' + body1ptr;
     let collided = false;
 
     for (let j = 0; j < numContacts; j++) {
@@ -103,44 +113,45 @@ AmmoDriver.prototype.step = function(deltaTime) {
     }
 
     if (collided) {
-      if (!this.collisions.has(body0ptr)) {
-        this.collisions.set(body0ptr, []);
-        this.collisionKeys.push(body0ptr);
+      if (prevCollisions[collisionKey]) {
+        collisions[collisionKey] = prevCollisions[collisionKey];
+      } else {
+        collisions[collisionKey] = this.collisionPairPool.obtain();
+        collisions[collisionKey].push(body0ptr, body1ptr);
       }
-      if (this.collisions.get(body0ptr).indexOf(body1ptr) === -1) {
-        this.collisions.get(body0ptr).push(body1ptr);
-        if (this.eventListeners.indexOf(body0ptr) !== -1) {
-          this.els.get(body0ptr).emit("collidestart", { targetEl: this.els.get(body1ptr) });
-        }
-        if (this.eventListeners.indexOf(body1ptr) !== -1) {
-          this.els.get(body1ptr).emit("collidestart", { targetEl: this.els.get(body0ptr) });
-        }
-      }
-      if (!this.currentCollisions.has(body0ptr)) {
-        this.currentCollisions.set(body0ptr, new Set());
-      }
-      this.currentCollisions.get(body0ptr).add(body1ptr);
     }
   }
 
-  for (let i = 0; i < this.collisionKeys.length; i++) {
-    const body0ptr = this.collisionKeys[i];
-    const body1ptrs = this.collisions.get(body0ptr);
-    for (let j = body1ptrs.length; j >= 0; j--) {
-      const body1ptr = body1ptrs[j];
-      if (this.currentCollisions.get(body0ptr).has(body1ptr)) {
-        continue;
+  const diffCollisions = this.collisionStatePool.obtain();
+  AFRAME.utils.diff(prevCollisions, collisions, diffCollisions);
+
+  for (let key in diffCollisions) {
+    if (!diffCollisions.hasOwnProperty(key)) continue;
+    if (!prevCollisions[key] && collisions[key]) {
+      const body0ptr = collisions[key][0];
+      const body1ptr = collisions[key][1];
+      if (this.eventListeners.has(body0ptr)) {
+        this.els.get(body0ptr).emit('collidestart', { targetEl: this.els.get(body1ptr) });
       }
-      if (this.eventListeners.indexOf(body0ptr) !== -1) {
-        this.els.get(body0ptr).emit("collideend", { targetEl: this.els.get(body1ptr) });
+      if (this.eventListeners.has(body1ptr)) {
+        this.els.get(body1ptr).emit('collidestart', { targetEl: this.els.get(body0ptr) });
       }
-      if (this.eventListeners.indexOf(body1ptr) !== -1) {
-        this.els.get(body1ptr).emit("collideend", { targetEl: this.els.get(body0ptr) });
+    } else if (prevCollisions[key] && !collisions[key]) {
+      const body0ptr = prevCollisions[key][0];
+      const body1ptr = prevCollisions[key][1];
+      if (this.eventListeners.has(body0ptr)) {
+        this.els.get(body0ptr).emit('collideend', { targetEl: this.els.get(body1ptr) });
       }
-      body1ptrs.splice(j, 1);
+      if (this.eventListeners.has(body1ptr)) {
+        this.els.get(body1ptr).emit('collideend', { targetEl: this.els.get(body0ptr) });
+      }
+      this.collisionPairPool.recycle(prevCollisions[key]);
     }
-    this.currentCollisions.get(body0ptr).clear();
   }
+
+  this.collisionStatePool.recycle(prevCollisions);
+  this.collisionStatePool.recycle(diffCollisions);
+  this.prevCollisions = collisions;
 
   if (this.debugDrawer) {
     this.debugDrawer.update();
@@ -159,14 +170,14 @@ AmmoDriver.prototype.removeConstraint = function(constraint) {
 
 /* @param {Ammo.btCollisionObject} body */
 AmmoDriver.prototype.addEventListener = function(body) {
-  this.eventListeners.push(Ammo.getPointer(body));
+  this.eventListeners.add(Ammo.getPointer(body));
 };
 
 /* @param {Ammo.btCollisionObject} body */
 AmmoDriver.prototype.removeEventListener = function(body) {
   const ptr = Ammo.getPointer(body);
-  if (this.eventListeners.indexOf(ptr) !== -1) {
-    this.eventListeners.splice(this.eventListeners.indexOf(ptr), 1);
+  if (this.eventListeners.has(ptr)) {
+    this.eventListeners.delete(ptr);
   }
 };
 
