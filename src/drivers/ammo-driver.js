@@ -24,10 +24,10 @@ function AmmoDriver() {
   this.prevCollisions = {};
 
   // Resource pools for temporary objects.
-  this.collisionStatePool = new Pool(() => ({}), (map) => {
+  this.objectPool = new Pool(() => ({}), (map) => {
     for (let k in map) delete map[k];
   });
-  this.collisionPairPool = new Pool(() => ([]), (pair) => {
+  this.arrayPool = new Pool(() => ([]), (pair) => {
     pair.length = 0;
   });
 }
@@ -91,7 +91,7 @@ AmmoDriver.prototype.updateBody = function(body) {
 AmmoDriver.prototype.step = function(deltaTime) {
   this.physicsWorld.stepSimulation(deltaTime, this.maxSubSteps, this.fixedTimeStep);
 
-  const collisions = this.collisionStatePool.obtain();
+  const collisions = this.objectPool.obtain();
   const prevCollisions = this.prevCollisions;
 
   const numManifolds = this.dispatcher.getNumManifolds();
@@ -116,13 +116,13 @@ AmmoDriver.prototype.step = function(deltaTime) {
       if (prevCollisions[collisionKey]) {
         collisions[collisionKey] = prevCollisions[collisionKey];
       } else {
-        collisions[collisionKey] = this.collisionPairPool.obtain();
+        collisions[collisionKey] = this.arrayPool.obtain();
         collisions[collisionKey].push(body0ptr, body1ptr);
       }
     }
   }
 
-  const diffCollisions = this.collisionStatePool.obtain();
+  const diffCollisions = this.objectPool.obtain();
   AFRAME.utils.diff(prevCollisions, collisions, diffCollisions);
 
   for (let key in diffCollisions) {
@@ -145,12 +145,12 @@ AmmoDriver.prototype.step = function(deltaTime) {
       if (this.eventListeners.has(body1ptr)) {
         this.els.get(body1ptr).emit('collideend', { targetEl: this.els.get(body0ptr) });
       }
-      this.collisionPairPool.recycle(prevCollisions[key]);
+      this.arrayPool.recycle(prevCollisions[key]);
     }
   }
 
-  this.collisionStatePool.recycle(prevCollisions);
-  this.collisionStatePool.recycle(diffCollisions);
+  this.objectPool.recycle(prevCollisions);
+  this.objectPool.recycle(diffCollisions);
   this.prevCollisions = collisions;
 
   if (this.debugDrawer) {
