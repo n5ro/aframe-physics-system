@@ -126,7 +126,7 @@ AmmoDriver.prototype.step = function(deltaTime) {
   for (let i = 0; i < this.collisionKeys.length; i++) {
     const body0ptr = this.collisionKeys[i];
     const body1ptrs = this.collisions.get(body0ptr);
-    for (let j = body1ptrs.length; j >= 0; j--) {
+    for (let j = body1ptrs.length - 1; j >= 0; j--) {
       const body1ptr = body1ptrs[j];
       if (this.currentCollisions.get(body0ptr).has(body1ptr)) {
         continue;
