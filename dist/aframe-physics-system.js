@@ -17657,7 +17657,8 @@ var AmmoShape = {
         SHAPE.HULL,
         SHAPE.HACD,
         SHAPE.VHACD,
-        SHAPE.MESH
+        SHAPE.MESH,
+        SHAPE.HEIGHTFIELD
       ]
     },
     fit: { default: FIT.ALL, oneOf: [FIT.ALL, FIT.MANUAL] },
@@ -17668,7 +17669,10 @@ var AmmoShape = {
     cylinderAxis: { default: "y", oneOf: ["x", "y", "z"] },
     margin: { default: 0.01 },
     offset: { type: "vec3", default: { x: 0, y: 0, z: 0 } },
-    orientation: { type: "vec4", default: { x: 0, y: 0, z: 0, w: 1 } }
+    orientation: { type: "vec4", default: { x: 0, y: 0, z: 0, w: 1 } },
+    heightfieldData: { default: [] },
+    heightfieldDistance: { default: 1 },
+    includeInvisible: { default: false }
   },
 
   multiple: true,
@@ -17999,7 +18003,8 @@ module.exports = {
     HULL: "hull",
     HACD: "hacd",
     VHACD: "vhacd",
-    MESH: "mesh"
+    MESH: "mesh",
+    HEIGHTFIELD: "heightfield"
   },
   FIT: {
     ALL: "all",
@@ -18145,7 +18150,7 @@ AmmoDriver.prototype.step = function(deltaTime) {
   for (let i = 0; i < this.collisionKeys.length; i++) {
     const body0ptr = this.collisionKeys[i];
     const body1ptrs = this.collisions.get(body0ptr);
-    for (let j = body1ptrs.length; j >= 0; j--) {
+    for (let j = body1ptrs.length - 1; j >= 0; j--) {
       const body1ptr = body1ptrs[j];
       if (this.currentCollisions.get(body0ptr).has(body1ptr)) {
         continue;
