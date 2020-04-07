@@ -1,4 +1,4 @@
-var CANNON = require('cannon'),
+var CANNON = require('cannon-es'),
     mesh2shape = require('three-to-cannon');
 
 require('../../../lib/CANNON-shape2mesh');
@@ -61,10 +61,10 @@ var Body = {
 
     if(data.shape !== 'none') {
       var options = data.shape === 'auto' ? undefined : AFRAME.utils.extend({}, this.data, {
-        type: mesh2shape.Type[data.shape.toUpperCase()]
+        type: mesh2shape.threeToCannon.Type[data.shape.toUpperCase()]
       });
 
-      var shape = mesh2shape(this.el.object3D, options);
+      var shape = mesh2shape.threeToCannon(this.el.object3D, options);
 
       if (!shape) {
         el.addEventListener('object3dset', this.initBody.bind(this));
@@ -88,8 +88,14 @@ var Body = {
       this._play();
     }
 
-    if (this.isLoaded) {
-      this.el.emit('body-loaded', {body: this.el.body});
+    if ( this.isLoaded ) {
+
+      this.el.emit( "body-loaded", { body: this.el.body } );
+  
+    } else {
+  
+      this.el.emit( "body-init", { body: this.el.body } );
+  
     }
   },
 

@@ -1,4 +1,4 @@
-var CANNON = require('cannon'),
+var CANNON = require('cannon-es'),
     Driver = require('./driver');
 
 function LocalDriver () {

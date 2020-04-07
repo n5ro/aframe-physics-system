@@ -1,5 +1,5 @@
 /* global THREE */
-var CANNON = require('cannon'),
+var CANNON = require('cannon-es'),
     CONSTANTS = require('./constants'),
     C_GRAV = CONSTANTS.GRAVITY,
     C_MAT = CONSTANTS.CONTACT_MATERIAL;

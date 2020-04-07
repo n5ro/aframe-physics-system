@@ -1,4 +1,4 @@
-var CANNON = require('cannon');
+var CANNON = require('cannon-es');
 
 module.exports = AFRAME.registerComponent('spring', {
 
