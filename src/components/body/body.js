@@ -1,5 +1,5 @@
 var CANNON = require('cannon-es'),
-    mesh2shape = require('three-to-cannon');
+    mesh2shape = require('three-to-cannon').threeToCannon;
 
 require('../../../lib/CANNON-shape2mesh');
 
@@ -61,10 +61,10 @@ var Body = {
 
     if(data.shape !== 'none') {
       var options = data.shape === 'auto' ? undefined : AFRAME.utils.extend({}, this.data, {
-        type: mesh2shape.threeToCannon.Type[data.shape.toUpperCase()]
+        type: mesh2shape.Type[data.shape.toUpperCase()]
       });
 
-      var shape = mesh2shape.threeToCannon(this.el.object3D, options);
+      var shape = mesh2shape(this.el.object3D, options);
 
       if (!shape) {
         el.addEventListener('object3dset', this.initBody.bind(this));
