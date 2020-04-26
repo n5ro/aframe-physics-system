@@ -64,7 +64,7 @@ browserify my-app.js -o bundle.js
 
 When using webpack, you need to ensure that your `loader` for `.js` files includes this dependency. The example below assumes you're using Babel.
 
-```json
+```js
 {
   test: /\.js$/,
   include: ['src', require.resolve('aframe-physics-system') ],
