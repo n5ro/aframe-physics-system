@@ -58,6 +58,23 @@ npm install -g browserify
 browserify my-app.js -o bundle.js
 ```
 
+If using webpack, you need to ensure that your `loader` for`.js` files includes this dependency. (The example below
+ assumes you're using Babel)
+```webpack
+{
+  test: /\.js$/,
+  include: ['src', require.resolve('aframe-physics-system') ],
+  use: {
+    loader: 'babel-loader', // or whatever loader you're using to parse modules
+    options: {
+    }
+  }
+},
+```
+
+**Note**: You cannot use `exclude: /node_modules` for your `.js` loader. You must instead use `include` and pass an
+ array of directories as dependencies to transpile.
+
 `bundle.js` may then be included in your page. See [here](http://browserify.org/#middle-section) for a better introduction to Browserify.
 
 ## Basics
