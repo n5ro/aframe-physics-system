@@ -40,7 +40,7 @@
     "ammo-debug-drawer": "^0.1.0",
     "cannon-es": "0.8.8",
     "three-to-ammo": "^0.1.0",
-    "three-to-cannon": "https://github.com/vrlandio/three-to-cannon.git#cannon-es",
+    "three-to-cannon": "^2.1.0",
     "webworkify": "^1.4.0"
   },
   "peerDependencies": {
