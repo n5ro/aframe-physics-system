@@ -88,10 +88,9 @@ var Body = {
       this._play();
     }
 
-    if ( this.isLoaded ) {
-      this.el.emit( "body-loaded", { body: this.el.body } );
+    if (this.isLoaded) {
+      this.el.emit('body-loaded', {body: this.el.body});
     }
-
   },
 
   addShape: function(shape, offset, orientation) {
