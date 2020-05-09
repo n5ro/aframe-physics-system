@@ -1,5 +1,5 @@
-var CANNON = require('cannon'),
-    mesh2shape = require('three-to-cannon');
+var CANNON = require('cannon-es'),
+    mesh2shape = require('three-to-cannon').threeToCannon;
 
 require('../../../lib/CANNON-shape2mesh');
 

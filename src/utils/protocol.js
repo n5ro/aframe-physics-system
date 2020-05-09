@@ -1,4 +1,4 @@
-var CANNON = require('cannon');
+var CANNON = require('cannon-es');
 var mathUtils = require('./math');
 
 /******************************************************************************

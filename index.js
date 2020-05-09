@@ -1,4 +1,4 @@
-var CANNON = require('cannon');
+var CANNON = require('cannon-es');
 
 require('./src/components/math');
 require('./src/components/body/ammo-body');
