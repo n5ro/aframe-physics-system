@@ -1,8 +1,5 @@
-> NOTICE: This project is unmaintained, but [available for adoption](https://www.donmccurdy.com/2020/09/06/projects-up-for-adoption/).
-
 # Physics for A-Frame VR
 
-[![No Maintenance Intended](http://unmaintained.tech/badge.svg)](http://unmaintained.tech/)
 [![Latest NPM release](https://img.shields.io/npm/v/aframe-physics-system.svg)](https://www.npmjs.com/package/aframe-physics-system)
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/donmccurdy/aframe-physics-system/master/LICENSE)
 [![Build Status](https://travis-ci.org/donmccurdy/aframe-physics-system.svg?branch=master)](https://travis-ci.org/donmccurdy/aframe-physics-system)
