@@ -5,7 +5,7 @@
     <meta http-equiv="content-type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,maximum-scale=1">
     <title>Examples • Constraints</title>
-    <script type="text/javascript" src="https://aframe.io/releases/0.9.1/aframe.min.js"></script>
+    <script type="text/javascript" src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://rawgit.com/feiss/aframe-environment-component/master/dist/aframe-environment-component.min.js"></script>
     <script src="https://rawgit.com/fernandojsg/aframe-teleport-controls/master/dist/aframe-teleport-controls.min.js"></script>
     <script src="https://cdn.rawgit.com/donmccurdy/aframe-extras/v4.2.0/dist/components/sphere-collider.js"></script>
@@ -14,8 +14,8 @@
   </head>
   <body>
     <a-scene environment>
-      <a-entity teleport-controls vive-controls="hand: left" static-body="shape: sphere; sphereRadius: 0.02;" sphere-collider="objects: [dynamic-body];" grab></a-entity>
-      <a-entity teleport-controls vive-controls="hand: right" static-body="shape: sphere; sphereRadius: 0.02;" sphere-collider="objects: [dynamic-body];" grab></a-entity>
+      <a-entity teleport-controls hand-controls="hand: left" static-body="shape: sphere; sphereRadius: 0.02;" sphere-collider="objects: [dynamic-body];" grab></a-entity>
+      <a-entity teleport-controls hand-controls="hand: right" static-body="shape: sphere; sphereRadius: 0.02;" sphere-collider="objects: [dynamic-body];" grab></a-entity>
 
       <!-- CONE TWIST -->
       <a-entity position="2 0 -1">
