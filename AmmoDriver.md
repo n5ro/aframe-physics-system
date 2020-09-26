@@ -17,7 +17,7 @@
 
 ## Considerations Before Use
 
-The Ammo.js driver provides many features and new functionality that the existing Cannon.js intergration lacks. However, there are several things to keep in mind before using the Ammo.js driver:
+The Ammo.js driver provides many features and new functionality that the existing Cannon.js integration lacks. However, there are several things to keep in mind before using the Ammo.js driver:
 
 - The Ammo.js binaries are not a dependency of `Aframe-Physics-System`. You will need to include this into your project yourself. See: [Including the Ammo.js Build](#including-the-ammojs-build).
 - The Ammo.js binaries are several times larger than the Cannon.js binary. This shouldn't matter for most usages unless working in very memory sensitive environments.
@@ -125,7 +125,7 @@ An `ammo-body` component may be added to any entity in a scene. While having onl
 | emitCollisionEvents      | `false`    | Set to true to enable firing of `collidestart` and `collideend` events on this entity. See [Events](#events).                                           |
 | disableCollision         | `false`    | Set to true to disable object from colliding with all others.                                                                                           |
 | collisionFilterGroup     | `1`        | 32-bit bitmask to determine what collision "group" this object belongs to. See: [Collision Filtering](#collision-filtering).                            |
-| collisionFilterMask      | `1`        | 32-bit bitmask to determine what collision ""groups" this object should collide with. See: [Collision Filtering](#collision-filtering).                 |
+| collisionFilterMask      | `1`        | 32-bit bitmask to determine what collision "groups" this object should collide with. See: [Collision Filtering](#collision-filtering).                 |
 | scaleAutoUpdate          | `true`     | Should the shapes of the objecct be automatically scaled to match the scale of the entity.                                                              |
 
 #### `ammo-body` type
@@ -253,7 +253,7 @@ Any entity with an `ammo-body` component can also have 1 or more `ammo-shape` co
 
 ### `ammo-constraint`
 
-The `ammo-constraint` component is used to bind `ammo-bodies` together using hinges, fixed distances, or fixed attachment points. Note that an `ammo-shape` is not required for `ammo-constrant` to work, however you may get strange results with some constraint types.
+The `ammo-constraint` component is used to bind `ammo-bodies` together using hinges, fixed distances, or fixed attachment points. Note that an `ammo-shape` is not required for `ammo-constraint` to work, however you may get strange results with some constraint types.
 
 Example:
 
@@ -264,7 +264,7 @@ Example:
 
 | Property    | Dependencies                           | Default | Description                                                                               |
 | ----------- | -------------------------------------- | ------- | ----------------------------------------------------------------------------------------- |
-| type        | —                                      | `lock`  | Options: `lock`, `fixed`, `spring`, `slider`, `coneTwist`, `pointToPoint`.                |
+| type        | —                                      | `lock`  | Options: `lock`, `fixed`, `spring`, `slider`, `hinge`, `coneTwist`, `pointToPoint`.     |
 | target      | —                                      | —       | Selector for a single entity to which current entity should be bound.                     |
 | pivot       | `type: pointToPoint, coneTwist, hinge` | `0 0 0` | Offset of the hinge or point-to-point constraint, defined locally in this element's body. |
 | targetPivot | `type: pointToPoint, coneTwist, hinge` | `0 0 0` | Offset of the hinge or point-to-point constraint, defined locally in the target's body.   |
@@ -287,7 +287,7 @@ Ammo.destroy(vector3);
 ```
 
 - Exposed properties on classes can be accessed via specially generated `get_<property>()` and `set_<property>()` functions. E.g. `rayResultCallback.get_m_collisionObject();`
-- Sometimes when calling certain functions you will receive a pointer object instead of an instance of the class you are epecting. Use `Ammo.wrapPointer` to "wrap" the pointer in the class you expected. E.g. `Ammo.wrapPointer(ptr, Ammo.btRigidBody);`
+- Sometimes when calling certain functions you will receive a pointer object instead of an instance of the class you are expecting. Use `Ammo.wrapPointer` to "wrap" the pointer in the class you expected. E.g. `Ammo.wrapPointer(ptr, Ammo.btRigidBody);`
 - Conversely, sometimes you need the pointer of an object. Use `Ammo.getPointer`. E.g. `const ptr = Ammo.getPointer(object);`.
 
 In A-Frame, each entity's `btRigidBody` instance is exposed on the `el.body` property. To apply a quick push to an object, you might do the following:
