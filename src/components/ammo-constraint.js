@@ -126,9 +126,13 @@ module.exports = AFRAME.registerComponent("ammo-constraint", {
       case CONSTRAINT.CONE_TWIST: {
         const pivotTransform = new Ammo.btTransform();
         pivotTransform.setIdentity();
-        pivotTransform.getOrigin().setValue(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z);
-        constraint = new Ammo.btConeTwistConstraint(body, pivotTransform);
+        pivotTransform.getOrigin().setValue(data.pivot.x, data.pivot.y, data.pivot.z);
+        const targetPivotTransform = new Ammo.btTransform();
+        targetPivotTransform.setIdentity();
+        targetPivotTransform.getOrigin().setValue(data.targetPivot.x, data.targetPivot.y, data.targetPivot.z);
+        constraint = new Ammo.btConeTwistConstraint(body, targetBody, pivotTransform, targetPivotTransform);
         Ammo.destroy(pivotTransform);
+        Ammo.destroy(targetPivotTransform);
         break;
       }
       case CONSTRAINT.POINT_TO_POINT: {

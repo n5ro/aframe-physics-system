@@ -1,0 +1,120 @@
+
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,shrink-to-fit=no,user-scalable=no,maximum-scale=1">
+    <title>Examples • Constraints • AmmoDriver</title>
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <script src="https://mixedreality.mozilla.org/ammo.js/builds/ammo.wasm.js"></script>
+    <script src="https://rawgit.com/feiss/aframe-environment-component/master/dist/aframe-environment-component.min.js"></script>
+    <script src="https://rawgit.com/fernandojsg/aframe-teleport-controls/master/dist/aframe-teleport-controls.min.js"></script>
+    <script src="../bundle.js"></script>
+  </head>
+  <body>
+    <a-scene environment physics="driver: ammo; debug: true">
+      <a-entity id="cameraRig">
+        <a-camera></a-camera>
+        <a-entity teleport-controls="cameraRig: #cameraRig; button: trigger; type: line"
+          ammo-body="type: kinematic"
+          ammo-shape="type: box; halfExtents: 0.05 0.1 0.1; fit: manual;"
+          hand-controls="hand: left">
+        </a-entity>
+        <a-entity teleport-controls="cameraRig: #cameraRig; button: trigger"
+          ammo-body="type: kinematic"
+          ammo-shape="type: box; halfExtents: 0.05 0.1 0.1; fit: manual;"
+          hand-controls="hand: right">
+        </a-entity>
+      </a-entity>
+
+      <!-- CONE TWIST -->
+      <a-entity position="2 0 -1">
+        <a-text value="Cone Twist" position="0 1.5 0" align="center"></a-text>
+        <a-sphere id="conetwist-target" radius="0.125" color="#777" position="0 1 0"
+                  ammo-body="type: static" ammo-shape="type: sphere">
+        </a-sphere>
+        <a-box width="0.25" height="0.25" depth="0.25" color="#F00"
+               ammo-body ammo-shape
+               ammo-constraint="type: coneTwist;
+                                target: #conetwist-target;
+                                pivot: 0.13 0 0.0;
+                                targetPivot: -0.13 0.0 0.0;
+                                axis: 1.0 0.0 0.0;
+                                targetAxis: 1.0 0.0 0.0">
+        </a-box>
+      </a-entity>
+
+      <!-- HINGE -->
+      <a-entity position="-2 0 -1">
+        <a-text value="Hinge" position="0 1.5 0" align="center"></a-text>
+        <a-box id="hinge-target" position="-0.25 1 0.0" color="#777" ammo-body="type: static" ammo-shape scale="0.25 0.25 0.25"></a-box>
+        <a-box depth="0.1"
+               color="#F00"
+               scale="0.25 0.25 0.25"
+               ammo-body ammo-shape 
+               ammo-constraint="type: hinge;
+                           target: #hinge-target;
+                           axis: 0 1 0;
+                           targetAxis: 0 1 0;
+                           pivot: -0.125 0 0;
+                           targetPivot: 0.125 0 0.125;">
+        </a-box>
+        <a-box position="0.26 1 0" scale="0.25 0.25 0.25" color="#777" ammo-body="type: static" ammo-shape></a-box>
+      </a-entity>
+
+      <!-- LOCK -->
+      <a-entity position="0 0 -1">
+        <a-text value="Lock" position="0 1.5 0" align="center"></a-text>
+        <a-box id="lock-target"
+               position="0 1.0 0"
+               scale="0.25 0.25 0.25"
+               color="#777"
+               ammo-body="type: static" ammo-shape>
+        </a-box>
+        <a-box color="#F00"
+               position="0 1.25 0"
+               scale="0.25 0.25 0.25"
+               ammo-body ammo-shape
+               ammo-constraint="type: lock; target: #lock-target">
+        </a-box>
+      </a-entity>
+
+      <!-- POINT TO POINT -->
+      <a-entity position="4 0 -1">
+        <a-text value="Point to Point" position="0 1.5 0" align="center"></a-text>
+        <a-box id="pointtopoint-target"
+               color="#777"
+               position="0 1 0"
+               scale="0.25 0.25 0.25"
+               ammo-body="type: static" ammo-shape>
+        </a-box>
+        <a-box color="#F00"
+               scale="0.25 0.25 0.25"
+               ammo-body ammo-shape
+               ammo-constraint="type: pointToPoint;
+                                target: #pointtopoint-target;
+                                pivot: -0.125 -0.125 0.125;
+                                targetPivot: 0.125 -0.125 0.125">
+        </a-box>
+      </a-entity>
+
+      <!-- SLIDER -->
+      <a-entity position="-4 0 -1">
+        <a-text value="Slider" position="0 1.5 0" align="center"></a-text>
+        <a-sphere id="slider-target"
+               radius="0.125"
+               position="-0.5 1 0"
+               color="#777"
+               ammo-body="type: static" ammo-shape>
+        </a-sphere>
+        <a-sphere color="#F00"
+               radius="0.125"
+               position="0 1 0"
+               ammo-body ammo-shape
+               ammo-constraint="type: slider; target: #slider-target">
+        </a-sphere>
+        <a-cylinder radius="0.05" height="2" position="0 1 0" rotation="0 0 90"></a-cylinder>
+      </a-entity>
+    </a-scene>
+  </body>
+</html>
