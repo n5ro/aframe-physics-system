@@ -9,7 +9,7 @@
     <script src="https://mixedreality.mozilla.org/ammo.js/builds/ammo.wasm.js"></script>
     <script src="https://rawgit.com/feiss/aframe-environment-component/master/dist/aframe-environment-component.min.js"></script>
     <script src="https://rawgit.com/fernandojsg/aframe-teleport-controls/master/dist/aframe-teleport-controls.min.js"></script>
-    <script src="../bundle.js"></script>
+    <script src="/dist/aframe-physics-system.js"></script>
   </head>
   <body>
     <a-scene environment physics="driver: ammo; debug: true">
@@ -51,7 +51,7 @@
         <a-box depth="0.1"
                color="#F00"
                scale="0.25 0.25 0.25"
-               ammo-body ammo-shape 
+               ammo-body ammo-shape
                ammo-constraint="type: hinge;
                            target: #hinge-target;
                            axis: 0 1 0;
