@@ -1,7 +1,7 @@
-name: Test
+name: Browser testing CI
 on: [push, pull_request]
 jobs:
-  chrome:
+  test:
     strategy:
       matrix:
         os: [ubuntu-18.04, macos-10.15, windows-2019]
