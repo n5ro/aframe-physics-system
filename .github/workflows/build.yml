@@ -3,6 +3,11 @@ on:
   push:
     branches:
       - master
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'lib/**' 
 jobs:
   build:
     runs-on: ubuntu-18.04
