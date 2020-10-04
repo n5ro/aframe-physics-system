@@ -2,7 +2,7 @@ name: Build distribution
 on:
   push:
     branches:
-      - *
+      - test-ghpages
 jobs:
   build:
     runs-on: ubuntu-18.04
