@@ -39,8 +39,9 @@
   "dependencies": {
     "ammo-debug-drawer": "^0.1.0",
     "cannon-es": "^0.9.1",
+    "three": "^0.115.0",
     "three-to-ammo": "^0.1.0",
-    "three-to-cannon": "^2.1.0",
+    "three-to-cannon": "^3.0.2",
     "webworkify": "^1.4.0"
   },
   "peerDependencies": {
