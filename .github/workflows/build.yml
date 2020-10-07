@@ -7,7 +7,7 @@ on:
       - 'src/**'
       - 'package.json'
       - 'package-lock.json'
-      - 'lib/**' 
+      - 'lib/**'
 jobs:
   build:
     runs-on: ubuntu-18.04
@@ -27,5 +27,6 @@ jobs:
         git config user.name aframe-physics-system
         git config user.email aframe-physics-system@github.com
         git add dist
-        git commit -m "Update built distributions"
+        git update-index --refresh
+        git diff-index --quiet HEAD dist || git commit -m "Update built distributions"
         git push
