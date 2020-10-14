@@ -4,8 +4,8 @@
   "description": "Physics system for A-Frame VR, built on Cannon.js",
   "main": "index.js",
   "scripts": {
-    "dev": "budo index.js:dist/aframe-physics-system.js -d examples --port 8000",
-    "dist": "browserify index.js -o dist/aframe-physics-system.js && uglifyjs -c -o dist/aframe-physics-system.min.js -- dist/aframe-physics-system.js",
+    "dev": "budo index.js:dist/aframe-physics-system.js -d examples --port 8000 -- -g browserify-shim",
+    "dist": "browserify -g browserify-shim index.js -o dist/aframe-physics-system.js && uglifyjs -c -o dist/aframe-physics-system.min.js -- dist/aframe-physics-system.js",
     "test": "karma start ./tests/karma.conf.js",
     "test:once": "karma start ./tests/karma.conf.js --single-run",
     "test:firefox": "karma start ./tests/karma.conf.js --browsers Firefox",
@@ -15,6 +15,9 @@
     "preversion:readme": "replace 'aframe-physics-system/v\\d+\\.\\d+\\.\\d+' \"aframe-physics-system/v$npm_package_version\" ./README.md",
     "version": "npm run preversion:readme && npm run dist && git add -A dist README.md",
     "postversion": "git push && git push --tags && npm publish"
+  },
+  "browserify-shim": {
+    "three": "global:THREE"
   },
   "repository": {
     "type": "git",
@@ -40,7 +43,7 @@
     "ammo-debug-drawer": "^0.1.0",
     "cannon-es": "^0.9.1",
     "three-to-ammo": "^0.1.0",
-    "three-to-cannon": "^2.1.0",
+    "three-to-cannon": "^3.0.2",
     "webworkify": "^1.4.0"
   },
   "peerDependencies": {
@@ -50,6 +53,7 @@
     "aframe": "^1.0.4",
     "browserify": "^16.5.1",
     "browserify-css": "^0.15.0",
+    "browserify-shim": "^3.8.14",
     "budo": "^11.6.3",
     "chai": "^3.5.0",
     "chai-shallow-deep-equal": "^1.4.6",
@@ -67,6 +71,7 @@
     "replace": "^1.2.0",
     "sinon": "^2.4.1",
     "sinon-chai": "^2.14.0",
+    "three": "^0.115.0",
     "uglify-es": "^3.3.9"
   }
 }
