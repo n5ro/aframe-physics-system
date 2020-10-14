@@ -24,6 +24,7 @@ Ammo.js driver support has been added. Please see [Ammo Driver](/AmmoDriver.md) 
 + [Using the CANNON.js API](#using-the-cannonjs-api)
 + [Events](#events)
 + [System Configuration](#system-configuration)
++ [Examples](#examples)
 
 ## Installation
 
@@ -181,7 +182,7 @@ Example:
 
 ```html
 <a-box id="other-box" dynamic-body />
-<a-box constraint="target: #other-box;" dynamic-body /> 
+<a-box constraint="target: #other-box;" dynamic-body />
 ```
 
 | Property         | Dependencies    | Default | Description |
@@ -309,3 +310,9 @@ Resources:
 * [CANNON.World](http://schteppe.github.io/cannon.js/docs/classes/World.html)
 * [CANNON.ContactMaterial](http://schteppe.github.io/cannon.js/docs/classes/ContactMaterial.html)
 
+## Examples
+
+To help demonstrate the features and capabilities of `aframe-physics-system` a
+collection of examples have been prepared. Please see
+[Examples](examples/README.md) for a summary and link to each of the
+prepared examples.

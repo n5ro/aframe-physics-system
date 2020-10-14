@@ -1,0 +1,20 @@
+name: Browser testing CI
+on: [push, pull_request]
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, macos-10.15, windows-2019]
+        browser: [ChromeHeadless, FirefoxHeadless]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Setup Node.js
+      uses: actions/setup-node@v1
+      with:
+        node-version: 12
+    - name: Install dependencies
+      run: npm ci
+    - name: Run tests
+      run: npx karma start ./tests/karma.conf.js --browsers ${{ matrix.browser }} --single-run

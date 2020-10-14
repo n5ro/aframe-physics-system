@@ -4,7 +4,7 @@
   "description": "Physics system for A-Frame VR, built on Cannon.js",
   "main": "index.js",
   "scripts": {
-    "dev": "budo index.js:bundle.js -d examples --port 8000 -- -g browserify-shim",
+    "dev": "budo index.js:dist/aframe-physics-system.js -d examples --port 8000 -- -g browserify-shim",
     "dist": "browserify -g browserify-shim index.js -o dist/aframe-physics-system.js && uglifyjs -c -o dist/aframe-physics-system.min.js -- dist/aframe-physics-system.js",
     "test": "karma start ./tests/karma.conf.js",
     "test:once": "karma start ./tests/karma.conf.js --single-run",
