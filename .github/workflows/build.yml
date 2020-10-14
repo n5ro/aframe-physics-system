@@ -1,0 +1,32 @@
+name: Build distribution
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'lib/**'
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Setup Node.js
+      uses: actions/setup-node@v1
+      with:
+        node-version: 12
+    - name: Install dependencies
+      run: npm ci
+    - name: Build distributions
+      run: npm run dist
+    - name: Update built distributions
+      run: |
+        git config user.name aframe-physics-system
+        git config user.email aframe-physics-system@github.com
+        git add dist
+        git update-index --refresh
+        git diff-index --quiet HEAD dist || git commit -m "Update built distributions"
+        git push
