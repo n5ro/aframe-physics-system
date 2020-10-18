@@ -21,7 +21,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/donmccurdy/aframe-physics-system.git"
+    "url": "git+https://github.com/n5ro/aframe-physics-system.git"
   },
   "keywords": [
     "aframe",
@@ -36,9 +36,9 @@
   "author": "Don McCurdy <dm@donmccurdy.com> (https://www.donmccurdy.com)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/donmccurdy/aframe-physics-system/issues"
+    "url": "https://github.com/n5ro/aframe-physics-system/issues"
   },
-  "homepage": "https://github.com/donmccurdy/aframe-physics-system#readme",
+  "homepage": "https://github.com/n5ro/aframe-physics-system#readme",
   "dependencies": {
     "ammo-debug-drawer": "^0.1.0",
     "cannon-es": "^0.9.1",
