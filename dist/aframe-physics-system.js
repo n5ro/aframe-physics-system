@@ -14487,7 +14487,7 @@ module.exports = AFRAME.registerComponent("ammo-constraint", {
 
     const bodyTransform = body
       .getCenterOfMassTransform()
-      .inverse()
+      .invert()
       .op_mul(targetBody.getWorldTransform());
     const targetTransform = new Ammo.btTransform();
     targetTransform.setIdentity();
@@ -15009,7 +15009,7 @@ let AmmoBody = {
       } else {
         q1.set(quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
         parentEl.object3D.getWorldQuaternion(q2);
-        q1.multiply(q2.inverse());
+        q1.multiply(q2.invert());
         el.object3D.quaternion.copy(q1);
 
         v.set(position.x(), position.y(), position.z());
@@ -15413,7 +15413,7 @@ var Body = {
       } else {
         q1.copy(body.quaternion);
         parentEl.object3D.getWorldQuaternion(q2);
-        q1.premultiply(q2.inverse());
+        q1.premultiply(q2.invert());
         el.object3D.quaternion.copy(q1);
 
         v.copy(body.position);
