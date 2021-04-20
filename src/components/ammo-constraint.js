@@ -69,7 +69,7 @@ module.exports = AFRAME.registerComponent("ammo-constraint", {
 
     const bodyTransform = body
       .getCenterOfMassTransform()
-      .inverse()
+      .invert()
       .op_mul(targetBody.getWorldTransform());
     const targetTransform = new Ammo.btTransform();
     targetTransform.setIdentity();

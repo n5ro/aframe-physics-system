@@ -432,7 +432,7 @@ let AmmoBody = {
       } else {
         q1.set(quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
         parentEl.object3D.getWorldQuaternion(q2);
-        q1.multiply(q2.inverse());
+        q1.multiply(q2.invert());
         el.object3D.quaternion.copy(q1);
 
         v.set(position.x(), position.y(), position.z());

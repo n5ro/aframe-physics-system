@@ -50,7 +50,7 @@
     "aframe": ">=0.5.0"
   },
   "devDependencies": {
-    "aframe": "^1.0.4",
+    "aframe": "^1.1.0",
     "browserify": "^16.5.1",
     "browserify-css": "^0.15.0",
     "browserify-shim": "^3.8.14",
@@ -71,7 +71,7 @@
     "replace": "^1.2.0",
     "sinon": "^2.4.1",
     "sinon-chai": "^2.14.0",
-    "three": "^0.115.0",
+    "three": "^0.123.0",
     "uglify-es": "^3.3.9"
   }
 }
