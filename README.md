@@ -34,13 +34,13 @@ Ammo.js driver support has been added. Please see [Ammo Driver](/AmmoDriver.md) 
 In the [dist/](https://github.com/donmccurdy/aframe-physics-system/tree/master/dist) folder, download the full or minified build. Include the script on your page, and all components are automatically registered for you:
 
 ```html
-<script src="https://cdn.jsdelivr.net/gh/n5ro/aframe-physics-system@v4.0.1/dist/aframe-physics-system.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/n5ro/aframe-physics-system@v$npm_package_version/dist/aframe-physics-system.min.js"></script>
 ```
 
-CDN builds for aframe-physics-system@v4.0.1:
+CDN builds for aframe-physics-system@v$npm_package_version:
 
-- [aframe-physics-system.js](https://cdn.jsdelivr.net/gh/n5ro/aframe-physics-system@v4.0.1/dist/aframe-physics-system.js) *(development)*
-- [aframe-physics-system.min.js](https://cdn.jsdelivr.net/gh/n5ro/aframe-physics-system@v4.0.1/dist/aframe-physics-system.min.js) *(production)*
+- [aframe-physics-system.js](https://cdn.jsdelivr.net/gh/n5ro/aframe-physics-system@v$npm_package_version/dist/aframe-physics-system.js) *(development)*
+- [aframe-physics-system.min.js](https://cdn.jsdelivr.net/gh/n5ro/aframe-physics-system@v$npm_package_version/dist/aframe-physics-system.min.js) *(production)*
 
 ### npm
 
