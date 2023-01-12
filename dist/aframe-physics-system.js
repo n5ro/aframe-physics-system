@@ -226,13 +226,13 @@ THREE.AmmoDebugDrawer = function(scene, world, options) {
   var vertices = new Float32Array(maxBufferSize * 3);
   var colors = new Float32Array(maxBufferSize * 3);
 
-  this.geometry.addAttribute("position", new THREE.BufferAttribute(vertices, 3).setDynamic(true));
-  this.geometry.addAttribute("color", new THREE.BufferAttribute(colors, 3).setDynamic(true));
+  this.geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3).setUsage(THREE.DynamicDrawUsage));
+  this.geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3).setUsage(THREE.DynamicDrawUsage));
 
   this.index = 0;
 
   var material = new THREE.LineBasicMaterial({
-    vertexColors: THREE.VertexColors,
+    vertexColors: true,
     depthTest: !drawOnTop
   });
 
@@ -14230,7 +14230,7 @@ const _iterateGeometries = (function() {
   const inverse = new THREE.Matrix4();
   const bufferGeometry = new THREE.BufferGeometry();
   return function(root, options, cb) {
-    inverse.getInverse(root.matrixWorld);
+    inverse.copy(root.matrixWorld).invert();
     root.traverse(mesh => {
       if (
         mesh.isMesh &&
