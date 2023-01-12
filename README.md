@@ -1,3 +1,13 @@
+-----------
+
+### a-frame-physics-system is now maintained at: [c-frame/aframe-physics-system](https://github.com/c-frame/aframe-physics-system)
+
+### Available on npm as [@c-frame/aframe-physics-system](https://www.npmjs.com/package/@c-frame/aframe-physics-system)
+
+-------------
+
+
+
 # Physics for A-Frame VR
 
 [![Latest NPM release](https://img.shields.io/npm/v/aframe-physics-system.svg)](https://www.npmjs.com/package/aframe-physics-system)
