@@ -250,9 +250,25 @@ In A-Frame, each entity's `CANNON.Body` instance is exposed on the `el.body` pro
 var el = sceneEl.querySelector('#nyan');
 el.body.applyImpulse(
   /* impulse */        new CANNON.Vec3(0, 1, -1),
-  /* world position */ new CANNON.Vec3().copy(el.getComputedAttribute('position'))
+  /* world position of the impulse */ new CANNON.Vec3().copy(el.getComputedAttribute('position'))
 );
 ```
+
+Using the above can be tricky, however; For example, when hitting a sphere, the impulse placement would have to be extremely precise, otherwise, this being physics, much (or some) of the force impulse's force might be manifested as spin (rotation) instead of velocity (position) change.
+
+If we just want to launch an object in a certain direction, it can often make more sense to directly set velocity, like this:
+
+```js
+var el = sceneEl.querySelector('#nyan');
+
+el.setAttribute('velocity', {
+  x: 0, 
+  y: 1, 
+  z: -10,
+})
+```
+
+This would launch the el just slightly up and far out in the Z axis.
 
 ## Events
 
